@@ -1,0 +1,235 @@
+/* ============================================================================
+   MODALS - Modal dialogs and overlays
+   ============================================================================
+   
+   PURPOSE: Full-screen modal overlays for dialogs and confirmations
+   
+   INCLUDES:
+   - Modal backdrop
+   - Modal container with sizes (sm, md, lg, xl)
+   - Modal header with close button
+   - Modal body with scrollable content
+   - Modal footer with action buttons
+   - Open/close animations
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables, z-index layers)
+   
+   USED BY:
+   - Completion confirmations
+   - Assessment submissions
+   - Help dialogs
+   - Confirmation prompts
+   
+   AI DEBUGGING TIPS:
+   - Modal not showing? Check .active class on both .modal and .modal-backdrop
+   - Modal not centered? Verify position:absolute parent container
+   - Content overflowing? Check .modal-body max-height calculation
+   - Close button not working? Ensure .modal-close has click handler
+   - Z-index issues? Use --z-modal and --z-modal-backdrop from tokens
+   
+   STRUCTURE:
+   1. Modal backdrop (45-70)
+   2. Modal container (75-100)
+   3. Modal header (105-150)
+   4. Modal body (155-185)
+   5. Modal footer (190-200)
+   6. Modal sizes (205-220)
+   
+   COMMON CLASSES:
+   .modal-backdrop     - Dark overlay behind modal
+   .modal              - Modal container
+   .modal-header       - Top section with title and close button
+   .modal-title        - Modal heading
+   .modal-close        - Close button (×)
+   .modal-body         - Scrollable content area
+   .modal-footer       - Bottom section with action buttons
+   .modal-sm           - Small modal (400px)
+   .modal-lg           - Large modal (800px)
+   .modal-xl           - Extra large modal (1000px)
+   .active             - Visible state (add to .modal and .modal-backdrop)
+   
+   LAST UPDATED: 2024-11-17
+   ============================================================================ */
+
+/* ============================================================================
+   MODAL BACKDROP
+   ============================================================================ */
+
+.modal-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: var(--z-modal-backdrop);
+  display: none;
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+  backdrop-filter: blur(4px);
+}
+
+.modal-backdrop.active {
+  display: block;
+  opacity: 1;
+}
+
+/* ============================================================================
+   MODAL CONTAINER
+   ============================================================================ */
+
+.modal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.9);
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-modal);
+  max-width: 90%;
+  max-height: 90vh;
+  width: var(--size-modal-default);
+  display: none;
+  opacity: 0;
+  transition: opacity var(--transition-normal), transform var(--transition-normal);
+  overflow: hidden;
+}
+
+.modal.active {
+  display: block;
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* ============================================================================
+   MODAL HEADER
+   ============================================================================ */
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  border-bottom: var(--border-width-md) solid var(--color-gray-200);
+  background: var(--bg-muted);
+}
+
+.modal-title {
+  margin: 0;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  font-size: var(--font-size-xl);
+  color: var(--color-gray-600);
+  cursor: pointer;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast), transform var(--transition-fast);
+  min-width: var(--btn-min-height);
+  min-height: var(--btn-min-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  background: var(--bg-inset);
+  color: var(--color-gray-900);
+}
+
+.modal-close:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+   MODAL BODY
+   ============================================================================ */
+
+.modal-body {
+  padding: var(--space-6);
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(90vh - 180px);
+  box-sizing: border-box;
+}
+
+.modal-body * {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.modal-body input,
+.modal-body textarea,
+.modal-body select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.modal-body p {
+  margin-bottom: var(--space-3);
+}
+
+.modal-body p:last-child {
+  margin-bottom: 0;
+}
+
+.modal-body .form-group {
+  margin-bottom: var(--space-4);
+}
+
+.modal-body .select-wrapper {
+  width: 100%;
+}
+
+/* ============================================================================
+   MODAL FOOTER
+   ============================================================================ */
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-top: 2px solid var(--color-gray-200);
+  background: var(--bg-muted);
+}
+
+/* ============================================================================
+   MODAL SIZES
+   ============================================================================ */
+
+.modal-sm {
+  width: 400px;
+}
+
+.modal-lg {
+  width: 800px;
+}
+
+.modal-xl {
+  width: 1000px;
+}
+
+/* ============================================================================
+   REDUCED MOTION SUPPORT
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop,
+  .modal {
+    transition: none;
+  }
+  
+  .modal.active {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}

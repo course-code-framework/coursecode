@@ -1,0 +1,30 @@
+/* ========================================
+   UI COMPONENT: Intro + Cards
+   Use for: Introduction/overview slides
+   ======================================== */
+[data-component="intro-cards"] {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+[data-component="intro-cards"]>.intro {
+  margin-bottom: var(--space-8);
+  text-align: center;
+}
+
+[data-component="intro-cards"]>.intro .lead {
+  font-size: var(--font-size-lg);
+  color: var(--text-secondary);
+}
+
+[data-component="intro-cards"] .card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-4);
+}
+
+@media (max-width: 640px) {
+  [data-component="intro-cards"] .card-grid {
+    grid-template-columns: 1fr;
+  }
+}

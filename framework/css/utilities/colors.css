@@ -1,0 +1,76 @@
+/* ============================================================================
+   COLOR UTILITIES - Text and background color classes
+   ============================================================================
+   
+   PURPOSE: Utility classes for applying colors
+   
+   INCLUDES:
+   - Text colors (brand and semantic colors)
+   - Background colors
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for color variables)
+   
+   USAGE:
+   <p class="text-primary">Primary colored text</p>
+   <div class="bg-accent">Accent background</div>
+   <span class="text-muted">Muted text</span>
+   
+   ============================================================================ */
+
+/* Color Utilities - Text (semantic) */
+.text-primary { color: var(--color-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-accent { color: var(--color-accent); }
+.text-success { color: var(--color-success-text); }
+.text-warning { color: var(--color-warning-text); }
+.text-danger { color: var(--color-danger-text); }
+.text-info { color: var(--color-info-text); }
+.text-muted { color: var(--text-muted); }
+.text-body { color: var(--text-body); }
+.text-white { color: var(--color-white); }
+.text-dark { color: var(--color-gray-900); }
+.text-inherit { color: inherit; }
+
+/* Color Utilities - Text (gray scale) */
+.text-gray-50 { color: var(--color-gray-50); }
+.text-gray-100 { color: var(--color-gray-100); }
+.text-gray-200 { color: var(--color-gray-200); }
+.text-gray-300 { color: var(--color-gray-300); }
+.text-gray-400 { color: var(--color-gray-400); }
+.text-gray-500 { color: var(--color-gray-500); }
+.text-gray-600 { color: var(--color-gray-600); }
+.text-gray-700 { color: var(--color-gray-700); }
+.text-gray-800 { color: var(--color-gray-800); }
+.text-gray-900 { color: var(--color-gray-900); }
+
+/* Color Utilities - Background (semantic) */
+.bg-primary { background: var(--color-primary); }
+.bg-secondary { background: var(--color-secondary); }
+.bg-accent { background: var(--color-accent); }
+.bg-success { background: var(--color-success); }
+.bg-warning { background: var(--color-warning); }
+.bg-danger { background: var(--color-danger); }
+.bg-info { background: var(--color-info); }
+.bg-white { background: var(--color-white); }
+
+/* Color Utilities - Background (gray scale) */
+.bg-gray-50 { background: var(--color-gray-50); }
+.bg-gray-100 { background: var(--color-gray-100); }
+.bg-gray-200 { background: var(--color-gray-200); }
+.bg-gray-300 { background: var(--color-gray-300); }
+.bg-gray-400 { background: var(--color-gray-400); }
+.bg-gray-500 { background: var(--color-gray-500); }
+.bg-gray-600 { background: var(--color-gray-600); }
+.bg-gray-700 { background: var(--color-gray-700); }
+.bg-gray-800 { background: var(--color-gray-800); }
+.bg-gray-900 { background: var(--color-gray-900); }
+
+/* Subtle Background Utilities - Light tinted backgrounds for semantic colors */
+.bg-primary-subtle { background: var(--color-primary-light); }
+.bg-secondary-subtle { background: var(--color-secondary-light); }
+.bg-accent-subtle { background: var(--color-accent-light); }
+.bg-success-subtle { background: var(--color-success-light); }
+.bg-warning-subtle { background: var(--color-warning-light); }
+.bg-danger-subtle { background: var(--color-danger-light); }
+.bg-info-subtle { background: var(--color-info-light); }

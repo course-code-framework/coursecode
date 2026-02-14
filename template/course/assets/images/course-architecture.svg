@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400">
+  <!-- Background -->
+  <rect width="800" height="400" fill="#f8f9fa" />
+  
+  <!-- Connections -->
+  <path d="M200 200 L400 200" stroke="#adb5bd" stroke-width="4" />
+  <path d="M400 200 L600 200" stroke="#adb5bd" stroke-width="4" />
+  
+  <!-- Slides (Left) -->
+  <g id="slides">
+    <rect x="50" y="100" width="150" height="200" rx="10" fill="#e2e8f0" stroke="#475569" stroke-width="4" />
+    <text x="125" y="180" font-family="Arial" font-size="16" text-anchor="middle" fill="#475569">SLIDES</text>
+    <text x="125" y="200" font-family="Arial" font-size="16" text-anchor="middle" fill="#475569">&amp; CONTENT</text>
+    <path d="M100 230 L150 230" stroke="#f7b801" stroke-width="4" />
+    <circle cx="125" cy="140" r="15" fill="#f7b801" />
+  </g>
+
+  <!-- Framework (Center) -->
+  <g id="framework">
+    <rect x="325" y="125" width="150" height="150" rx="10" fill="#e2e8f0" stroke="#475569" stroke-width="4" />
+    <text x="400" y="190" font-family="Arial" font-size="16" text-anchor="middle" fill="#475569">COURSECODE</text>
+    <text x="400" y="210" font-family="Arial" font-size="16" text-anchor="middle" fill="#475569">FRAMEWORK</text>
+    <rect x="350" y="230" width="100" height="20" fill="#14213d" />
+    <circle cx="400" cy="150" r="10" fill="#14213d" />
+  </g>
+
+  <!-- LMS Package (Right) -->
+  <g id="lms-package">
+    <rect x="600" y="100" width="150" height="200" rx="10" fill="#e2e8f0" stroke="#475569" stroke-width="4" />
+    <text x="675" y="180" font-family="Arial" font-size="16" text-anchor="middle" fill="#475569">LMS</text>
+    <text x="675" y="200" font-family="Arial" font-size="16" text-anchor="middle" fill="#475569">PACKAGE</text>
+    <circle cx="640" cy="240" r="8" fill="#22c55e" />
+    <circle cx="675" cy="240" r="8" fill="#22c55e" />
+    <circle cx="710" cy="240" r="8" fill="#22c55e" />
+  </g>
+</svg>

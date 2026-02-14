@@ -1,0 +1,190 @@
+/* ============================================================================
+   LISTS - Generic List Style Utilities (NOT Assessment-Specific)
+   ============================================================================
+   
+   PURPOSE: Simple utilities for controlling bullet/number styles
+   
+   CLASSES:
+   .list-none       - Remove list bullets/numbers
+   .list-disc       - Disc bullets
+   .list-decimal    - Decimal numbering
+   .list-styled     - Enhanced styled bullets with colors and spacing
+   .list-numbered   - Enhanced numbered lists with colors and spacing
+   
+   NOTE: Assessment-specific list containers (.assessment-list, .assessment-list-item, etc.)
+   are defined in components/assessments.css - NOT in this generic utilities file
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   
+   ============================================================================ */
+
+/* ============================================================================
+   LIST STYLE UTILITIES - Control list bullet/numbering styles
+   ============================================================================ */
+
+/* List Style Control */
+.list-none {
+  list-style: none;
+}
+
+.list-disc {
+  list-style: disc;
+}
+
+.list-decimal {
+  list-style: decimal;
+}
+
+/* ============================================================================
+   STYLED LISTS - Enhanced spacing and visual hierarchy
+   ============================================================================ */
+
+.list-styled,
+.list-numbered {
+  margin: 0;
+  padding-left: var(--space-6);
+}
+
+.list-styled li,
+.list-numbered li {
+  padding-left: var(--space-2);
+  line-height: 1.6;
+}
+
+.list-styled {
+  list-style: disc;
+}
+
+.list-styled li::marker {
+  color: var(--color-primary);
+  font-size: 1.2em;
+}
+
+.list-numbered {
+  list-style: decimal;
+  counter-reset: list-counter;
+}
+
+.list-numbered li::marker {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Nested list styling */
+.list-styled ul,
+.list-numbered ul,
+.list-styled ol,
+.list-numbered ol {
+  padding-left: var(--space-5);
+}
+
+.list-styled ul li::marker {
+  content: '◦';
+  font-size: 1.4em;
+}
+
+/* ============================================================================
+   LIST MODIFIERS - Stackable variants
+   ============================================================================ */
+
+/* Dark/Neutral markers - black bullets/numbers instead of primary color */
+.list-dark li::marker,
+.list-styled.list-dark li::marker,
+.list-numbered.list-dark li::marker {
+  color: var(--color-text);
+}
+
+.list-dark ul li::marker,
+.list-styled.list-dark ul li::marker,
+.list-numbered.list-dark ul li::marker {
+  color: var(--color-text);
+}
+
+/* Compact - reduced spacing for dense content */
+.list-compact,
+.list-styled.list-compact,
+.list-numbered.list-compact {
+  padding-left: var(--space-4);
+}
+
+.list-compact li,
+.list-styled.list-compact li,
+.list-numbered.list-compact li {
+  padding-left: var(--space-1);
+  line-height: 1.4;
+}
+
+.list-styled.list-compact li::marker {
+  font-size: 0.9em;
+}
+
+.list-numbered.list-compact li::marker {
+  font-size: 0.95em;
+}
+
+/* Compact nested lists */
+.list-compact ul,
+.list-compact ol,
+.list-styled.list-compact ul,
+.list-styled.list-compact ol,
+.list-numbered.list-compact ul,
+.list-numbered.list-compact ol {
+  padding-left: var(--space-4);
+}
+
+/* Light markers - white bullets/numbers for dark backgrounds */
+.list-light li::marker,
+.list-styled.list-light li::marker,
+.list-numbered.list-light li::marker {
+  color: #fff;
+}
+
+.list-light ul li::marker,
+.list-styled.list-light ul li::marker,
+.list-numbered.list-light ul li::marker {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* ============================================================================
+   CONTEXTUAL AUTO-STYLING - Smart marker colors based on container
+   ============================================================================
+   Lists inside light-background containers (callouts, cards with light bg)
+   automatically get dark markers for better contrast.
+   ============================================================================ */
+
+/* Callouts with light backgrounds - use dark markers */
+.callout-warning .list-styled li::marker,
+.callout-warning .list-numbered li::marker,
+.callout-info .list-styled li::marker,
+.callout-info .list-numbered li::marker,
+.callout-success .list-styled li::marker,
+.callout-success .list-numbered li::marker,
+.callout-danger .list-styled li::marker,
+.callout-danger .list-numbered li::marker {
+  color: var(--color-gray-700);
+}
+
+/* Nested lists in callouts */
+.callout-warning .list-styled ul li::marker,
+.callout-warning .list-numbered ul li::marker,
+.callout-info .list-styled ul li::marker,
+.callout-info .list-numbered ul li::marker,
+.callout-success .list-styled ul li::marker,
+.callout-success .list-numbered ul li::marker,
+.callout-danger .list-styled ul li::marker,
+.callout-danger .list-numbered ul li::marker {
+  color: var(--color-gray-600);
+}
+
+/* Alerts with light backgrounds */
+.alert-warning .list-styled li::marker,
+.alert-warning .list-numbered li::marker,
+.alert-info .list-styled li::marker,
+.alert-info .list-numbered li::marker,
+.alert-success .list-styled li::marker,
+.alert-success .list-numbered li::marker,
+.alert-danger .list-styled li::marker,
+.alert-danger .list-numbered li::marker {
+  color: var(--color-gray-700);
+}

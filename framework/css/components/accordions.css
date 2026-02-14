@@ -1,0 +1,710 @@
+/* ============================================================================
+   ACCORDIONS - Collapsible content panels
+   ============================================================================
+   
+   PURPOSE: Show/hide content in collapsible sections
+   
+   INCLUDES:
+   - Accordion container
+   - Accordion items with headers and content
+   - Collapse/expand animation
+   - Chevron rotation
+   - Dark mode support
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   
+   USED BY:
+   - FAQ sections
+   - Long content that needs organization
+   - Step-by-step instructions
+   - Slide engagement tracking
+   
+   AI DEBUGGING TIPS:
+   - Accordion not expanding? Check .collapsed class on button
+   - Content not showing? Verify .show class on .accordion-content
+   - Animation not smooth? Check max-height value (increase if content is tall)
+   - Chevron not rotating? Check .accordion-icon ::before content
+   - Multiple panels open? Ensure only one .show at a time (unless multi-open)
+   
+   STRUCTURE:
+   1. Accordion container (45-55)
+   2. Accordion items (60-75)
+   3. Accordion buttons (80-125)
+   4. Accordion content/collapse (130-160)
+   5. Dark mode support (165-200)
+   
+   COMMON CLASSES:
+   .accordion            - Container for accordion items
+   .accordion-item       - Individual collapsible section
+   .accordion-button     - Clickable header button
+   .collapsed            - Collapsed state (on button)
+   .accordion-content    - Content container
+   .show                 - Expanded state (on content)
+   .accordion-body       - Content wrapper inside .accordion-content
+   
+   LAST UPDATED: 2024-11-17
+   ============================================================================ */
+
+/* ============================================================================
+   ACCORDION COMPONENT - Collapsible Content Panels
+   ============================================================================ */
+
+.accordion {
+  border: var(--border-width-thin) solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+.accordion-item {
+  border-bottom: var(--border-width-thin) solid var(--color-gray-200);
+  background: var(--bg-surface);
+  display: block !important;
+  /* Override any flex/grid display */
+}
+
+.accordion-item:last-child {
+  border-bottom: none;
+}
+
+.accordion-item>.accordion-header {
+  margin: 0;
+}
+
+/* Accordion Button/Header */
+.accordion-button {
+  width: 100%;
+  padding: var(--space-4) var(--space-5);
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-gray-800);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.accordion-button:hover {
+  background: var(--bg-subtle);
+  color: var(--color-primary-dark);
+}
+
+/* When always-open is set and this is the only open panel, show default cursor */
+[data-always-open] .accordion-button:not(.collapsed).accordion-locked {
+  cursor: default;
+}
+
+[data-always-open] .accordion-button:not(.collapsed).accordion-locked:hover {
+  background: var(--color-primary-alpha-05);
+}
+
+.accordion-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  background: var(--bg-subtle);
+  z-index: 1;
+}
+
+.accordion-button:not(.collapsed) {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+  background: var(--color-primary-alpha-05);
+  border-bottom: 1px solid var(--color-primary-alpha-10);
+}
+
+.accordion-title {
+  flex: 1;
+}
+
+/* Accordion Icon (Chevron) */
+.accordion-icon {
+  margin-left: var(--space-4);
+  color: var(--color-gray-400);
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--transition-normal), color var(--transition-fast);
+}
+
+.accordion-button:hover .accordion-icon {
+  color: var(--color-primary);
+}
+
+.accordion-button:not(.collapsed) .accordion-icon {
+  transform: rotate(180deg);
+  color: var(--color-primary);
+}
+
+/* CSS Chevron instead of text character for better consistency */
+.accordion-icon::before {
+  content: '';
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  margin-top: -4px;
+  /* Visual alignment correction */
+}
+
+/* Accordion Content - Collapse Animation */
+.accordion-content {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.25s ease-out,
+    visibility 0s linear 0.3s;
+  /* Delay visibility change until after height animation */
+  background: var(--bg-surface);
+  visibility: hidden;
+  /* Hide from screen readers when collapsed */
+}
+
+/* Override default hidden behavior to allow transition */
+.accordion-content[hidden] {
+  display: block;
+}
+
+.accordion-content.show {
+  max-height: 200rem;
+  /* Large enough for most content */
+  opacity: 1;
+  transition: max-height 0.35s ease-out,
+    opacity 0.3s ease-in 0.05s,
+    /* Slight delay so content fades in as it expands */
+    visibility 0s linear 0s;
+  /* Visibility changes immediately when opening */
+  visibility: visible;
+}
+
+.accordion-body {
+  padding: var(--space-5);
+  color: var(--color-gray-700);
+  line-height: var(--line-height-relaxed);
+  border-top: 1px solid transparent;
+  /* Prevents margin collapse */
+}
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================
+   
+   NOTE: Most dark mode styling is automatic via design tokens. The base styles
+   use semantic tokens like var(--color-white) and var(--bg-surface) which
+   automatically adapt when [data-theme="dark"] is set.
+   
+   Only override here for colors that need specific dark mode values that
+   don't automatically adapt via the token system.
+   ============================================================================ */
+
+[data-theme="dark"] .accordion {
+  border-color: var(--border-default);
+  background: var(--bg-elevated);
+}
+
+[data-theme="dark"] .accordion-item {
+  border-bottom-color: var(--border-default);
+  background: var(--bg-elevated);
+}
+
+[data-theme="dark"] .accordion-content {
+  background: var(--bg-elevated);
+}
+
+[data-theme="dark"] .accordion-button:not(.collapsed) {
+  color: var(--color-primary);
+  background: var(--color-primary-alpha-20);
+  border-bottom-color: var(--color-primary-alpha-10);
+}
+
+/* ============================================================================
+   REDUCED MOTION SUPPORT
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .accordion-content {
+    transition: none;
+  }
+
+  .accordion-icon {
+    transition: none;
+  }
+}
+
+
+/* ============================================================================
+   ACCORDION STYLE VARIANTS
+   ============================================================================
+   
+   Apply these data attributes to the .accordion container to change
+   the visual appearance.
+   
+   USAGE:
+   <div class="accordion" data-accordion-style="flush">
+     <div class="accordion-item">...</div>
+   </div>
+   
+   ============================================================================ */
+
+/* --------------------------------------
+   Flush Style - No outer border, dividers only
+   -------------------------------------- */
+[data-accordion-style="flush"].accordion {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+[data-accordion-style="flush"] .accordion-item {
+  background: transparent;
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+[data-accordion-style="flush"] .accordion-item:last-child {
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+[data-accordion-style="flush"] .accordion-button {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+[data-accordion-style="flush"] .accordion-body {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+[data-accordion-style="flush"] .accordion-content {
+  background: transparent;
+}
+
+/* Dark mode for flush - uses semantic tokens that auto-adapt */
+
+/* --------------------------------------
+   Separated Style - Gap between items
+   -------------------------------------- */
+[data-accordion-style="separated"].accordion {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+[data-accordion-style="separated"] .accordion-item {
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+[data-accordion-style="separated"] .accordion-item:last-child {
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+[data-accordion-style="separated"] .accordion-button:not(.collapsed) {
+  border-bottom: none;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+/* Dark mode for separated - uses semantic tokens that auto-adapt */
+
+/* --------------------------------------
+   Minimal Style - No borders, subtle hover
+   -------------------------------------- */
+[data-accordion-style="minimal"].accordion {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+[data-accordion-style="minimal"] .accordion-item {
+  background: transparent;
+  border-bottom: none;
+}
+
+[data-accordion-style="minimal"] .accordion-button {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+}
+
+[data-accordion-style="minimal"] .accordion-button:hover {
+  background: var(--bg-muted);
+}
+
+[data-accordion-style="minimal"] .accordion-button:not(.collapsed) {
+  background: var(--color-primary-alpha-05);
+  border-bottom: none;
+}
+
+[data-accordion-style="minimal"] .accordion-content {
+  background: transparent;
+}
+
+[data-accordion-style="minimal"] .accordion-body {
+  padding: var(--space-2) var(--space-4) var(--space-4);
+}
+
+/* Dark mode for minimal */
+[data-theme="dark"] [data-accordion-style="minimal"] .accordion-button:not(.collapsed) {
+  background: var(--color-primary-alpha-20);
+}
+
+/* --------------------------------------
+   Boxed Style - Each item is a bordered box
+   -------------------------------------- */
+[data-accordion-style="boxed"].accordion {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+[data-accordion-style="boxed"] .accordion-item {
+  border: 2px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-3);
+  overflow: hidden;
+  background: var(--bg-surface);
+}
+
+[data-accordion-style="boxed"] .accordion-item:last-child {
+  margin-bottom: 0;
+}
+
+[data-accordion-style="boxed"] .accordion-button {
+  background: var(--bg-subtle);
+}
+
+[data-accordion-style="boxed"] .accordion-button:hover {
+  background: var(--bg-muted);
+}
+
+[data-accordion-style="boxed"] .accordion-button:not(.collapsed) {
+  background: var(--color-primary);
+  color: var(--color-white);
+  border-bottom: none;
+}
+
+[data-accordion-style="boxed"] .accordion-button:not(.collapsed) .accordion-icon {
+  color: var(--color-white);
+}
+
+[data-accordion-style="boxed"] .accordion-content {
+  border-top: 2px solid var(--color-gray-200);
+}
+
+/* Dark mode for boxed */
+[data-theme="dark"] [data-accordion-style="boxed"] .accordion-item {
+  border-color: var(--border-default);
+}
+
+[data-theme="dark"] [data-accordion-style="boxed"] .accordion-content {
+  border-top-color: var(--border-default);
+}
+
+/* ============================================================================
+   FIXED HEIGHT ACCORDION
+   ============================================================================
+   
+   Use data-accordion-height="fixed" to maintain consistent height when 
+   switching between panels. Set --accordion-fixed-height to your desired value.
+   
+   USAGE:
+   <div class="accordion" data-accordion-height="fixed" style="--accordion-fixed-height: 300px;">
+     <div class="accordion-item">...</div>
+   </div>
+   
+   Or use predefined sizes:
+   <div class="accordion" data-accordion-height="sm">   <!-- 150px -->
+   <div class="accordion" data-accordion-height="md">   <!-- 250px -->
+   <div class="accordion" data-accordion-height="lg">   <!-- 400px -->
+   <div class="accordion" data-accordion-height="xl">   <!-- 600px -->
+   
+   ============================================================================ */
+
+/* Fixed height with custom variable */
+[data-accordion-height="fixed"] .accordion-content.show {
+  max-height: var(--accordion-fixed-height, 300px);
+  overflow-y: auto;
+}
+
+/* Predefined fixed height sizes */
+[data-accordion-height="sm"] .accordion-content.show {
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+[data-accordion-height="md"] .accordion-content.show {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+[data-accordion-height="lg"] .accordion-content.show {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+[data-accordion-height="xl"] .accordion-content.show {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+/* Hide scrollbar during animation, show after transition completes */
+[data-accordion-height] .accordion-content {
+  overflow: hidden;
+}
+
+[data-accordion-height] .accordion-content.show {
+  overflow-y: hidden;
+  animation: accordion-show-scrollbar 0.01s 0.5s forwards;
+}
+
+@keyframes accordion-show-scrollbar {
+  to {
+    overflow-y: auto;
+  }
+}
+
+/* Scrollbar styling for fixed height accordions */
+[data-accordion-height] .accordion-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+[data-accordion-height] .accordion-content::-webkit-scrollbar-track {
+  background: var(--bg-muted);
+  border-radius: 3px;
+}
+
+[data-accordion-height] .accordion-content::-webkit-scrollbar-thumb {
+  background: var(--color-gray-300);
+  border-radius: 3px;
+}
+
+[data-accordion-height] .accordion-content::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gray-400);
+}
+
+/* Dark mode scrollbar */
+[data-theme="dark"] [data-accordion-height] .accordion-content::-webkit-scrollbar-track {
+  background: var(--bg-muted);
+}
+
+[data-theme="dark"] [data-accordion-height] .accordion-content::-webkit-scrollbar-thumb {
+  background: var(--color-gray-400);
+}
+
+[data-theme="dark"] [data-accordion-height] .accordion-content::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gray-300);
+}
+
+/* ============================================================================
+   FILL PARENT HEIGHT ACCORDION
+   ============================================================================
+   
+   Use when accordion is in a container with a defined height (e.g., grid row
+   with min-h-lg). The accordion fills the parent and the open panel expands
+   to use remaining space after headers.
+   
+   USAGE:
+   <div class="split-40-60 min-h-lg">
+     <div class="card h-full">...</div>
+     <div class="accordion" data-accordion-fill>
+       <div class="accordion-item">...</div>
+     </div>
+   </div>
+   
+   REQUIREMENTS:
+   - Parent must have a defined height (min-height, height, or grid row)
+   - Use with data-mode="single" to ensure only one panel is open
+   
+   ============================================================================ */
+
+[data-accordion-fill] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+[data-accordion-fill] .accordion-content {
+  max-height: 0;
+  overflow: hidden;
+}
+
+[data-accordion-fill] .accordion-content.show {
+  flex: 1;
+  max-height: none;
+  overflow-y: auto;
+  /* Delay scrollbar until after animation */
+  overflow-y: hidden;
+  animation: accordion-show-scrollbar 0.01s 0.5s forwards;
+}
+
+/* Scrollbar styling for fill accordions */
+[data-accordion-fill] .accordion-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+[data-accordion-fill] .accordion-content::-webkit-scrollbar-track {
+  background: var(--bg-muted);
+  border-radius: 3px;
+}
+
+[data-accordion-fill] .accordion-content::-webkit-scrollbar-thumb {
+  background: var(--color-gray-300);
+  border-radius: 3px;
+}
+
+[data-accordion-fill] .accordion-content::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gray-400);
+}
+
+[data-theme="dark"] [data-accordion-fill] .accordion-content::-webkit-scrollbar-track {
+  background: var(--bg-muted);
+}
+
+[data-theme="dark"] [data-accordion-fill] .accordion-content::-webkit-scrollbar-thumb {
+  background: var(--color-gray-400);
+}
+
+[data-theme="dark"] [data-accordion-fill] .accordion-content::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gray-300);
+}
+
+
+/* ============================================================================
+   ACCORDION TITLE BADGES
+   ============================================================================
+   
+   PURPOSE: Consistent-width badges/labels in accordion titles for vertical
+   text alignment when accordion panels are stacked.
+   
+   USAGE:
+   <button class="accordion-button">
+     <span class="accordion-title">
+       <span class="accordion-badge accordion-badge-info">Term 1</span>
+       Definition or description text
+     </span>
+   </button>
+   
+   NOTE: Use base class .accordion-badge with a variant class for color.
+   This matches the pattern used by regular .badge components.
+   
+   CUSTOMIZATION:
+   Override --accordion-badge-width in your theme or inline:
+   <span class="accordion-badge accordion-badge-info" style="--accordion-badge-width: 8rem">Longer Term</span>
+   
+   ============================================================================ */
+
+/* Base styles - provides structure, default primary color */
+.accordion-badge {
+  display: inline-block;
+  min-width: var(--accordion-badge-width, 5.5rem);
+  text-align: center;
+  padding: var(--space-1) var(--space-2);
+  margin-right: var(--space-3);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-alpha-10);
+  color: var(--color-primary);
+}
+
+/* Variant: Secondary badge */
+.accordion-badge-secondary {
+  background: var(--bg-muted);
+  color: var(--color-gray-700);
+}
+
+/* Variant: Success badge */
+.accordion-badge-success {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+/* Variant: Warning badge */
+.accordion-badge-warning {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+/* Variant: Error badge */
+.accordion-badge-danger {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+/* Variant: Info badge */
+.accordion-badge-info {
+  background: var(--color-info-light);
+  color: var(--color-info);
+}
+
+/* Variant: Accent badge */
+.accordion-badge-accent {
+  background: var(--color-accent-alpha-10);
+  color: var(--color-accent);
+}
+
+/* Variant: Outline badge */
+.accordion-badge-outline {
+  background: transparent;
+  border: 1px solid var(--color-primary-alpha-30);
+  color: var(--color-primary);
+}
+
+/* Dark mode support */
+[data-theme="dark"] .accordion-badge {
+  background: rgba(var(--color-primary-rgb), 0.2);
+  color: var(--color-primary-light);
+}
+
+[data-theme="dark"] .accordion-badge-secondary {
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .accordion-badge-success {
+  background: rgba(var(--color-success-rgb), 0.2);
+  color: var(--color-success-light);
+}
+
+[data-theme="dark"] .accordion-badge-warning {
+  background: rgba(var(--color-warning-rgb), 0.2);
+  color: var(--color-warning-light);
+}
+
+[data-theme="dark"] .accordion-badge-danger {
+  background: rgba(var(--color-danger-rgb), 0.2);
+  color: var(--color-danger-light);
+}
+
+[data-theme="dark"] .accordion-badge-info {
+  background: rgba(var(--color-info-rgb), 0.2);
+  color: var(--color-info-light);
+}
+
+[data-theme="dark"] .accordion-badge-accent {
+  background: rgba(var(--color-accent-rgb), 0.2);
+  color: var(--color-accent-light);
+}
+
+[data-theme="dark"] .accordion-badge-outline {
+  border-color: rgba(var(--color-primary-rgb), 0.4);
+  color: var(--color-primary-light);
+}

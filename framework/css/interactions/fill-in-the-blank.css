@@ -1,0 +1,236 @@
+/* ============================================================================
+   FILL-IN-THE-BLANK - Inline text input interaction styles
+   ============================================================================
+   
+   PURPOSE: Styles for fill-in-the-blank text input questions with inline inputs
+   
+   INCLUDES:
+   - Inline input styling within flowing text
+   - Correct/incorrect states
+   - Focus states
+   - Responsive sizing
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   - Requires: base.css (for .interaction container)
+   
+   USED BY:
+   - Fill-in-the-blank questions with inline inputs
+   - Cloze-style exercises
+   - Sentence completion activities
+   
+   AI DEBUGGING TIPS:
+   - Input not inline? Check .fill-in-inline class on container
+   - Inputs too narrow? Adjust min-width in JS or CSS
+   - Focus state not showing? Verify :focus pseudo-class is applied
+   - Correct/incorrect colors not showing? Check .correct/.incorrect classes
+   
+   COMMON CLASSES:
+   .fill-in-inline       - Container for inline fill-in (flowing text)
+   .fill-in-template     - The template text wrapper
+   .fill-in-inline-input - Individual inline input element
+   
+   LAST UPDATED: 2024-02-04
+   ============================================================================ */
+
+/* Inline mode container */
+.fill-in-inline {
+  line-height: 2.2;
+}
+
+.fill-in-template {
+  font-size: var(--font-size-lg);
+  color: var(--text-body);
+}
+
+/* Inline input styling */
+.fill-in-inline-input {
+  display: inline-block;
+  width: auto;
+  min-width: 80px;
+  max-width: 250px;
+  padding: var(--space-1) var(--space-2);
+  margin: 0 var(--space-1);
+  border: var(--border-width-md) solid var(--color-secondary-alpha-30);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  vertical-align: baseline;
+  background: var(--bg-surface);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+
+.fill-in-inline-input::placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.fill-in-inline-input:focus {
+  outline: none;
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 3px var(--color-secondary-alpha-10);
+}
+
+.fill-in-inline-input.correct {
+  border-color: var(--color-success);
+  background: var(--color-success-light);
+}
+
+.fill-in-inline-input.incorrect {
+  border-color: var(--color-danger);
+  background: var(--color-danger-light);
+}
+
+/* Hide empty feedback containers */
+.fill-in-inline .overall-feedback:empty {
+  display: none;
+}
+
+.fill-in-inline .feedback {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+}
+
+.fill-in-inline .feedback.correct {
+  background: var(--color-success-light);
+  color: var(--color-success-text);
+}
+
+.fill-in-inline .feedback.incorrect {
+  background: var(--color-danger-light);
+  color: var(--color-danger-text);
+}
+
+.fill-in-inline .hint {
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-info-light);
+  color: var(--color-info-text);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .fill-in-template {
+    font-size: var(--font-size-base);
+    line-height: 2.4;
+  }
+
+  .fill-in-inline-input {
+    min-width: 60px;
+    max-width: 150px;
+    font-size: var(--font-size-sm);
+  }
+}
+
+/* ============================================================================
+   STACKED MODE - Question prompt followed by labeled input fields
+   ============================================================================ */
+
+.fill-in-stacked .fill-in-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.fill-in-stacked .fill-in-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.fill-in-stacked .fill-in-item label {
+  font-weight: var(--font-weight-medium);
+  color: var(--text-body);
+}
+
+.fill-in-stacked-input {
+  width: 100%;
+  max-width: 400px;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width-md) solid var(--color-secondary-alpha-30);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  background: var(--bg-surface);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+
+.fill-in-stacked-input::placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.fill-in-stacked-input:focus {
+  outline: none;
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 3px var(--color-secondary-alpha-10);
+}
+
+.fill-in-stacked-input.correct {
+  border-color: var(--color-success);
+  background: var(--color-success-light);
+}
+
+.fill-in-stacked-input.incorrect {
+  border-color: var(--color-danger);
+  background: var(--color-danger-light);
+}
+
+/* Stacked mode feedback */
+.fill-in-stacked .feedback {
+  font-size: var(--font-size-sm);
+  padding: var(--space-1) 0;
+}
+
+.fill-in-stacked .feedback.correct {
+  color: var(--color-success-text);
+}
+
+.fill-in-stacked .feedback.incorrect {
+  color: var(--color-danger-text);
+}
+
+.fill-in-stacked .overall-feedback:empty {
+  display: none;
+}
+
+.fill-in-stacked .hint {
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-info-light);
+  color: var(--color-info-text);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+}
+
+/* ============================================================================
+   NUMERIC INPUT - Specific styles for number inputs with units
+   ============================================================================ */
+
+.numeric-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.numeric-input-wrapper .fill-in-stacked-input {
+  max-width: 200px;
+}
+
+.numeric-input-wrapper .units {
+  color: var(--text-muted);
+  font-size: var(--font-size-base);
+}
+
+/* Remove number input spinner for cleaner look */
+.fill-in-stacked-input[type="number"]::-webkit-inner-spin-button,
+.fill-in-stacked-input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.fill-in-stacked-input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

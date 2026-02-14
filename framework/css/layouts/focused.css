@@ -1,0 +1,236 @@
+/* ============================================================================
+   FOCUSED LAYOUT - Immersive experience
+   ============================================================================
+   
+   PURPOSE: Minimal-chrome layout with:
+   - Header chrome hidden (no hover reveal)
+   - FAB sidebar toggle in top-left when sidebar is enabled
+   - OPTIONAL sidebar (controlled by navigation.sidebar.enabled)
+   - Content fills viewport, centered
+   - Floating centered footer with navigation
+   
+   BEST FOR: Story-driven courses, multimedia-heavy content, immersive experiences
+   
+   ============================================================================ */
+
+/* Focused: hide header when sidebar disabled */
+[data-layout="focused"]:not([data-sidebar-enabled="true"]) .course-header {
+    display: none !important;
+}
+
+/* Focused with sidebar: keep header in DOM but hide chrome, show only FAB toggle */
+[data-layout="focused"][data-sidebar-enabled="true"] .course-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    overflow: visible;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+[data-layout="focused"][data-sidebar-enabled="true"] .course-header > * {
+    visibility: hidden;
+}
+
+[data-layout="focused"][data-sidebar-enabled="true"] .course-header #sidebar-toggle {
+    visibility: visible;
+}
+
+/* Sidebar visibility controlled by data attribute */
+[data-layout="focused"]:not([data-sidebar-enabled="true"]) .sidebar {
+    display: none !important;
+}
+
+[data-layout="focused"]:not([data-sidebar-enabled="true"]) #sidebar-backdrop {
+    display: none !important;
+}
+
+[data-layout="focused"]:not([data-sidebar-enabled="true"]) #sidebar-toggle {
+    display: none !important;
+}
+
+/* FAB toggle button for focused layout - same pattern as presentation */
+[data-layout="focused"][data-sidebar-enabled="true"] #sidebar-toggle {
+    --header-control-bg: var(--nav-edge-bg);
+    --header-control-bg-hover: var(--nav-edge-bg-hover);
+    --header-control-text: var(--text-primary);
+    --header-border: var(--nav-edge-border);
+    position: fixed;
+    top: var(--space-4);
+    left: var(--space-4);
+    z-index: var(--z-fixed);
+    width: var(--nav-edge-control-size);
+    height: var(--nav-edge-control-size);
+    border-radius: var(--radius-full);
+    background: var(--header-control-bg);
+    border: 1px solid var(--header-border);
+    box-shadow: var(--nav-edge-shadow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: var(--nav-btn-edge-opacity);
+    transition: opacity var(--transition-fast), transform var(--transition-interactive), background var(--transition-fast), box-shadow var(--transition-interactive);
+    color: var(--header-control-text);
+}
+
+[data-layout="focused"][data-sidebar-enabled="true"] #sidebar-toggle:hover {
+    opacity: 1;
+    transform: scale(var(--nav-edge-hover-scale));
+    background: var(--header-control-bg-hover);
+    box-shadow: var(--nav-edge-shadow-hover);
+}
+
+[data-layout="focused"][data-sidebar-enabled="true"] #sidebar-toggle:active {
+    transform: scale(var(--nav-edge-active-scale));
+}
+
+/* App body fills full height (header is absolutely positioned, doesn't take space) */
+[data-layout="focused"] .app-body {
+    height: 100%;
+}
+
+/* Content area - centered, fills viewport */
+[data-layout="focused"] main#content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-6);
+    height: 100%;
+    box-sizing: border-box;
+}
+
+[data-layout="focused"] main#content>section {
+    max-width: 1000px;
+    width: 100%;
+    border: none;
+    box-shadow: none;
+    background: transparent;
+}
+
+/* Slide container centered */
+[data-layout="focused"] #slide-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* Footer styling moved to components/footer.css - DATA-LAYOUT VARIANTS section */
+
+/* Audio player styling moved to components/audio-player.css - DATA-LAYOUT VARIANTS section */
+
+/* Button styling moved to components/buttons.css - DATA-LAYOUT VARIANTS section */
+/* Engagement/gating styling moved to components/engagement.css - DATA-LAYOUT VARIANTS section */
+
+/* Breadcrumbs visibility now controlled by navigation.breadcrumbs.enabled config */
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+    [data-layout="focused"][data-sidebar-enabled="true"] #sidebar-toggle {
+        transition: none;
+    }
+
+    [data-layout="focused"][data-sidebar-enabled="true"] #sidebar-toggle:hover {
+        transform: none;
+    }
+}
+
+/* ============================================================================
+   FOCUSED LAYOUT SIDEBAR FOOTER - Horizontal status bar (same as article)
+   ============================================================================ */
+
+/* Show sidebar footer in focused layout when sidebar is enabled */
+[data-layout="focused"][data-sidebar-enabled="true"] .nav-sidebar-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+    padding: var(--space-3) var(--space-4);
+    border-top: 1px solid var(--sidebar-border);
+    background: var(--sidebar-bg);
+}
+
+/* Exit link - subtle text link style */
+[data-layout="focused"] .sidebar-exit-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-2);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-xs);
+    color: var(--sidebar-text);
+    opacity: 0.72;
+    cursor: pointer;
+    transition: opacity var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
+}
+
+[data-layout="focused"] .sidebar-exit-link:hover {
+    opacity: 1;
+    color: var(--color-danger);
+    background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+}
+
+[data-layout="focused"] .sidebar-exit-link:focus-visible {
+    opacity: 1;
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+}
+
+[data-layout="focused"] .sidebar-exit-link svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Settings icon buttons - compact row */
+[data-layout="focused"] .sidebar-settings-icons {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+[data-layout="focused"] .sidebar-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    background: color-mix(in srgb, var(--sidebar-text) 6%, transparent);
+    border: 1px solid color-mix(in srgb, var(--sidebar-text) 16%, transparent);
+    border-radius: var(--radius-md);
+    color: var(--sidebar-text);
+    opacity: 0.78;
+    cursor: pointer;
+    transition: opacity var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-interactive);
+}
+
+[data-layout="focused"] .sidebar-icon-btn:hover {
+    opacity: 1;
+    background: var(--sidebar-hover-bg);
+    border-color: color-mix(in srgb, var(--sidebar-active-text) 32%, transparent);
+    transform: translateY(var(--motion-lift-sm));
+}
+
+[data-layout="focused"] .sidebar-icon-btn:active {
+    transform: scale(var(--motion-press-scale));
+}
+
+[data-layout="focused"] .sidebar-icon-btn:focus-visible {
+    opacity: 1;
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+    border-color: color-mix(in srgb, var(--sidebar-active-text) 36%, transparent);
+}
+
+[data-layout="focused"] .sidebar-icon-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+[data-layout="focused"] .sidebar-icon-btn .icon-text {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
+}

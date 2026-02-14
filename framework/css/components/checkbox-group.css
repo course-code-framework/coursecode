@@ -1,0 +1,123 @@
+/* ============================================================================
+   CHECKBOX GROUP - Custom styled checkbox groups
+   ============================================================================
+   
+   PURPOSE: Grouped checkbox options with custom visual indicators
+   
+   INCLUDES:
+   - Checkbox group container styling
+   - Individual checkbox option styling
+   - Custom checkbox indicator with checkmark
+   - Focus states and disabled states
+   - Checked state styling
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   - Requires: ui-components/checkbox-group.js (JavaScript component)
+   
+   USED BY: Multiple selection questions, preference lists, filter options
+   
+   USAGE:
+   <div class="checkbox-group">
+     <label class="checkbox-option">
+       <input type="checkbox" name="choice" value="a" />
+       <span class="checkbox-custom"></span>
+       <div class="checkbox-label">Option A</div>
+     </label>
+   </div>
+   
+   ============================================================================ */
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: var(--border-width-md) solid var(--color-gray-300);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+  background: var(--bg-surface);
+  position: relative;
+}
+
+.checkbox-option:hover {
+  border-color: var(--color-secondary);
+  background: var(--bg-subtle);
+}
+
+.checkbox-option input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.checkbox-custom {
+  width: 24px;
+  height: 24px;
+  border: var(--border-width-md) solid var(--color-gray-400);
+  border-radius: var(--radius-md);
+  position: relative;
+  flex-shrink: 0;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), opacity var(--transition-fast);
+  background: var(--bg-surface);
+}
+
+.checkbox-custom::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  color: var(--color-white);
+  font-size: var(--font-size-base);
+  font-weight: bold;
+  transition: transform var(--transition-fast);
+}
+
+.checkbox-option input[type="checkbox"]:checked ~ .checkbox-custom {
+  background: var(--color-secondary);
+  border-color: var(--color-secondary);
+}
+
+.checkbox-option input[type="checkbox"]:checked ~ .checkbox-custom::after {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.checkbox-option input[type="checkbox"]:focus-visible ~ .checkbox-custom {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.checkbox-option input[type="checkbox"]:disabled ~ .checkbox-custom {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.checkbox-option:has(input[type="checkbox"]:checked) {
+  border-color: var(--color-secondary);
+  background: rgba(131, 8, 255, 0.05);
+}
+
+.checkbox-label {
+  font-size: var(--font-size-base);
+  color: var(--color-gray-900);
+  font-weight: var(--font-weight-medium);
+  flex: 1;
+}
+
+.checkbox-description {
+  font-size: var(--font-size-sm);
+  color: var(--color-gray-600);
+  margin-top: var(--space-1);
+}

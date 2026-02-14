@@ -1,0 +1,117 @@
+/* ============================================================================
+   VISIBILITY UTILITIES - Show/Hide and conditional display helpers
+   ============================================================================
+   
+   PURPOSE: Utility classes for visibility state management
+   
+   INCLUDES:
+   - Conditional display with visibility transitions
+   - Show/hide animations
+   - Pointer events management
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   
+   USED BY:
+   - Modal visibility toggling
+   - Conditional content display
+   - Animation-based transitions
+   
+   AI DEBUGGING TIPS:
+   - Elements appearing when hidden? Check opacity and pointer-events
+   - Animation not smooth? Verify transition timing in design-tokens
+   - Touch areas wrong? Check pointer-events: none/auto
+   - Mobile jerky? Check @media (prefers-reduced-motion: reduce)
+   
+   ============================================================================ */
+
+/* Conditional Display - Hidden State */
+.conditional-hidden {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+  pointer-events: none;
+}
+
+/* Conditional Display - Visible State */
+.conditional-visible {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s ease-in, transform 0.3s ease-in;
+  pointer-events: auto;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+
+  .conditional-hidden,
+  .conditional-visible {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* ============================================================================
+   LAYOUT-BASED VISIBILITY - Show/hide elements per layout type
+   ============================================================================
+   Usage: Add class to any element to control visibility per layout.
+   
+   Hide in specific layout:
+     <div class="hide-on-focused">Hidden only in focused layout</div>
+   
+   Show only in specific layout:
+     <div class="show-only-article">Visible only in article layout</div>
+   ============================================================================ */
+
+/* Hide in specific layouts */
+[data-layout="traditional"] .hide-on-traditional {
+  display: none !important;
+}
+
+[data-layout="article"] .hide-on-article {
+  display: none !important;
+}
+
+[data-layout="focused"] .hide-on-focused {
+  display: none !important;
+}
+
+[data-layout="presentation"] .hide-on-presentation {
+  display: none !important;
+}
+
+/* Show only in traditional layout */
+.show-only-traditional {
+  display: none !important;
+}
+
+[data-layout="traditional"] .show-only-traditional {
+  display: block !important;
+}
+
+/* Show only in article layout */
+.show-only-article {
+  display: none !important;
+}
+
+[data-layout="article"] .show-only-article {
+  display: block !important;
+}
+
+/* Show only in focused layout */
+.show-only-focused {
+  display: none !important;
+}
+
+[data-layout="focused"] .show-only-focused {
+  display: block !important;
+}
+
+/* Show only in presentation layout */
+.show-only-presentation {
+  display: none !important;
+}
+
+[data-layout="presentation"] .show-only-presentation {
+  display: block !important;
+}

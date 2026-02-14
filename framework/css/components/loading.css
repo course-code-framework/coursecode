@@ -1,0 +1,65 @@
+/* ============================================================================
+   LOADING INDICATOR - Initial course load state
+   ============================================================================
+   
+   PURPOSE: Display loading state during course initialization
+   
+   INCLUDES:
+   - Loading container styles
+   - Centered layout
+   - Text styling
+   - Integration with footer hide
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   
+   USED BY:
+   - Course initialization phase
+   - Content loading display
+   
+   AI DEBUGGING TIPS:
+   - Loading not showing? Check if #loading element exists in HTML
+   - Footer not hiding during load? Verify footer.css hide rule
+   - Text color wrong? Check var(--text-muted) token
+   
+   ============================================================================ */
+
+/* Loading indicator - overlay that covers the content area */
+#loading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  /* Match main content background */
+  background: var(--bg-page);
+  background-image:
+    radial-gradient(circle at 20% 50%, var(--color-secondary-alpha-05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, var(--color-primary-alpha-10) 0%, transparent 50%);
+  color: var(--text-muted);
+  z-index: 100;
+}
+
+/* Loading text styling */
+#loading .loading-text {
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+}
+
+/* Spinner inside loading indicator */
+#loading .spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-width: 0.25em;
+}
+
+/* Hide loading when removed from DOM or has hidden attribute */
+#loading[hidden],
+#loading.hidden {
+  display: none;
+}

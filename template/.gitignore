@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.zip
+
+# Preview export (comment this line to include in repo for GitHub Pages deployment)
+course-preview/
+
+# Environment
+.env
+.env.local
+
+# Google Cloud service account credentials (NEVER commit these!)
+**/service-account*.json
+**/*-credentials.json
+**/*-keyfile.json
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Narration cache
+.narration-cache.json
+
+# CourseCode Cloud (project binding)
+.coursecode/
+
+# Logs
+*.log
+npm-debug.log*

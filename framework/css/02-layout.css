@@ -1,0 +1,506 @@
+/* ============================================================================
+   LAYOUT - App Structure, Header, Main Content, Utilities
+   ============================================================================
+   
+   PURPOSE: Core application layout structure (app container, header, content area)
+            and layout utility classes for building slide content
+   
+   INCLUDES:
+   - App container (#app)
+   - Header with branding and controls
+   - Main content area
+   - Content width constraint utilities (.content-narrow, .content-wide, etc.)
+   - Vertical stack utilities (.stack-sm, .stack-md, .stack-lg)
+   - Column layout utilities (.cols-2, .cols-3, .split-50-50, etc.)
+   - Declarative layout patterns ([data-layout] attributes)
+   
+   SIDEBAR & NAVIGATION: Moved to components/sidebar.css
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   - Requires: 01-base.css (for typography)
+   
+   USED BY: All pages - core application structure and layout utilities
+   
+   DEBUGGING TIPS:
+   - Layout not responsive? Check media query at bottom (768px breakpoint)
+   - Content too wide? Check max-width on `.content-*` classes
+   - Grid not stacking? Check responsive media query stacks columns on mobile
+   
+   ============================================================================ */
+
+/* App Layout - Fixed Frame Structure */
+#app {
+  max-width: 1400px;
+  margin: 0 auto;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-md);
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header - Clean and Professional with Gradient - Fixed at Top */
+.course-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--header-padding-y) var(--header-padding-x);
+  background: var(--header-bg);
+  border-bottom: var(--header-border-width) solid var(--header-border);
+  position: relative;
+  box-shadow: var(--header-shadow);
+  flex-shrink: 0;
+  z-index: var(--z-fixed);
+  min-height: var(--header-height);
+  color: var(--header-text);
+}
+
+/* Header visibility toggle */
+html[data-header-enabled="false"] .course-header {
+  display: none;
+}
+
+.course-header h1 {
+  font-size: var(--header-title-size);
+  color: var(--header-text);
+  margin: 0;
+  font-weight: var(--header-title-weight);
+  letter-spacing: var(--header-title-letter-spacing);
+}
+
+/* Header Progress Indicator */
+.header-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+  margin-right: var(--space-4);
+  color: var(--header-text);
+  opacity: 0.96;
+}
+
+.header-progress[hidden] {
+  display: none;
+}
+
+.header-progress-text {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.header-progress-bar {
+  width: 80px;
+  height: 4px;
+  background: var(--header-progress-track);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.header-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--header-progress-fill);
+  border-radius: var(--radius-full);
+  transition: width 0.4s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-progress-fill {
+    transition: none;
+  }
+}
+
+/* Hide progress bar on small screens, keep text */
+@media (max-width: 600px) {
+  .header-progress-bar {
+    display: none;
+  }
+}
+
+/* ============================================================================
+   HEADER STYLE VARIANTS
+   ============================================================================
+   
+   Activate a style by adding data-header-style attribute to header or :root:
+   <header data-header-style="solid"> or <html data-header-style="minimal">
+   
+   ========================================================================= */
+
+/* Solid - Single color background instead of gradient */
+[data-header-style="solid"] .course-header,
+.course-header[data-header-style="solid"] {
+  background: var(--color-primary);
+  --header-bg: var(--color-primary);
+}
+
+/* Minimal - Light background with colored text */
+[data-header-style="minimal"] .course-header,
+.course-header[data-header-style="minimal"] {
+  background: var(--bg-surface);
+  color: var(--color-primary);
+  --header-text: var(--color-primary);
+  --header-border: var(--border-default);
+  box-shadow: var(--shadow-sm);
+}
+
+[data-header-style="minimal"] .course-header h1,
+.course-header[data-header-style="minimal"] h1,
+[data-header-style="minimal"] .course-header .brand-title,
+.course-header[data-header-style="minimal"] .brand-title {
+  color: var(--color-primary);
+}
+
+[data-header-style="minimal"] .sidebar-toggle,
+.course-header[data-header-style="minimal"] .sidebar-toggle {
+  color: var(--color-primary);
+}
+
+[data-header-style="minimal"] .sidebar-toggle:hover,
+.course-header[data-header-style="minimal"] .sidebar-toggle:hover {
+  background: var(--color-primary-alpha-10);
+}
+
+/* Dark - Dark background regardless of theme */
+[data-header-style="dark"] .course-header,
+.course-header[data-header-style="dark"] {
+  background: var(--header-dark-bg);
+  color: var(--header-dark-text);
+  --header-text: var(--header-dark-text);
+  --header-border: var(--header-dark-border);
+}
+
+[data-header-style="dark"] .course-header h1,
+.course-header[data-header-style="dark"] h1,
+[data-header-style="dark"] .course-header .brand-title,
+.course-header[data-header-style="dark"] .brand-title {
+  color: var(--header-text);
+}
+
+[data-header-style="dark"] .sidebar-toggle,
+.course-header[data-header-style="dark"] .sidebar-toggle {
+  color: var(--header-text);
+}
+
+/* Transparent - Content shows behind */
+[data-header-style="transparent"] .course-header,
+.course-header[data-header-style="transparent"] {
+  background: transparent;
+  box-shadow: none;
+  border-bottom-color: transparent;
+  position: absolute;
+  width: 100%;
+}
+
+/* ============================================================================
+   HEADER BORDER VARIANTS
+   ============================================================================
+   
+   Activate by adding data-header-border attribute to header or :root:
+   <header data-header-border="thin"> or <html data-header-border="none">
+   
+   ========================================================================= */
+
+/* Thin - 1px subtle border */
+[data-header-border="thin"] .course-header,
+.course-header[data-header-border="thin"] {
+  border-bottom-width: 1px;
+  --header-border-width: 1px;
+}
+
+/* None - No border */
+[data-header-border="none"] .course-header,
+.course-header[data-header-border="none"] {
+  border-bottom: none;
+}
+
+/* Gradient - Gradient border effect (uses pseudo-element) */
+[data-header-border="gradient"] .course-header,
+.course-header[data-header-border="gradient"] {
+  border-bottom: none;
+  position: relative;
+}
+
+[data-header-border="gradient"] .course-header::after,
+.course-header[data-header-border="gradient"]::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-secondary) 50%, var(--color-accent) 100%);
+}
+
+#brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-shrink: 0;
+  flex: 1;
+}
+
+#brand img.logo {
+  height: auto;
+  width: auto;
+  max-height: 44px;
+  object-fit: contain;
+  background: none;
+  padding: var(--space-2);
+}
+
+/* Inline SVG logo container */
+#brand span.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-height: 44px;
+  padding: var(--space-2);
+  color: var(--header-text, var(--color-white));
+}
+
+#brand span.logo svg {
+  height: 32px;
+  width: auto;
+}
+
+#brand .brand-title {
+  color: var(--header-text);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.01em;
+}
+
+
+/* Sidebar, navigation, and accessibility menu styling moved to components/sidebar.css */
+
+/* Main content structure */
+
+/* App Body - Container for sidebar and main content */
+.app-body {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Main Content - Scrollable Area Between Header and Footer */
+main#content {
+  padding: var(--content-padding);
+  background: var(--bg-page);
+  position: relative;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: clip;
+}
+
+/* Remove top padding when a flush-top hero is present (the hero wants to
+   sit directly against the header). Negative-margin tricks can't escape
+   the intermediate flex containers, so we remove padding at the source. */
+main#content:has([data-component="hero"].hero-flush-top) {
+  padding-top: 0;
+}
+
+/* Content Sections - Clean Card Design with Animation */
+main#content>section {
+  padding: var(--section-padding);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Border utilities (left border accents) are in utilities/borders.css */
+/* Assessment/success/remedial section styling is in components/ */
+
+/* Content Width Constraints 
+   Note: width: 100% ensures these fill available space when inside flex containers,
+   while max-width constrains the upper bound. */
+.content-narrow {
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.content-medium {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.content-wide {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.content-full {
+  width: 100%;
+  max-width: none;
+}
+
+/* Vertical Stacks (common pattern) */
+.stack-xs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.stack-sm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.stack-md {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.stack-lg {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+/* Column Layouts */
+.cols-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+.cols-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+}
+
+.cols-auto-fit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+}
+
+/* No-wrap columns - items always stay in one row, shrink to fit */
+.cols-nowrap {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--space-4);
+}
+
+.cols-nowrap>* {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+/* Split Layouts (common pattern) */
+.split-50-50 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+.split-60-40 {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: var(--space-4);
+}
+
+.split-40-60 {
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  gap: var(--space-4);
+}
+
+/* Responsive: Stack on mobile */
+@media (max-width: 768px) {
+
+  .cols-2,
+  .cols-3,
+  .split-50-50,
+  .split-60-40,
+  .split-40-60 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================================
+   DECLARATIVE LAYOUT COMPONENTS - data-layout attribute patterns
+   ============================================================================
+   
+   Pre-defined layout structures for common slide patterns.
+   Activated by `data-layout` attributes in HTML.
+   
+   PATTERNS:
+   - [data-layout="two-col"] - Two equal columns
+   - [data-layout="sidebar-left"] - Left sidebar (300px) + content
+   - [data-layout="sidebar-right"] - Content + right sidebar (300px)
+   
+   USAGE:
+   <div data-layout="two-col">
+     <div data-layout-header>Header</div>
+     <div data-layout-body>
+       <section>Left</section>
+       <section>Right</section>
+     </div>
+     <div data-layout-footer>Footer</div>
+   </div>
+   
+   ============================================================================ */
+
+[data-layout] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: var(--space-4);
+}
+
+[data-layout-header],
+[data-layout-footer] {
+  flex-shrink: 0;
+}
+
+[data-layout-body] {
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+/* Two-column layout */
+[data-layout="two-col"] [data-layout-body] {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+}
+
+/* Sidebar left */
+[data-layout="sidebar-left"] [data-layout-body] {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: var(--space-4);
+}
+
+[data-layout="sidebar-left"] [data-layout-sidebar] {
+  border-right: 1px solid var(--border-default);
+  padding-right: var(--space-4);
+}
+
+/* Sidebar right */
+[data-layout="sidebar-right"] [data-layout-body] {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: var(--space-4);
+}
+
+[data-layout="sidebar-right"] [data-layout-sidebar] {
+  border-left: 1px solid var(--border-default);
+  padding-left: var(--space-4);
+}

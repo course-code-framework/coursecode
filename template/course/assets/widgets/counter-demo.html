@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Counter Widget Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .widget {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            max-width: 300px;
+            width: 100%;
+        }
+        
+        h1 {
+            font-size: 1.25rem;
+            color: #333;
+            margin-bottom: 16px;
+        }
+        
+        .counter-display {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #667eea;
+            margin: 24px 0;
+            font-variant-numeric: tabular-nums;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+        
+        button {
+            width: 48px;
+            height: 48px;
+            border: none;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        
+        button:active {
+            transform: scale(0.95);
+        }
+        
+        .btn-decrement {
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .btn-increment {
+            background: #51cf66;
+            color: white;
+        }
+        
+        .btn-complete {
+            background: #667eea;
+            color: white;
+            width: 100%;
+            height: auto;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        
+        .btn-complete:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            margin-top: 16px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+        }
+        
+        .status.success {
+            background: #d3f9d8;
+            color: #2b8a3e;
+        }
+        
+        .status.info {
+            background: #e7f5ff;
+            color: #1971c2;
+        }
+    </style>
+</head>
+<body>
+    <div class="widget">
+        <h1>Interactive Counter Widget</h1>
+        <div class="counter-display" id="counter">0</div>
+        <div class="controls">
+            <button class="btn-decrement" onclick="decrement()">−</button>
+            <button class="btn-increment" onclick="increment()">+</button>
+        </div>
+        <button class="btn-complete" id="complete-btn" onclick="markComplete()">
+            Mark Complete (requires 5+)
+        </button>
+        <div class="status info" id="status">
+            Reach 5 to unlock completion
+        </div>
+    </div>
+
+    <script>
+        let count = 0;
+        let isComplete = false;
+
+        function updateDisplay() {
+            document.getElementById('counter').textContent = count;
+            const btn = document.getElementById('complete-btn');
+            const status = document.getElementById('status');
+            
+            if (isComplete) {
+                btn.disabled = true;
+                btn.textContent = '✓ Completed';
+                status.className = 'status success';
+                status.textContent = 'Widget interaction complete!';
+            } else if (count >= 5) {
+                btn.disabled = false;
+                status.className = 'status info';
+                status.textContent = 'Ready to complete!';
+            } else {
+                btn.disabled = true;
+                status.className = 'status info';
+                status.textContent = `Reach 5 to unlock (${5 - count} more)`;
+            }
+        }
+
+        function increment() {
+            count++;
+            updateDisplay();
+        }
+
+        function decrement() {
+            if (count > 0) {
+                count--;
+                updateDisplay();
+            }
+        }
+
+        function markComplete() {
+            if (count >= 5 && !isComplete) {
+                isComplete = true;
+                updateDisplay();
+                
+                // Communicate completion to CourseCode framework
+                parent.postMessage({
+                    type: 'coursecode:flag',
+                    key: 'counter-widget-complete',
+                    value: true
+                }, '*');
+                
+                parent.postMessage({
+                    type: 'coursecode:log',
+                    level: 'info',
+                    message: 'Counter widget completed with value: ' + count
+                }, '*');
+            }
+        }
+
+        // Signal ready state to parent
+        parent.postMessage({ type: 'coursecode:ready' }, '*');
+    </script>
+</body>
+</html>

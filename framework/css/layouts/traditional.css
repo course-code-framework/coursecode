@@ -1,0 +1,52 @@
+/* ============================================================================
+   TRADITIONAL LAYOUT - Classic LMS layout (default)
+   ============================================================================
+   
+   PURPOSE: The classic course player layout with:
+   - Full header with sidebar toggle and branding
+   - Slide-out navigation sidebar (overlay mode)
+   - Fixed footer with prev/next/exit buttons
+   
+   This is the default layout - uses existing styles from 02-layout.css,
+   sidebar.css, and footer.css without modification.
+   
+   ============================================================================ */
+
+/* Traditional layout uses default structure - explicit selector for clarity */
+[data-layout="traditional"] {
+    --layout-mode: traditional;
+    --header-bg: var(--color-primary);
+}
+
+/* Ensure all elements are visible in traditional layout */
+[data-layout="traditional"] .course-header {
+    display: flex;
+}
+
+[data-layout="traditional"] .sidebar-toggle {
+    display: flex;
+}
+
+[data-layout="traditional"] .sidebar {
+    display: flex;
+}
+
+[data-layout="traditional"] .app-footer {
+    display: flex;
+}
+
+/* Traditional: keep accessibility gear as ghost control in header */
+[data-layout="traditional"] #sidebar-toggle,
+[data-layout="traditional"] #accessibility-button {
+    background: transparent;
+}
+
+/* ============================================================================
+   MOBILE RESPONSIVE
+   ============================================================================
+   Mobile footer styling moved to components/footer.css - DATA-LAYOUT VARIANTS section.
+   Audio player tablet/mobile styling below.
+   ============================================================================ */
+
+
+/* Tablet audio player styling moved to components/audio-player.css - DATA-LAYOUT VARIANTS section */

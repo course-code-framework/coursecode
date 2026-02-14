@@ -1,0 +1,45 @@
+/* ============================================================================
+   INTERACTIONS - Index/Orchestrator
+   ============================================================================
+   
+   PURPOSE: Central import file for all interaction CSS modules
+   
+   STRUCTURE:
+   1. Base interaction container (base.css)
+   2. Question types (fill-in-the-blank, drag-drop, hotspots, numeric-input, matching, true-false)
+   3. Accessibility enhancements (accessibility.css)
+   
+   NOTE: Button layout now uses utility classes (.flex, .justify-center, .gap-3)
+         All button styling delegated to components/buttons.css
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   - Requires: components/buttons.css (for button base styles)
+   - Requires: utilities/flexbox.css (for layout)
+   
+   USED BY:
+   - All interactive slides
+   - Practice activities
+   - Knowledge checks
+   - Skill assessments
+   - Quiz questions
+   
+   LAST UPDATED: 2024-11-18
+   ============================================================================ */
+
+/* Base styles */
+@import './base.css';
+
+/* Question types (alphabetical) */
+@import './drag-drop.css';
+@import './fill-in-the-blank.css';
+@import './hotspots.css';
+@import './likert.css';
+@import './matching.css';
+@import './numeric-input.css';
+@import './sequencing.css';
+@import './true-false.css';
+@import './interactive-image.css';
+
+/* Accessibility (last) */
+@import './accessibility.css';

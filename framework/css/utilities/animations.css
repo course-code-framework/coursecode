@@ -1,0 +1,419 @@
+/* ============================================================================
+   ANIMATION UTILITIES - Entrance, attention, and micro-interaction animations
+   ============================================================================
+   
+   PURPOSE: Utility classes for adding animations to elements
+   
+   INCLUDES:
+   - Entrance animations (fade, slide, scale)
+   - Attention animations (pulse, bounce, wiggle, glow)
+   - Animation delay utilities for staggering
+   - Reduced motion support
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for animation timing tokens)
+   
+   USAGE:
+   - Add animation classes to elements for entrance effects
+   - Use delay utilities for staggered animations
+   - Combine with .animate-on-visible for scroll-triggered animations
+   
+   ACCESSIBILITY:
+   - All animations respect prefers-reduced-motion
+   - Animations are subtle and non-distracting
+   
+   ============================================================================ */
+
+/* ========================================
+   KEYFRAME DEFINITIONS
+   ======================================== */
+
+/* Fade In */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Fade Up - Fade in while sliding up */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fade Down - Fade in while sliding down */
+@keyframes fadeDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Slide Left - Slide in from right */
+@keyframes slideLeft {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Slide Right - Slide in from left */
+@keyframes slideRight {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Scale In - Scale up from small */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Pop - Quick pop-in effect with overshoot */
+@keyframes pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Pulse - Gentle pulsing for attention */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Bounce - Bouncing effect */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(-8px);
+  }
+  50% {
+    transform: translateY(0);
+  }
+  75% {
+    transform: translateY(-4px);
+  }
+}
+
+/* Wiggle - Side-to-side shake */
+@keyframes wiggle {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-3deg);
+  }
+  75% {
+    transform: rotate(3deg);
+  }
+}
+
+/* Glow - Glowing shadow effect */
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 5px var(--color-primary-alpha-20);
+  }
+  50% {
+    box-shadow: 0 0 20px var(--color-primary-alpha-40), 0 0 30px var(--color-primary-alpha-20);
+  }
+}
+
+/* Spin - Continuous rotation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* ========================================
+   ENTRANCE ANIMATION UTILITIES
+   ======================================== */
+
+.animate-fade-in {
+  animation: fadeIn var(--animation-duration-normal) var(--animation-easing-default) both;
+}
+
+.animate-fade-up {
+  animation: fadeUp var(--animation-duration-normal) var(--animation-easing-default) both;
+}
+
+.animate-fade-down {
+  animation: fadeDown var(--animation-duration-normal) var(--animation-easing-default) both;
+}
+
+.animate-slide-left {
+  animation: slideLeft var(--animation-duration-normal) var(--animation-easing-default) both;
+}
+
+.animate-slide-right {
+  animation: slideRight var(--animation-duration-normal) var(--animation-easing-default) both;
+}
+
+.animate-scale-in {
+  animation: scaleIn var(--animation-duration-normal) var(--animation-easing-default) both;
+}
+
+.animate-pop {
+  animation: pop var(--animation-duration-normal) var(--animation-easing-bounce) both;
+}
+
+
+/* ========================================
+   ATTENTION ANIMATION UTILITIES
+   ======================================== */
+
+.animate-pulse {
+  animation: pulse 2s var(--animation-easing-default) infinite;
+}
+
+.animate-bounce {
+  animation: bounce 1s var(--animation-easing-default) infinite;
+}
+
+.animate-wiggle {
+  animation: wiggle 0.5s var(--animation-easing-default) infinite;
+}
+
+.animate-glow {
+  animation: glow 2s var(--animation-easing-default) infinite;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+
+/* ========================================
+   ANIMATION DELAY UTILITIES
+   For staggered animations
+   ======================================== */
+
+.delay-100 {
+  animation-delay: 100ms;
+}
+
+.delay-200 {
+  animation-delay: 200ms;
+}
+
+.delay-300 {
+  animation-delay: 300ms;
+}
+
+.delay-400 {
+  animation-delay: 400ms;
+}
+
+.delay-500 {
+  animation-delay: 500ms;
+}
+
+.delay-700 {
+  animation-delay: 700ms;
+}
+
+.delay-1000 {
+  animation-delay: 1000ms;
+}
+
+
+/* ========================================
+   ANIMATION DURATION MODIFIERS
+   ======================================== */
+
+.animate-fast {
+  animation-duration: var(--animation-duration-fast);
+}
+
+.animate-slow {
+  animation-duration: var(--animation-duration-slow);
+}
+
+
+/* ========================================
+   ANIMATION PLAY STATE
+   ======================================== */
+
+.animate-paused {
+  animation-play-state: paused;
+}
+
+.animate-running {
+  animation-play-state: running;
+}
+
+
+/* ========================================
+   SCROLL-TRIGGERED ANIMATIONS
+   Elements start hidden and animate when visible
+   ======================================== */
+
+/* Initial hidden state for scroll-triggered animations */
+.animate-on-visible {
+  opacity: 0;
+}
+
+.animate-on-visible.animate-fade-up {
+  transform: translateY(20px);
+}
+
+.animate-on-visible.animate-fade-down {
+  transform: translateY(-20px);
+}
+
+.animate-on-visible.animate-slide-left {
+  transform: translateX(30px);
+}
+
+.animate-on-visible.animate-slide-right {
+  transform: translateX(-30px);
+}
+
+.animate-on-visible.animate-scale-in {
+  transform: scale(0.9);
+}
+
+/* When visible (class added by JS intersection observer) */
+.animate-on-visible.is-visible {
+  opacity: 1;
+  transform: none;
+  transition: opacity var(--animation-duration-normal) var(--animation-easing-default),
+              transform var(--animation-duration-normal) var(--animation-easing-default);
+}
+
+
+/* ========================================
+   HOVER ANIMATION UTILITIES
+   Apply animation on hover
+   ======================================== */
+
+.hover-bounce:hover {
+  animation: bounce 0.5s var(--animation-easing-default);
+}
+
+.hover-wiggle:hover {
+  animation: wiggle 0.3s var(--animation-easing-default);
+}
+
+.hover-pop:hover {
+  animation: pop 0.3s var(--animation-easing-bounce);
+}
+
+.hover-glow:hover {
+  animation: glow 0.5s var(--animation-easing-default);
+}
+
+/* Scale on hover (no animation, just transition) */
+.hover-scale {
+  transition: transform var(--transition-fast);
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+/* Lift on hover with shadow */
+.hover-lift {
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+
+/* ========================================
+   REDUCED MOTION SUPPORT
+   Respect user preferences for reduced motion
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  /* Disable all animations */
+  .animate-fade-in,
+  .animate-fade-up,
+  .animate-fade-down,
+  .animate-slide-left,
+  .animate-slide-right,
+  .animate-scale-in,
+  .animate-pop,
+  .animate-pulse,
+  .animate-bounce,
+  .animate-wiggle,
+  .animate-glow,
+  .animate-spin,
+  .hover-bounce:hover,
+  .hover-wiggle:hover,
+  .hover-pop:hover,
+  .hover-glow:hover {
+    animation: none;
+  }
+  
+  /* Keep elements visible but without motion */
+  .animate-on-visible,
+  .animate-on-visible.is-visible {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  
+  /* Disable hover transforms */
+  .hover-scale,
+  .hover-lift {
+    transition: none;
+  }
+  
+  .hover-scale:hover,
+  .hover-lift:hover {
+    transform: none;
+  }
+}

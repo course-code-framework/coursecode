@@ -1,0 +1,359 @@
+/* Interactive Image Component */
+
+/* Custom properties for hover/active states - override in theme.css without !important */
+/* Note: Scale and size values go in :root; color-dependent values go on .interactive-image-hotspot */
+:root {
+    --hotspot-hover-scale: 1.1;
+    --hotspot-hover-border-width: 2px;
+    --hotspot-active-scale: 1.2;
+    --hotspot-active-ring-size: 4px;
+    --hotspot-active-ring-transparency: 70%;
+    --hotspot-active-border-width: 2px;
+}
+
+.interactive-image-container {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.interactive-image-img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.interactive-image-hotspot {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    /* Default size if not specified inline */
+    min-width: 32px;
+    min-height: 32px;
+    
+    /* Theme Color Variable (defaults to primary) */
+    --hotspot-color: var(--color-primary, #14213d);
+    /* Viewed Color Variable (defaults to success) */
+    --viewed-color: var(--color-success, #1d7648);
+    /* Transparency Variable (defaults to 80% transparent / 20% opacity) */
+    --hotspot-transparency: 80%;
+    
+    /* Color-dependent defaults (must be on hotspot where --hotspot-color is defined) */
+    --hotspot-hover-border-color: var(--hotspot-color);
+    --hotspot-active-border-color: var(--hotspot-color);
+    
+    /* Default appearance (can be overridden by data-variant="area") */
+    background-color: rgba(255, 255, 255, 0.8);
+    border: 2px solid var(--hotspot-color);
+    color: var(--hotspot-color);
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, color 0.2s ease-in-out, box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
+    z-index: 10;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Color Variants */
+.interactive-image-hotspot[data-color="primary"] { --hotspot-color: var(--color-primary, #14213d); }
+.interactive-image-hotspot[data-color="secondary"] { --hotspot-color: var(--color-secondary, #f18701); }
+.interactive-image-hotspot[data-color="success"] { --hotspot-color: var(--color-success, #1d7648); }
+.interactive-image-hotspot[data-color="danger"] { --hotspot-color: var(--color-danger, #c7322b); }
+.interactive-image-hotspot[data-color="warning"] { --hotspot-color: var(--color-warning, #f7b801); }
+.interactive-image-hotspot[data-color="info"] { --hotspot-color: var(--color-info, #4a6fa5); }
+.interactive-image-hotspot[data-color="light"] { --hotspot-color: var(--color-gray-50, #fafafa); }
+.interactive-image-hotspot[data-color="dark"] { --hotspot-color: var(--color-gray-900, #1a1a1a); }
+
+/* Viewed Color Variants */
+.interactive-image-hotspot[data-viewed-color="primary"] { --viewed-color: var(--color-primary, #14213d); }
+.interactive-image-hotspot[data-viewed-color="secondary"] { --viewed-color: var(--color-secondary, #f18701); }
+.interactive-image-hotspot[data-viewed-color="success"] { --viewed-color: var(--color-success, #1d7648); }
+.interactive-image-hotspot[data-viewed-color="danger"] { --viewed-color: var(--color-danger, #c7322b); }
+.interactive-image-hotspot[data-viewed-color="warning"] { --viewed-color: var(--color-warning, #f7b801); }
+.interactive-image-hotspot[data-viewed-color="info"] { --viewed-color: var(--color-info, #4a6fa5); }
+.interactive-image-hotspot[data-viewed-color="light"] { --viewed-color: var(--color-gray-50, #fafafa); }
+.interactive-image-hotspot[data-viewed-color="dark"] { --viewed-color: var(--color-gray-900, #1a1a1a); }
+
+/* Transparency Variants */
+.interactive-image-hotspot[data-transparency="10"] { --hotspot-transparency: 10%; }
+.interactive-image-hotspot[data-transparency="20"] { --hotspot-transparency: 20%; }
+.interactive-image-hotspot[data-transparency="30"] { --hotspot-transparency: 30%; }
+.interactive-image-hotspot[data-transparency="40"] { --hotspot-transparency: 40%; }
+.interactive-image-hotspot[data-transparency="50"] { --hotspot-transparency: 50%; }
+.interactive-image-hotspot[data-transparency="60"] { --hotspot-transparency: 60%; }
+.interactive-image-hotspot[data-transparency="70"] { --hotspot-transparency: 70%; }
+.interactive-image-hotspot[data-transparency="80"] { --hotspot-transparency: 80%; }
+.interactive-image-hotspot[data-transparency="90"] { --hotspot-transparency: 90%; }
+
+/* Shape Variants */
+.interactive-image-hotspot[data-shape="circle"] {
+    border-radius: 50%;
+}
+
+.interactive-image-hotspot[data-shape="rect"] {
+    border-radius: 4px;
+}
+
+.interactive-image-hotspot[data-shape="rounded"] {
+    border-radius: 12px;
+}
+
+/* Area Variant (Transparent Overlay) */
+.interactive-image-hotspot[data-variant="area"] {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 2px dashed var(--hotspot-color);
+    color: transparent;
+    box-shadow: none;
+}
+
+.interactive-image-hotspot[data-variant="area"]:hover,
+.interactive-image-hotspot[data-variant="area"]:focus {
+    background-color: var(--color-primary-alpha-20); /* Fallback if color mix not supported */
+    background-color: color-mix(in srgb, var(--hotspot-color), transparent var(--hotspot-transparency));
+    border-style: solid;
+}
+
+/* Default Hover/Focus */
+.interactive-image-hotspot:not([data-variant="area"]):hover,
+.interactive-image-hotspot:not([data-variant="area"]):focus {
+    background-color: var(--hotspot-color);
+    border-color: var(--hotspot-hover-border-color);
+    border-width: var(--hotspot-hover-border-width);
+    color: white;
+    transform: translate(-50%, -50%) scale(var(--hotspot-hover-scale));
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    outline: none;
+}
+
+/* Viewed State */
+.interactive-image-hotspot.viewed[data-mark-viewed="true"] {
+    background-color: var(--viewed-color);
+    border-color: var(--viewed-color);
+    color: white;
+}
+
+.interactive-image-hotspot.viewed[data-mark-viewed="true"]::after {
+    content: "✓";
+    font-size: 14px;
+}
+
+/* Area Variant Viewed State */
+.interactive-image-hotspot[data-variant="area"].viewed[data-mark-viewed="true"] {
+    background-color: color-mix(in srgb, var(--viewed-color), transparent var(--hotspot-transparency));
+    border-color: var(--viewed-color);
+    color: transparent;
+}
+
+.interactive-image-hotspot[data-variant="area"].viewed[data-mark-viewed="true"]::after {
+    content: "";
+}
+
+/* Viewed Fill Style Overrides */
+.interactive-image-hotspot.viewed[data-mark-viewed="true"][data-viewed-fill="solid"] {
+    background-color: var(--viewed-color);
+    color: white;
+}
+.interactive-image-hotspot.viewed[data-mark-viewed="true"][data-viewed-fill="solid"]::after {
+    content: "✓";
+}
+
+.interactive-image-hotspot.viewed[data-mark-viewed="true"][data-viewed-fill="transparent"] {
+    background-color: transparent;
+    color: transparent;
+}
+.interactive-image-hotspot.viewed[data-mark-viewed="true"][data-viewed-fill="transparent"]::after {
+    content: "";
+}
+
+.interactive-image-hotspot.viewed[data-mark-viewed="true"][data-viewed-fill="semi"] {
+    background-color: color-mix(in srgb, var(--viewed-color), transparent var(--hotspot-transparency));
+    color: transparent;
+}
+.interactive-image-hotspot.viewed[data-mark-viewed="true"][data-viewed-fill="semi"]::after {
+    content: "";
+}
+
+/* Pulse animation for unvisited hotspots */
+@keyframes hotspot-pulse {
+    0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--hotspot-color), transparent 30%); }
+    70% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--hotspot-color), transparent 100%); }
+    100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--hotspot-color), transparent 100%); }
+}
+
+.interactive-image-hotspot:not(.viewed):not([data-variant="area"]):not([data-pulse="false"]) {
+    animation: hotspot-pulse 2s infinite;
+}
+
+/* Disable pulse on all hotspots when container has data-pulse="false" */
+[data-pulse="false"] .interactive-image-hotspot {
+    animation: none;
+}
+
+/* Active State (Accordion Open) */
+.interactive-image-hotspot.active {
+    background-color: var(--hotspot-color);
+    border-color: var(--hotspot-active-border-color);
+    border-width: var(--hotspot-active-border-width);
+    color: white;
+    transform: translate(-50%, -50%) scale(var(--hotspot-active-scale));
+    z-index: 20;
+    box-shadow: 0 0 0 4px var(--color-primary-alpha-30); /* Fallback */
+    box-shadow: 0 0 0 var(--hotspot-active-ring-size) color-mix(in srgb, var(--hotspot-active-border-color), transparent var(--hotspot-active-ring-transparency));
+}
+
+.interactive-image-hotspot[data-variant="area"].active {
+    background-color: var(--color-primary-alpha-30); /* Fallback */
+    background-color: color-mix(in srgb, var(--hotspot-color), transparent var(--hotspot-transparency));
+    border-style: solid;
+    transform: translate(-50%, -50%); /* No scale for areas */
+}
+
+/* Highlighted State (Hover on Accordion) */
+.interactive-image-hotspot.highlighted {
+    background-color: var(--hotspot-color);
+    border-color: var(--hotspot-active-border-color);
+    border-width: var(--hotspot-active-border-width);
+    color: white;
+    transform: translate(-50%, -50%) scale(var(--hotspot-hover-scale));
+    z-index: 30;
+    box-shadow: 0 0 15px color-mix(in srgb, var(--hotspot-active-border-color), transparent 40%);
+    animation: none;
+}
+
+.interactive-image-hotspot[data-shape="rect"].highlighted {
+    transform: translate(-50%, -50%) scale(calc(var(--hotspot-hover-scale) * 0.95));
+}
+
+.interactive-image-hotspot[data-variant="area"].highlighted {
+    background-color: color-mix(in srgb, var(--hotspot-color), transparent var(--hotspot-transparency));
+    border-color: var(--hotspot-color);
+    border-style: solid;
+    transform: translate(-50%, -50%);
+    color: transparent;
+}
+
+/* --- Inline Layout Variant --- */
+/* For flexbox/grid layouts where hotspots aren't absolutely positioned over an image */
+
+.interactive-image-hotspot[data-layout="inline"] {
+    position: relative;
+    transform: none;
+}
+
+.interactive-image-hotspot[data-layout="inline"]:hover,
+.interactive-image-hotspot[data-layout="inline"]:focus {
+    transform: scale(var(--hotspot-hover-scale));
+    border-color: var(--hotspot-hover-border-color);
+    border-width: var(--hotspot-hover-border-width);
+}
+
+.interactive-image-hotspot[data-layout="inline"].active,
+.interactive-image-hotspot[data-layout="inline"].active:hover,
+.interactive-image-hotspot[data-layout="inline"].active:focus,
+.interactive-image-hotspot[data-layout="inline"].active.highlighted {
+    transform: scale(var(--hotspot-active-scale));
+    border-color: var(--hotspot-active-border-color);
+    border-width: var(--hotspot-active-border-width);
+    box-shadow: 0 0 0 4px var(--color-primary-alpha-30); /* Fallback */
+    box-shadow: 0 0 0 var(--hotspot-active-ring-size) color-mix(in srgb, var(--hotspot-active-border-color), transparent var(--hotspot-active-ring-transparency));
+}
+
+.interactive-image-hotspot[data-layout="inline"].highlighted:not(.active) {
+    transform: scale(var(--hotspot-hover-scale));
+    border-color: var(--hotspot-hover-border-color);
+    border-width: var(--hotspot-hover-border-width);
+    box-shadow: 0 0 15px color-mix(in srgb, var(--hotspot-active-border-color), transparent 40%);
+}
+
+/* Area variant in inline layout */
+.interactive-image-hotspot[data-layout="inline"][data-variant="area"].active,
+.interactive-image-hotspot[data-layout="inline"][data-variant="area"].highlighted {
+    transform: none;
+}
+
+/* --- Granular Control Overrides --- */
+
+/* Border Style (Unselected) */
+.interactive-image-hotspot[data-border-style="solid"] { border-style: solid; }
+.interactive-image-hotspot[data-border-style="dashed"] { border-style: dashed; }
+.interactive-image-hotspot[data-border-style="none"],
+.interactive-image-hotspot[data-border-style="transparent"] { border-color: transparent; } /* Keep width to prevent layout shift */
+
+/* Fill Style (Unselected) */
+.interactive-image-hotspot[data-fill="solid"] {
+    background-color: var(--hotspot-color);
+    color: white;
+}
+.interactive-image-hotspot[data-fill="transparent"] {
+    background-color: transparent;
+    color: transparent;
+}
+.interactive-image-hotspot[data-fill="semi"] {
+    background-color: color-mix(in srgb, var(--hotspot-color), transparent var(--hotspot-transparency));
+    color: var(--hotspot-color);
+}
+
+/* Scale Control */
+.interactive-image-hotspot[data-scale="false"].active,
+.interactive-image-hotspot[data-scale="false"].highlighted,
+.interactive-image-hotspot[data-scale="false"]:hover,
+.interactive-image-hotspot[data-scale="false"]:focus {
+    transform: translate(-50%, -50%);
+}
+
+/* Scale control for inline layout */
+.interactive-image-hotspot[data-layout="inline"][data-scale="false"].active,
+.interactive-image-hotspot[data-layout="inline"][data-scale="false"].highlighted,
+.interactive-image-hotspot[data-layout="inline"][data-scale="false"]:hover,
+.interactive-image-hotspot[data-layout="inline"][data-scale="false"]:focus {
+    transform: none;
+}
+
+/* Active/Selected/Hover State Overrides */
+/* These apply when the element is .active, :hover, or :focus */
+
+/* Active Border Style */
+.interactive-image-hotspot.active[data-border-style-active="solid"],
+.interactive-image-hotspot:focus[data-border-style-active="solid"],
+.interactive-image-hotspot:hover[data-border-style-active="solid"] {
+    border-style: solid;
+    border-color: var(--hotspot-color);
+}
+.interactive-image-hotspot.active[data-border-style-active="dashed"],
+.interactive-image-hotspot:focus[data-border-style-active="dashed"],
+.interactive-image-hotspot:hover[data-border-style-active="dashed"] {
+    border-style: dashed;
+    border-color: var(--hotspot-color);
+}
+.interactive-image-hotspot.active[data-border-style-active="none"],
+.interactive-image-hotspot:focus[data-border-style-active="none"],
+.interactive-image-hotspot:hover[data-border-style-active="none"],
+.interactive-image-hotspot.active[data-border-style-active="transparent"],
+.interactive-image-hotspot:focus[data-border-style-active="transparent"],
+.interactive-image-hotspot:hover[data-border-style-active="transparent"] {
+    border-color: transparent; /* Keep width to prevent layout shift */
+}
+
+/* Active Fill Style */
+.interactive-image-hotspot.active[data-fill-active="solid"],
+.interactive-image-hotspot:focus[data-fill-active="solid"],
+.interactive-image-hotspot:hover[data-fill-active="solid"] {
+    background-color: var(--hotspot-color);
+    color: white;
+}
+.interactive-image-hotspot.active[data-fill-active="transparent"],
+.interactive-image-hotspot:focus[data-fill-active="transparent"],
+.interactive-image-hotspot:hover[data-fill-active="transparent"] {
+    background-color: transparent;
+    color: transparent;
+}
+.interactive-image-hotspot.active[data-fill-active="semi"],
+.interactive-image-hotspot:focus[data-fill-active="semi"],
+.interactive-image-hotspot:hover[data-fill-active="semi"] {
+    background-color: var(--color-primary-alpha-30); /* Fallback */
+    background-color: color-mix(in srgb, var(--hotspot-color), transparent var(--hotspot-transparency));
+    /* Keep text transparent if it was transparent before, or handle text color separately if needed */
+}

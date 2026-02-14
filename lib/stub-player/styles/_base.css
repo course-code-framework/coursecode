@@ -1,0 +1,89 @@
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Framework-style color tokens for stub UI. */
+            --color-primary: #14213d;
+            --color-primary-panel: color-mix(in srgb, var(--color-primary) 82%, var(--color-black));
+            --color-primary-deep: color-mix(in srgb, var(--color-primary) 65%, var(--color-black));
+            --color-primary-surface: color-mix(in srgb, var(--color-primary) 92%, var(--color-black));
+
+            --color-info: #4a6fa5;
+            --color-info-soft: color-mix(in srgb, var(--color-info) 45%, var(--color-white));
+            --color-info-muted: color-mix(in srgb, var(--color-info) 35%, var(--color-white));
+            --color-info-bright: color-mix(in srgb, var(--color-info) 55%, var(--color-white));
+            --color-info-border: color-mix(in srgb, var(--color-info) 60%, var(--color-black));
+
+            --color-success: #1d7648;
+            --color-success-soft: color-mix(in srgb, var(--color-success) 62%, var(--color-white));
+            --color-success-bright: color-mix(in srgb, var(--color-success) 42%, var(--color-white));
+
+            --color-warning: #f18701;
+            --color-warning-bright: color-mix(in srgb, var(--color-warning) 70%, var(--color-accent));
+            --color-accent: #f7b801;
+
+            --color-danger: #c7322b;
+            --color-danger-soft: color-mix(in srgb, var(--color-danger) 55%, var(--color-white));
+            --color-black: #000;
+
+            /* Neutral scale used across stub UI surfaces/text. */
+            --color-white: #fff;
+            --color-gray-50: #f8f8ff;
+            --color-gray-100: #f4f4f4;
+            --color-gray-200: #e0e0e0;
+            --color-gray-225: #e0e0f0;
+            --color-gray-300: #ddd;
+            --color-gray-350: #ccc;
+            --color-gray-400: #c0c0d0;
+            --color-gray-410: #c0c0c0;
+            --color-gray-500: #b0b0c0;
+            --color-gray-550: #a0a0c0;
+            --color-gray-560: #a0a0b0;
+            --color-gray-570: #9090a0;
+            --color-gray-600: #9ca3af;
+            --color-gray-620: #8888aa;
+            --color-gray-650: #888;
+            --color-gray-700: #808080;
+            --color-gray-750: #6b7280;
+            --color-gray-760: #666;
+            --color-gray-780: #4a4a4a;
+            --color-gray-790: #3a3a3a;
+            --color-gray-800: #2a2a2a;
+            --color-gray-850: #1a1a1a;
+            --color-gray-900: #0a0f1a;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        /* ── Styled scrollbars ──────────────────── */
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+        }

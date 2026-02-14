@@ -1,0 +1,33 @@
+/* ========================================
+   UI COMPONENT: Comparison (Side-by-Side)
+   Use for: Comparing two options
+   ======================================== */
+[data-component="comparison"] {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-6);
+}
+
+[data-component="comparison"] .comparison-item {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-6);
+  background: var(--bg-surface);
+  border: 2px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+}
+
+[data-component="comparison"] .comparison-item.highlight {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-alpha-10);
+}
+
+[data-component="comparison"] .comparison-item h3 {
+  margin-top: 0;
+}
+
+@media (max-width: 768px) {
+  [data-component="comparison"] {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,177 @@
+/* ============================================================================
+   TRUE/FALSE INTERACTION - Two-choice boolean question styles
+   ============================================================================
+   
+   PURPOSE: Styles for true/false questions
+   
+   INCLUDES:
+   - Full-button option styling
+   - Selected state with checkmark badge
+   - Correct/incorrect feedback states
+   - Checkmark animation
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   - Requires: base.css (for .interaction container)
+   
+   USED BY:
+   - True/false questions
+   - Yes/no questions
+   - Boolean choice activities
+   - Quick knowledge checks
+   
+   AI DEBUGGING TIPS:
+   - Radio buttons showing? They're hidden with position: absolute, opacity: 0
+   - Checkmark not animating? Verify @keyframes checkmarkPop defined and animation applied
+   - State colors not changing? Check .answer-correct and .answer-incorrect classes applied to labels
+   - Touch targets too small? Labels have min-height set - increase padding on mobile
+   
+   COMMON CLASSES:
+   .true-false-options    - Grid container (2 columns)
+   .answer-correct        - Label with correct answer selected
+   .answer-incorrect      - Label with incorrect answer selected
+   
+   HTML STRUCTURE:
+   <div class="true-false-options">
+     <label>
+       <input type="radio" name="question-id" value="true">
+       <span class="tf-label">True</span>
+     </label>
+     <label class="answer-correct">
+       <input type="radio" name="question-id" value="false">
+       <span class="tf-label">False</span>
+     </label>
+   </div>
+   
+   LAST UPDATED: 2024-12-11
+   ============================================================================ */
+
+.true-false-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.true-false-options label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid var(--color-gray-300);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+  background: var(--bg-surface);
+  position: relative;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-700);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.true-false-options label:hover {
+  border-color: var(--color-secondary);
+  background: var(--bg-subtle);
+  box-shadow: var(--shadow-sm);
+}
+
+.true-false-options label:active {
+  transform: scale(0.98);
+}
+
+/* Hide the native radio input */
+.true-false-options input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* Focus state for accessibility */
+.true-false-options label:has(input[type="radio"]:focus-visible) {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Checked state */
+.true-false-options label:has(input[type="radio"]:checked) {
+  border-color: var(--color-secondary);
+  background: var(--color-secondary-alpha-05);
+  color: var(--color-secondary);
+  box-shadow: 0 0 0 3px var(--color-secondary-alpha-10);
+}
+
+/* Checkmark badge for selected state */
+.true-false-options label:has(input[type="radio"]:checked)::after {
+  content: '✓';
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  width: 24px;
+  height: 24px;
+  background: var(--color-secondary);
+  color: var(--color-gray-900);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-sm);
+  font-weight: bold;
+  animation: checkmarkPop 0.25s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes checkmarkPop {
+  0% {
+    transform: scale(0);
+  }
+
+  50% {
+    transform: scale(1.2);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Correct answer state - green */
+.true-false-options label.answer-correct:has(input[type="radio"]:checked) {
+  border-color: var(--color-success);
+  background: var(--color-success-alpha-05);
+  color: var(--color-success);
+  box-shadow: 0 0 0 3px var(--color-success-alpha-10);
+}
+
+.true-false-options label.answer-correct:has(input[type="radio"]:checked)::after {
+  background: var(--color-success);
+}
+
+/* Incorrect answer state - red */
+.true-false-options label.answer-incorrect:has(input[type="radio"]:checked) {
+  border-color: var(--color-danger);
+  background: var(--color-danger-alpha-05);
+  color: var(--color-danger);
+  box-shadow: 0 0 0 3px var(--color-danger-alpha-10);
+}
+
+.true-false-options label.answer-incorrect:has(input[type="radio"]:checked)::after {
+  content: '✗';
+  background: var(--color-danger);
+}
+
+/* Label text styling */
+.tf-label {
+  color: inherit;
+}
+
+/* Responsive: Stack vertically on very small screens */
+@media (max-width: 400px) {
+  .true-false-options {
+    grid-template-columns: 1fr;
+    max-width: none;
+  }
+}

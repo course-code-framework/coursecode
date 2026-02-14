@@ -1,0 +1,291 @@
+        /* =====================================================================
+         * CATALOG PANEL
+         * Tabbed catalog of components, interactions, and assets
+         * ===================================================================== */
+
+        #stub-player-catalog-panel {
+            position: fixed;
+            top: 40px;
+            right: 0;
+            width: 480px;
+            max-width: 90vw;
+            height: calc(100% - 40px);
+            background: var(--color-primary);
+            color: var(--color-gray-200);
+            z-index: 999997;
+            display: none;
+            flex-direction: column;
+            font-size: 13px;
+            border-left: 1px solid var(--color-primary-panel);
+            transition: transform 0.2s ease;
+        }
+
+        #stub-player-catalog-panel.visible {
+            display: flex;
+        }
+
+        /* Header with tabs */
+        .catalog-header {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--color-primary-panel);
+            flex-shrink: 0;
+        }
+
+        .catalog-tabs {
+            display: flex;
+            flex: 1;
+            gap: 0;
+        }
+
+        .catalog-tab {
+            flex: 1;
+            padding: 10px 12px;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--color-gray-750);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .catalog-tab:hover {
+            color: var(--color-gray-200);
+            background: rgba(74, 111, 165, 0.08);
+        }
+
+        .catalog-tab.active {
+            color: var(--color-info-soft);
+            border-bottom-color: var(--color-info);
+        }
+
+        .catalog-close-btn {
+            background: none;
+            border: none;
+            color: var(--color-gray-750);
+            cursor: pointer;
+            padding: 10px 14px;
+            font-size: 14px;
+            transition: color 0.15s;
+        }
+
+        .catalog-close-btn:hover {
+            color: var(--color-white);
+        }
+
+        /* Body / tab content */
+        .catalog-body {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .catalog-tab-content {
+            display: none;
+            height: 100%;
+        }
+
+        .catalog-tab-content.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .catalog-loading {
+            padding: 32px;
+            text-align: center;
+            color: var(--color-gray-750);
+        }
+
+        .catalog-empty {
+            padding: 32px;
+            text-align: center;
+            color: var(--color-gray-750);
+        }
+
+        /* Item list */
+        .catalog-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 4px 0;
+        }
+
+        .catalog-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: background 0.1s;
+            border-left: 3px solid transparent;
+        }
+
+        .catalog-item:hover {
+            background: rgba(74, 111, 165, 0.1);
+        }
+
+        .catalog-item.selected {
+            background: rgba(74, 111, 165, 0.18);
+            border-left-color: var(--color-info);
+        }
+
+        .catalog-item-name {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--color-gray-200);
+        }
+
+        .catalog-badge {
+            margin-left: auto;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(74, 111, 165, 0.2);
+            color: var(--color-info-soft);
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .catalog-description {
+            margin-left: auto;
+            font-size: 11px;
+            color: var(--color-gray-750);
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Asset groups */
+        .catalog-asset-group {
+            margin-bottom: 8px;
+        }
+
+        .catalog-asset-group-header {
+            padding: 8px 16px 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--color-info-soft);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .catalog-asset-file {
+            padding: 4px 16px 4px 28px;
+            font-size: 12px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: var(--color-gray-600);
+        }
+
+        /* Drop zone */
+        .catalog-dropzone {
+            margin: 12px;
+            padding: 20px;
+            border: 2px dashed var(--color-primary-panel);
+            border-radius: 8px;
+            text-align: center;
+            color: var(--color-gray-750);
+            font-size: 12px;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+
+        .catalog-dropzone.dragover {
+            border-color: var(--color-info);
+            color: var(--color-info-soft);
+            background: rgba(74, 111, 165, 0.08);
+        }
+
+        .catalog-dropzone.uploading {
+            border-color: var(--color-success-soft);
+            color: var(--color-success-soft);
+        }
+
+        /* Preview pane */
+        .catalog-preview-pane {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--color-primary);
+            display: flex;
+            flex-direction: column;
+            z-index: 2;
+        }
+
+        .catalog-preview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--color-primary-panel);
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--color-white);
+            flex-shrink: 0;
+        }
+
+        #catalog-preview-frame {
+            flex: 1;
+            border: none;
+            background: var(--color-white);
+            min-height: 200px;
+        }
+
+        .catalog-preview-code {
+            border-top: 1px solid var(--color-primary-panel);
+            max-height: 40%;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .catalog-preview-code-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 12px;
+            background: var(--color-primary-deep);
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--color-gray-750);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+        }
+
+        .catalog-copy-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: background 0.15s;
+        }
+
+        .catalog-copy-btn:hover {
+            background: rgba(74, 111, 165, 0.2);
+        }
+
+        #catalog-preview-code-block {
+            margin: 0;
+            padding: 12px;
+            background: var(--color-primary-deep);
+            font-size: 11px;
+            line-height: 1.6;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: var(--color-info-bright);
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        #catalog-preview-code-block code {
+            color: inherit;
+            font-family: inherit;
+        }
+

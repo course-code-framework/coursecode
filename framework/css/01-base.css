@@ -1,0 +1,160 @@
+/* ============================================================================
+   BASE STYLES - HTML, Body, Typography, Links
+   ============================================================================
+   
+   PURPOSE: Foundation styles for the entire application
+   
+   INCLUDES:
+   - HTML/Body base styles
+   - Typography system (headings h1-h6, paragraphs)
+   - Text formatting (strong, em)
+   - Link styles and states
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   
+   USED BY: All pages and components
+   
+   ============================================================================ */
+
+/* Base Styles - Modern & Accessible */
+html {
+  font-size: 16px;
+  line-height: var(--line-height-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+  color: var(--color-gray-900);
+  background-color: var(--bg-page);
+  -webkit-text-size-adjust: 100%;
+  height: 100%;
+}
+
+/* Typography System - Improved Readability */
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: var(--font-size-4xl);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  color: var(--color-primary);
+}
+
+h2 {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+}
+
+h3 {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+}
+
+h4 {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-900);
+}
+
+h5 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-900);
+}
+
+h6 {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-900);
+}
+
+p {
+  margin: 0;
+  color: var(--color-gray-900);
+  line-height: var(--line-height-relaxed);
+}
+
+/* List reset - containers provide spacing via gap */
+ul, ol {
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+li {
+  line-height: var(--line-height-relaxed);
+}
+
+/* Additional element resets - containers handle spacing */
+blockquote, pre, figure, hr, dl, fieldset {
+  margin: 0;
+}
+
+hr {
+  border: none;
+  height: 1px;
+  background: var(--bg-inset);
+}
+
+code {
+  font-family: var(--font-family-mono);
+  font-size: 0.9em;
+  padding: 0.125em 0.375em;
+  background: var(--bg-muted);
+  border-radius: var(--radius-sm);
+}
+
+pre code {
+  padding: 0;
+  background: none;
+}
+
+strong, b {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-900);
+}
+
+em, i {
+  font-style: italic;
+  color: var(--color-gray-800);
+}
+
+/* Link Styles */
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Remove default focus for mouse clicks */
+a:focus:not(:focus-visible) {
+  outline: none;
+}

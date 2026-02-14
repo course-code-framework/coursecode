@@ -1,0 +1,81 @@
+/* ============================================================================
+   TABLES - Simple table styling for data presentation
+   ============================================================================
+   
+   PURPOSE: Clean, accessible table styling for displaying tabular data
+   
+   INCLUDES:
+   - Header styling with background
+   - Body row styling with borders
+   - Hover states for interactivity
+   - Responsive padding and alignment
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   
+   USED BY: Data displays, results tables, comparison tables
+   
+   USAGE:
+   <table class="table">
+     <thead>
+       <tr>
+         <th>Header 1</th>
+         <th>Header 2</th>
+       </tr>
+     </thead>
+     <tbody>
+       <tr>
+         <td>Data 1</td>
+         <td>Data 2</td>
+       </tr>
+     </tbody>
+   </table>
+   
+   ============================================================================ */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-base);
+}
+
+.table thead {
+  background-color: var(--bg-muted);
+  border-bottom: 2px solid var(--color-gray-300);
+}
+
+.table thead th {
+  padding: var(--space-3);
+  text-align: left;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-900);
+  border-right: 1px solid var(--color-gray-200);
+}
+
+.table thead th:last-child {
+  border-right: none;
+}
+
+.table tbody td {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--color-gray-200);
+  border-right: 1px solid var(--color-gray-200);
+  color: var(--color-gray-800);
+}
+
+.table tbody td:last-child {
+  border-right: none;
+}
+
+.table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Striped table variant */
+.table-striped tbody tr:nth-child(even) {
+  background-color: var(--bg-muted);
+}

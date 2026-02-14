@@ -1,0 +1,284 @@
+/* ============================================================================
+   RESPONSIVE DESIGN - Breakpoint-driven adaptive layouts
+   ============================================================================
+   
+   PURPOSE: Responsive styles for all screen sizes driven by breakpoint classes
+   
+   INCLUDES:
+   - Large Desktop (1440px+) - bp-min-large-desktop
+   - Desktop (1200px-1439px) - bp-max-desktop
+   - Tablet Landscape (1024px-1199px) - bp-max-tablet-landscape
+   - Tablet Portrait (768px-1023px) - bp-max-tablet-portrait
+   - Mobile Landscape (480px-767px) - bp-max-mobile-landscape
+   - Mobile Portrait (320px-479px) - bp-max-mobile-portrait
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for breakpoint values and spacing tokens)
+   - Requires: js/utilities/breakpoint-manager.js (adds .bp-* classes to <html>)
+   
+   HOW IT WORKS:
+   The BreakpointManager (initialized in main.js) listens for window resize events
+   and dynamically applies breakpoint classes to <html>. Multiple classes cascade
+   (e.g., at 600px: .bp-max-desktop, .bp-max-tablet-landscape, .bp-max-tablet-portrait, 
+   .bp-max-mobile-landscape are all applied).
+   
+   LMS COMPATIBILITY:
+   Works reliably in iframe contexts (Litmos, Cornerstone, etc.) since it uses
+   standard DOM APIs (window.innerWidth, resize event).
+   
+   USED BY: All components - responsive behavior throughout the course
+   
+   AI DEBUGGING TIPS:
+   - Styles not applying? Check if correct .bp-max-* or .bp-min-* class is on <html>
+   - Classes missing? Verify breakpointManager.init() is called in main.js
+   - Layout breaking? Verify breakpoint order (min-width before max-width)
+   - Spacing too tight? Check if --content-padding override is applied
+   - Footer stacking incorrectly? Verify flexbox direction change
+   - Grid not collapsing? Check grid-template-columns overrides
+   
+   JS API (via SCORM_Framework.breakpointManager):
+   - getCurrentBreakpoint() - Returns current breakpoint name
+   - isMobile() / isTablet() / isDesktop() - Quick device checks
+   - isAtMost('tablet-portrait') - Check if at or below breakpoint
+   - onChange(callback) - Listen for breakpoint changes
+   
+   STRUCTURE:
+   1. Large Desktop (55-70)
+   2. Desktop (75-90)
+   3. Tablet Landscape (95-115)
+   4. Tablet Portrait (120-200)
+   5. Mobile Landscape (205-280)
+   6. Mobile Portrait (285-340)
+   
+   COMMON SELECTORS:
+   html.bp-min-large-desktop   - Large screens (1440px+)
+   html.bp-max-desktop          - Desktop and below
+   html.bp-max-tablet-landscape - Tablets and below (landscape)
+   html.bp-max-tablet-portrait  - Tablets and below (portrait)
+   html.bp-max-mobile-landscape - Mobile devices (landscape)
+   html.bp-max-mobile-portrait  - Mobile devices (portrait)
+
+   MAINTAINER NOTE (layout-owned responsive behavior):
+   - Keep generic responsive.css rules focused on shared component/content patterns.
+   - When a layout (article/focused/presentation/traditional) has its own responsive
+     rules in framework/css/layouts/* or component DATA-LAYOUT sections, scope
+     generic structural rules to exclude that layout to avoid cascade conflicts.
+   - High-risk generic selectors: .app-footer, .nav-controls, .nav-nav-buttons,
+     .nav-exit-button, #audio-player, .audio-player-controls.
+   
+   LAST UPDATED: 2024-12-10
+   ============================================================================ */
+
+/* ============================================================================
+   LARGE DESKTOP (>= 1440px)
+   ============================================================================ */
+
+html.bp-min-large-desktop {
+  --content-padding: var(--space-10);
+  --section-padding: var(--space-8);
+  --header-padding-x: var(--space-8);
+  --header-padding-y: var(--space-2);
+  --header-height: 24px;
+  --footer-padding-x: var(--space-12);
+  --footer-padding-y: var(--space-3);
+}
+
+/* App shell sizing moved to responsive-structure.css */
+
+/* ============================================================================
+   DESKTOP (<= 1439px)
+   ============================================================================ */
+
+html.bp-max-desktop {
+  --content-padding: var(--space-10);
+  --section-padding: var(--space-8);
+  --header-padding-x: var(--space-6);
+  --header-padding-y: var(--space-2);
+  --header-height: 24px;
+  --footer-padding-x: var(--space-10);
+  --footer-padding-y: var(--space-5);
+}
+
+/* App shell sizing moved to responsive-structure.css */
+
+/* ============================================================================
+   TABLET LANDSCAPE (<= 1199px)
+   ============================================================================ */
+
+html.bp-max-tablet-landscape {
+  --content-padding: var(--space-8);
+  --section-padding: var(--space-6);
+  --header-padding-x: var(--space-5);
+  --header-padding-y: var(--space-2);
+  --header-height: 24px;
+  --footer-padding-x: var(--space-8);
+  --footer-padding-y: var(--space-4);
+  --nav-padding-x: var(--space-6);
+  --nav-padding-y: var(--space-2);
+}
+
+/* ============================================================================
+   TABLET PORTRAIT (<= 1023px)
+   ============================================================================ */
+
+html.bp-max-tablet-portrait {
+  --font-size-4xl: var(--font-size-3xl);
+  --font-size-3xl: var(--font-size-2xl);
+  --content-padding: var(--space-6);
+  --section-padding: var(--space-6);
+  --header-padding-x: var(--space-3);
+  --header-padding-y: var(--space-2);
+  --header-height: 24px;
+  --footer-padding-x: var(--space-6);
+  --footer-padding-y: var(--space-6);
+  --nav-padding-x: var(--space-4);
+  --nav-padding-y: var(--space-2);
+}
+
+/* Tablet portrait shell/header/footer chrome responsive rules moved to responsive-structure.css */
+
+html.bp-max-tablet-portrait .stats-grid,
+html.bp-max-tablet-portrait .features-grid {
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+html.bp-max-tablet-portrait .concept-cards {
+  grid-template-columns: 1fr;
+}
+
+html.bp-max-tablet-portrait .content-tabs,
+html.bp-max-tablet-portrait .assessment-tabs,
+html.bp-max-tablet-portrait .tab-list {
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+html.bp-max-tablet-portrait .tab-button,
+html.bp-max-tablet-portrait .assessment-tab {
+  width: 100%;
+  justify-content: center;
+}
+
+html.bp-max-tablet-portrait .final-actions {
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+html.bp-max-tablet-portrait .final-actions button {
+  width: 100%;
+  max-width: 320px;
+}
+
+/* ============================================================================
+   MOBILE LANDSCAPE (<= 767px)
+   ============================================================================ */
+
+html.bp-max-mobile-landscape {
+  --font-size-2xl: var(--font-size-xl);
+  --font-size-xl: var(--font-size-lg);
+  --content-padding: var(--space-5);
+  --section-padding: var(--space-5);
+  --header-padding-x: var(--space-3);
+  --header-padding-y: var(--space-4);
+  --header-height: 56px;
+  --footer-padding-x: var(--space-5);
+  --footer-padding-y: var(--space-5);
+  --nav-padding-x: var(--space-3);
+  --nav-padding-y: var(--space-2);
+}
+
+/* Mobile shell/header/footer/audio chrome responsive rules moved to responsive-structure.css */
+
+/* Tabs: stack vertically on mobile */
+html.bp-max-mobile-landscape .content-tabs,
+html.bp-max-mobile-landscape .assessment-tabs,
+html.bp-max-mobile-landscape .tab-list {
+  flex-direction: column;
+  gap: 0;
+}
+
+html.bp-max-mobile-landscape .tab-button,
+html.bp-max-mobile-landscape .assessment-tab {
+  width: 100%;
+  justify-content: center;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+}
+
+html.bp-max-mobile-landscape .feature-card,
+html.bp-max-mobile-landscape .concept-card,
+html.bp-max-mobile-landscape .stat-card {
+  padding: var(--space-5);
+}
+
+html.bp-max-mobile-landscape .interaction {
+  padding: var(--space-6);
+}
+
+html.bp-max-mobile-landscape .assessment-navigation {
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+html.bp-max-mobile-landscape .btn-nav {
+  width: 100%;
+  min-width: auto;
+}
+
+html.bp-max-mobile-landscape .assessment-nav-center {
+  order: -1;
+  margin-bottom: var(--space-2);
+}
+
+/* Generic mobile footer/nav/audio structure moved to responsive-structure.css */
+
+html.bp-max-mobile-landscape .review-actions {
+  flex-direction: column;
+}
+
+html.bp-max-mobile-landscape .review-actions button {
+  width: 100%;
+}
+
+/* ============================================================================
+   MOBILE PORTRAIT (<= 479px)
+   ============================================================================ */
+
+html.bp-max-mobile-portrait {
+  --space-8: var(--space-6);
+  --space-10: var(--space-8);
+  --space-12: var(--space-8);
+  --content-padding: var(--space-4);
+  --section-padding: var(--space-4);
+  --header-padding-x: var(--space-3);
+  --header-padding-y: var(--space-3);
+  --header-height: 52px;
+  --footer-padding-x: var(--space-4);
+  --footer-padding-y: var(--space-4);
+  --nav-padding-x: var(--space-3);
+  --nav-padding-y: var(--space-2);
+}
+
+/* Mobile portrait shell/header/footer chrome responsive rules moved to responsive-structure.css */
+
+html.bp-max-mobile-portrait main#content>section {
+  margin-bottom: var(--space-6);
+}
+
+html.bp-max-mobile-portrait .feature-card,
+html.bp-max-mobile-portrait .concept-card,
+html.bp-max-mobile-portrait .stat-card {
+  padding: var(--space-4);
+}
+
+html.bp-max-mobile-portrait .interaction {
+  padding: var(--space-5);
+}
+
+/* Mobile portrait generic footer button sizing moved to responsive-structure.css */
+
+/* Keep traditional footer compact across breakpoints */
+html[data-layout="traditional"] {
+  --footer-padding-y: var(--space-3);
+}

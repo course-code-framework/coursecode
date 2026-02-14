@@ -1,0 +1,52 @@
+/* ========================================
+   UI COMPONENT: Slide Header
+   Use for: Consistent slide titles with optional subtitle
+   Variants: left, divider
+   ======================================== */
+.slide-header {
+  text-align: center;
+}
+
+.slide-header h1,
+.slide-header h2,
+.slide-header h3 {
+  color: var(--color-primary);
+}
+
+.slide-header p {
+  font-size: var(--font-size-lg);
+  color: var(--text-secondary);
+  margin: 0;
+  max-width: 600px;
+  margin-inline: auto;
+}
+
+/* Eyebrow - small label above title */
+.slide-header .eyebrow {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-primary);
+}
+
+/* Left-aligned variant */
+.slide-header-left {
+  text-align: left;
+}
+
+.slide-header-left p {
+  margin-inline: 0;
+}
+
+/* Divider variant - adds bottom border */
+.slide-header-divider {
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Mobile: keep slide-header h1 larger than subtitle p */
+html.bp-max-mobile-landscape .slide-header h1 {
+  font-size: var(--font-size-2xl-base);
+}

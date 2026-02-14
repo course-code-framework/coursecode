@@ -1,0 +1,294 @@
+/* ============================================================================
+   FORMS - Input, textarea, select, radio, and checkbox form elements
+   ============================================================================
+   
+   PURPOSE: Basic form element styling with accessibility enhancements
+   
+   INCLUDES:
+   - Input and textarea base styles
+   - Native select dropdown styling
+   - Custom radio button groups with visual indicators
+   - Focus states and disabled states
+   
+   NOTE: Custom checkboxes moved to checkbox-group.css
+   NOTE: Custom dropdowns available in dropdown.css
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   
+   USED BY: All forms and interactive elements including multiple choice questions
+   
+   USAGE:
+   <input type="text" placeholder="Enter text">
+   <textarea placeholder="Enter longer text"></textarea>
+   <select><option>Choice</option></select>
+   <div class="radio-group">
+     <label class="radio-option">
+       <input type="radio" name="choice" value="a" />
+       <span class="radio-custom"></span>
+       <div class="radio-label">Option A</div>
+     </label>
+   </div>
+   
+   DEBUGGING TIPS:
+   - Focus ring not showing? Check outline property isn't overridden
+   - Input too wide? Ensure parent has width constraint
+   - Radio not showing selected state? Verify .radio-custom ::after pseudo-element
+   - For custom checkboxes, see checkbox-group.css
+   
+   LAST UPDATED: 2024-11-18
+   
+   ============================================================================ */
+
+/* Form Layout & Labels */
+.form-group {
+  margin-bottom: var(--space-5);
+}
+
+.form-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2); /* Space between label and input */
+}
+
+.form-label.required::after {
+  content: " *";
+  color: var(--color-danger);
+}
+
+.form-help {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-top: var(--space-2);
+}
+
+.form-danger {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
+  margin-top: var(--space-2);
+  font-weight: var(--font-weight-medium);
+}
+
+.form-success {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--color-success);
+  margin-top: var(--space-2);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Form Elements - Enhanced Accessibility */
+input, textarea {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width-md) solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+  box-sizing: border-box;
+}
+
+input:focus, textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-alpha-10);
+}
+
+input:disabled, textarea:disabled {
+  background: var(--bg-muted);
+  color: var(--color-disabled-text);
+  border-color: var(--color-disabled-border);
+  cursor: default;
+}
+
+/* Textarea specific - prevent overflow */
+textarea {
+  resize: vertical;
+  min-height: 80px;
+  max-width: 100%;
+}
+
+/* Select base styles - native HTML form element */
+select {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+  box-sizing: border-box;
+  min-height: 44px;
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-alpha-10);
+}
+
+select:disabled {
+  background: var(--bg-muted);
+  color: var(--color-disabled-text);
+  border-color: var(--color-disabled-border);
+  cursor: default;
+}
+
+/* ============================================================================
+   RADIO BUTTONS - Custom styled radio button groups
+   ============================================================================ */
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+  background: var(--bg-surface);
+  position: relative;
+}
+
+.radio-option:hover {
+  border-color: var(--color-secondary);
+  background: var(--bg-subtle);
+}
+
+.radio-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.radio-custom {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border-strong);
+  border-radius: 50%;
+  position: relative;
+  flex-shrink: 0;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), opacity var(--transition-fast);
+  background: var(--bg-surface);
+}
+
+.radio-custom::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-secondary);
+  transition: transform var(--transition-fast);
+}
+
+.radio-option input[type="radio"]:checked ~ .radio-custom {
+  border-color: var(--color-secondary);
+  background: var(--bg-surface);
+}
+
+.radio-option input[type="radio"]:checked ~ .radio-custom::after {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.radio-option input[type="radio"]:focus-visible ~ .radio-custom {
+  outline: 3px solid var(--focus-ring-color);
+  outline-offset: 2px;
+}
+
+.radio-option input[type="radio"]:disabled ~ .radio-custom {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.radio-option:has(input[type="radio"]:checked) {
+  border-color: var(--color-secondary);
+  background: rgba(131, 8, 255, 0.05);
+}
+
+.radio-label {
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+  flex: 1;
+}
+
+.radio-description {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin-top: var(--space-1);
+}
+
+/* Report Issue Form */
+.report-issue-form .form-control {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width-md) solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  resize: vertical;
+  min-height: 120px;
+}
+
+.report-issue-form .form-control:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-alpha-20);
+}
+
+.report-issue-form .form-text {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  margin-top: var(--space-2);
+}
+
+.report-issue-status {
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.report-issue-status.success {
+  background: var(--color-success-alpha-10, rgba(34, 197, 94, 0.1));
+  color: var(--color-success);
+  border: 1px solid var(--color-success-alpha-20, rgba(34, 197, 94, 0.2));
+}
+
+.report-issue-status.error {
+  background: var(--color-danger-alpha-10, rgba(239, 68, 68, 0.1));
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger-alpha-20, rgba(239, 68, 68, 0.2));
+}
+
+.report-issue-status[hidden] {
+  display: none;
+}

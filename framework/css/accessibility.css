@@ -1,0 +1,834 @@
+/* ============================================================================
+   ACCESSIBILITY - WCAG 2.1 AA compliant accessibility features
+   ============================================================================
+   
+   PURPOSE: Enhanced accessibility features for all users
+   
+   INCLUDES:
+   - Enhanced focus states
+   - Skip links
+   - Screen reader only content
+   - High contrast mode support
+   - Reduced motion support
+   - Print styles
+   - Keyboard navigation enhancements
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   
+   USED BY: All components - accessibility throughout the course
+   
+   AI DEBUGGING TIPS:
+   - Focus ring not visible? Check if :focus-visible is supported
+   - Skip link not appearing? Verify :focus state on .skip-link
+   - Screen reader text showing? Check .sr-only styles are applied
+   - High contrast not working? Test with @media (prefers-contrast: high)
+   - Animations still running? Check @media (prefers-reduced-motion)
+   
+   STRUCTURE:
+   1. Enhanced focus states (45-80)
+   2. Skip link (85-100)
+   3. Screen reader only content (105-120)
+   4. High contrast mode (125-140)
+   5. Reduced motion (145-170)
+   6. Print styles (175-210)
+   7. Micro-interactions (215-270)
+   8. Tooltips and notifications (275-350)
+   
+   COMMON CLASSES:
+   .skip-link           - Skip to main content link
+   .sr-only             - Screen reader only text
+   :focus-visible       - Enhanced keyboard focus
+   .btn-loading         - Loading state animation
+   .tooltip             - Accessible tooltip
+   .notification        - Notification message
+   
+   LAST UPDATED: 2024-11-17
+   ============================================================================ */
+
+/* ============================================================================
+   ENHANCED FOCUS STATES - WCAG 2.1 AA Compliant
+   ============================================================================ */
+
+button:focus-visible,
+.btn:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 0 1px var(--color-white), 0 0 0 4px var(--color-primary-alpha-20);
+  transition: transform var(--transition-fast);
+}
+
+a:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+  text-decoration: underline;
+}
+
+/* ============================================================================
+   SKIP LINK ENHANCEMENT
+   ============================================================================ */
+
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: var(--color-primary);
+  color: var(--color-white);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  font-weight: var(--font-weight-semibold);
+  z-index: var(--z-tooltip);
+  transition: top var(--transition-normal);
+}
+
+.skip-link:focus {
+  top: 6px;
+}
+
+/* ============================================================================
+   SCREEN READER ONLY CONTENT
+   ============================================================================ */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ============================================================================
+   HIGH CONTRAST MODE SUPPORT
+   ============================================================================
+   
+   PURPOSE: Accessibility feature for users with low vision or color blindness
+   
+   MECHANISM: Uses CSS custom property tokens to enhance contrast throughout
+   the framework without needing component-specific selectors.
+   
+   TRIGGERED BY:
+   - User toggle in accessibility menu: [data-high-contrast="true"]
+   - System OS preference: @media (prefers-contrast: high)
+   
+   INCLUDES:
+   - Darker text colors (#000 instead of #111827)
+   - Enhanced borders (2px+ width with stronger colors)
+   - Stronger outlines on focus states
+   - Bold font weights for better distinction
+   - Increased opacity on semi-transparent elements
+   - Enhanced shadows for better element separation
+   
+   WCAG COMPLIANCE: WCAG 2.1 AAA - Enhanced contrast for accessibility
+   
+   ========================================================================= */
+
+/* System OS preference for high contrast */
+@media (prefers-contrast: high) {
+  :root {
+    --text-body: #000;
+    --text-muted: #333;
+  }
+
+  button:focus-visible {
+    outline: 3px solid #000;
+  }
+}
+
+/* User-selected high contrast mode - applies via data attribute */
+[data-high-contrast="true"] {
+  /* Text: Use pure black for primary text instead of dark gray */
+  --text-body: #000;
+  --text-primary: #000;
+  --text-secondary: #000;
+  --text-muted: #333;
+
+  /* Focus & interactive states: Thicker, darker outlines */
+  --focus-ring-width: 4px;
+  --focus-ring-color: #000;
+
+  /* Borders & dividers: Stronger, darker borders */
+  --border-default: #000;
+  --border-subtle: #333;
+  --border-strong: #000;
+
+  /* Semantic colors: Ensure WCAG AAA contrast ratios */
+  --color-success: #004620;
+  /* Darker green for high contrast */
+  --color-danger: #7a0a0a;
+  /* Darker red for high contrast */
+  --color-warning: #b85a00;
+  /* Darker orange for high contrast */
+  --color-info: #0d2a66;
+  /* Darker blue for high contrast */
+  --color-partial: #8b5000;
+  /* Darker amber for high contrast */
+
+  /* Button & input states: Darker disabled states */
+  --color-disabled-text: #666;
+  --color-disabled-border: #333;
+
+  /* Shadows: More pronounced for depth separation */
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.6), 0 2px 4px -1px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.7), 0 4px 6px -2px rgba(0, 0, 0, 0.6);
+
+  /* Alpha transparency: Reduce transparency for clarity (halfway between normal and solid) */
+  --bg-overlay: rgba(0, 0, 0, 0.65);
+  --color-primary-alpha-10: rgba(36, 2, 80, 0.15);
+  --color-primary-alpha-20: rgba(36, 2, 80, 0.25);
+  --color-secondary-alpha-10: rgba(88, 28, 135, 0.15);
+  --color-secondary-alpha-20: rgba(88, 28, 135, 0.25);
+}
+
+/* Component-level enhancements for high contrast mode */
+[data-high-contrast="true"] {
+
+  /* Enhanced focus states: Thicker outlines and stronger rings */
+  button:focus-visible,
+  .btn:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 4px solid #000;
+    outline-offset: 3px;
+    box-shadow: 0 0 0 2px #fff, 0 0 0 6px #000;
+  }
+
+  a:focus-visible {
+    outline: 4px solid #000;
+    outline-offset: 2px;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+  }
+
+  /* Button enhancements: Thicker borders and bold text */
+  button,
+  .btn {
+    border: 2px solid #000;
+    font-weight: var(--font-weight-semibold);
+  }
+
+  /* Button variant enhancements: Ensure black borders on all button types */
+  .btn-primary,
+  .btn-secondary,
+  .btn-success,
+  .btn-warning,
+  .btn-danger,
+  .btn-info,
+  .btn-outline-primary,
+  .btn-outline-secondary {
+    border: 2px solid #000;
+  }
+
+  /* Disabled button enhancements: Black text and outlines */
+  button:disabled,
+  .btn:disabled {
+    color: #000;
+    border-color: #000;
+    background: #e6e6e6;
+    opacity: 1;
+  }
+
+  /* Input field enhancements: Darker borders */
+  input,
+  textarea,
+  select {
+    border-width: 2px;
+    border-color: #000;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    border-color: #000;
+  }
+
+  /* Card & component borders: Stronger borders */
+  .card,
+  .callout,
+  .modal-content {
+    border-width: 2px;
+    border-color: #000;
+  }
+
+  .card:hover,
+  .callout:hover {
+    border-color: #000;
+    border-width: 2px;
+  }
+
+  /* Input disabled state enhancements */
+  input:disabled,
+  select:disabled {
+    opacity: 0.6;
+    border-color: #666;
+    background: #e6e6e6;
+  }
+
+  /* Link enhancements: Underlines and bold for clarity */
+  a {
+    text-decoration: underline;
+    font-weight: var(--font-weight-semibold);
+  }
+
+  /* Sidebar links exception: No underlines for navigation links */
+  .sidebar a,
+  .nav a {
+    text-decoration: none;
+  }
+
+  /* Notification enhancements: Stronger borders and text */
+  .notification {
+    border-left-width: 6px;
+    border-width: 2px;
+    background: #fff;
+    color: #000;
+    font-weight: var(--font-weight-medium);
+  }
+
+  /* Tab & accordion enhancements: Stronger appearance */
+  .tab-button,
+  .accordion-header {
+    border-width: 2px;
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .tab-button.active,
+  .accordion-header.active {
+    border-color: #000;
+    background: #f0f0f0;
+    color: #000;
+  }
+}
+
+/* ============================================================================
+   LARGE FONT MODE SUPPORT
+   ============================================================================
+   
+   PURPOSE: Accessibility feature for users with low vision
+   
+   MECHANISM: Uses CSS custom property tokens to scale typography and spacing
+   without needing media queries or complex selectors. All components
+   automatically adapt because they use the design tokens.
+   
+   TOKEN MULTIPLIERS (defined in design-tokens.css):
+   - --font-scale-multiplier: Main scale for general fonts
+   - --font-scale-body: Body text specific scaling
+   - --font-scale-heading: Heading specific scaling
+   - --spacing-scale-multiplier: Spacing adjustment
+   - --touch-target-scale-multiplier: Touch target scaling
+   
+   When [data-font-size="large"], these tokens are activated to their
+   configured values, causing all dependent properties to scale automatically.
+   
+   WCAG COMPLIANCE: WCAG 2.1 AA - Ensures minimum 14px body text in large mode
+   
+   ========================================================================= */
+
+[data-font-size="large"] {
+  /* Typography: Scale body text and labels using base tokens × multipliers */
+  --font-size-xs: calc(var(--font-size-xs-base) * var(--font-scale-multiplier));
+  --font-size-sm: calc(var(--font-size-sm-base) * var(--font-scale-multiplier));
+  --font-size-base: calc(var(--font-size-base-base) * var(--font-scale-body));
+  --font-size-lg: calc(var(--font-size-lg-base) * var(--font-scale-body));
+  --font-size-xl: calc(var(--font-size-xl-base) * var(--font-scale-heading));
+  --font-size-2xl: calc(var(--font-size-2xl-base) * var(--font-scale-heading));
+  --font-size-3xl: calc(var(--font-size-3xl-base) * var(--font-scale-heading));
+  --font-size-4xl: calc(var(--font-size-4xl-base) * var(--font-scale-heading));
+  --font-size-5xl: calc(var(--font-size-5xl-base) * var(--font-scale-heading));
+
+  /* Touch targets & interactive elements: Scale using token */
+  --btn-min-height: calc(44px * var(--touch-target-scale-multiplier));
+  --size-touch-target: calc(44px * var(--touch-target-scale-multiplier));
+  --size-icon-button: calc(48px * var(--touch-target-scale-multiplier));
+
+  /* Input fields: Scale using token */
+  --input-min-height: calc(44px * var(--touch-target-scale-multiplier));
+  --input-padding-y: calc(var(--space-3-base) * var(--spacing-scale-multiplier));
+  --input-padding-x: calc(var(--space-4-base) * var(--spacing-scale-multiplier));
+
+  /* Feedback system: Scale using token */
+  --feedback-padding: calc(var(--space-3-base) * var(--spacing-scale-multiplier));
+  --feedback-font-size: calc(var(--font-size-sm-base) * var(--spacing-scale-multiplier));
+
+  /* Spacing: Increase using token for visual separation */
+  --space-1: calc(var(--space-1-base) * var(--spacing-scale-multiplier));
+  --space-2: calc(var(--space-2-base) * var(--spacing-scale-multiplier));
+  --space-3: calc(var(--space-3-base) * var(--spacing-scale-multiplier));
+  --space-4: calc(var(--space-4-base) * var(--spacing-scale-multiplier));
+  --space-5: calc(var(--space-5-base) * var(--spacing-scale-multiplier));
+  --space-6: calc(var(--space-6-base) * var(--spacing-scale-multiplier));
+  --space-8: calc(var(--space-8-base) * var(--spacing-scale-multiplier));
+  --space-10: calc(var(--space-10-base) * var(--spacing-scale-multiplier));
+  --space-12: calc(var(--space-12-base) * var(--spacing-scale-multiplier));
+
+  /* Button system: Increase padding using token */
+  --btn-padding-y: calc(var(--space-3-base) * var(--spacing-scale-multiplier));
+  --btn-padding-x: calc(var(--space-5-base) * var(--spacing-scale-multiplier));
+
+  /* Form elements: Scale padding using token */
+  --content-padding: calc(var(--space-10-base) * var(--spacing-scale-multiplier));
+  --section-padding: calc(var(--space-8-base) * var(--spacing-scale-multiplier));
+}
+
+/* ============================================================================
+   REDUCED MOTION SUPPORT
+   ============================================================================
+   
+   PURPOSE: Accessibility feature for users sensitive to animations
+   
+   MECHANISM: Disables all animations and transitions via two methods:
+   1. OS-level: @media (prefers-reduced-motion: reduce) - respects system setting
+   2. User toggle: [data-reduced-motion="true"] - user can override system preference
+   
+   TRIGGERED BY:
+   - System OS preference: @media (prefers-reduced-motion: reduce)
+   - User toggle in accessibility menu: [data-reduced-motion="true"]
+   
+   INCLUDES:
+   - All CSS animations (spin, fadeIn, shimmer, etc.)
+   - All CSS transitions (hover, focus, state changes)
+   - All transform effects (scale, translate, rotate)
+   - Scroll behavior (smooth scroll → auto scroll)
+   
+   WCAG COMPLIANCE: WCAG 2.1 AA - Respects user motion sensitivity
+   
+   ========================================================================= */
+
+/* System OS preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  html {
+    scroll-behavior: auto !important;
+  }
+}
+
+/* User-selected reduced motion mode - applies via data attribute */
+[data-reduced-motion="true"] {
+
+  /* Disable all animations globally */
+  * {
+    animation: none !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition: none !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  /* Remove transform effects from interactive elements */
+  button:hover,
+  button:active,
+  .btn:hover,
+  .btn:active,
+  a:hover,
+  input:hover,
+  textarea:hover,
+  select:hover {
+    transform: none !important;
+  }
+
+  /* Disable component animations */
+  .notification,
+  .modal,
+  .modal-overlay,
+  .sidebar,
+  .sidebar-overlay,
+  .tooltip,
+  .tooltip::after,
+  .tooltip::before,
+  .tab-content,
+  .accordion-content,
+  .collapse-content,
+  .carousel-item,
+  .flip-card,
+  .dropdown-menu {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Disable interaction animations */
+  .matching-item,
+  .matching-target,
+  .drag-item,
+  .drop-zone,
+  .hotspot-area,
+  .fill-blank-input,
+  .checkbox-custom,
+  .radio-custom,
+  .toggle-switch,
+  .true-false-option {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+
+  .matching-item:hover,
+  .matching-target:hover,
+  .drag-item:hover,
+  .drag-item:active,
+  .hotspot-area:hover,
+  .true-false-option:hover {
+    transform: none !important;
+  }
+
+  /* Disable loading animations */
+  .btn-loading::after,
+  .spinner,
+  .progress-fill::after {
+    animation: none !important;
+  }
+
+  /* Disable feedback animations */
+  .btn-success-feedback,
+  .success-checkmark {
+    animation: none !important;
+  }
+
+  /* Disable visibility transitions */
+  [data-hidden],
+  [data-show],
+  .hidden,
+  .visible {
+    transition: none !important;
+  }
+
+  /* Disable all keyframe animations - override any @keyframes definitions */
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 1;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeOut {
+    from {
+      opacity: 1;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      transform: none;
+    }
+
+    100% {
+      transform: none;
+    }
+  }
+
+  @keyframes successPulse {
+
+    0%,
+    100% {
+      transform: scale(1);
+    }
+
+    50% {
+      transform: scale(1);
+    }
+  }
+
+  @keyframes checkmarkPop {
+
+    0%,
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  @keyframes flash-incorrect {
+
+    0%,
+    100% {
+      transform: none;
+    }
+  }
+
+  @keyframes notificationSlideIn {
+    from {
+      opacity: 1;
+      transform: none;
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes notificationSlideOut {
+    from {
+      opacity: 1;
+      transform: none;
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+
+@media print {
+
+  #accessibility-button,
+  #accessibility-menu,
+  .interaction-controls,
+  .final-actions,
+  .nav-controls {
+    display: none !important;
+  }
+
+  .interaction {
+    page-break-inside: avoid;
+  }
+
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  button {
+    border: 2px solid #000 !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .notification {
+    border: 2px solid #000 !important;
+    background: #fff !important;
+  }
+}
+
+/* ============================================================================
+   MICRO-INTERACTIONS FOR BETTER UX
+   ============================================================================ */
+
+/* Loading States */
+.btn-loading {
+  position: relative;
+  color: transparent;
+}
+
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin-left: -8px;
+  margin-top: -8px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin var(--transition-slow) linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Success Feedback Animation */
+@keyframes successPulse {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.05);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.btn-success-feedback {
+  animation: successPulse 0.6s ease-out;
+}
+
+/* Progress Bar Enhancement */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-inset);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--gradient-progress);
+  border-radius: var(--radius-sm);
+  transition: width var(--transition-slow);
+  position: relative;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--gradient-shimmer);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+
+/* ============================================================================
+   ENHANCED NOTIFICATION STYLES
+   ============================================================================ */
+
+.notification {
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  margin: var(--space-4) 0;
+  border-left: 4px solid;
+  position: relative;
+  overflow: hidden;
+}
+
+.notification::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0.05;
+  z-index: -1;
+}
+
+.notification-info {
+  background: var(--color-info-light);
+  border-left-color: var(--color-info);
+  color: var(--color-gray-800);
+}
+
+.notification-info::before {
+  background: var(--color-info);
+}
+
+.notification-success {
+  background: var(--color-success-light);
+  border-left-color: var(--color-success);
+  color: var(--color-gray-800);
+}
+
+.notification-success::before {
+  background: var(--color-success);
+}
+
+.notification-warning {
+  background: var(--color-warning-light);
+  border-left-color: var(--color-warning);
+  color: var(--color-gray-800);
+}
+
+.notification-warning::before {
+  background: var(--color-warning);
+}
+
+.notification-danger {
+  background: var(--color-danger-light);
+  border-left-color: var(--color-danger);
+  color: var(--color-gray-800);
+}
+
+.notification-danger::before {
+  background: var(--color-danger);
+}
+
+/* ============================================================================
+   MODERN ACCESSIBILITY FEATURES
+   ============================================================================ */
+
+/* Missing alt text warning (development only) */
+img[alt=""] {
+  outline: 2px dashed var(--color-warning);
+  position: relative;
+}
+
+img[alt=""]::after {
+  content: '⚠️ Missing alt text';
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: var(--color-warning);
+  color: var(--text-primary);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Dark mode support - see design-tokens.css for comprehensive dark theme overrides */
+
+/* Enhanced visual hierarchy with better spacing */
+section>*:first-child {
+  margin-top: 0;
+}
+
+section>*:last-child {
+  margin-bottom: 0;
+}

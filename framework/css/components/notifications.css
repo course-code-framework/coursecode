@@ -1,0 +1,107 @@
+/* ============================================================================
+   NOTIFICATIONS - Toast-style alerts
+   ============================================================================ */
+
+/* Container - Fixed/Absolute positioning */
+.notification-container {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: 1100; /* Above everything including modals/tooltips */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 400px;
+  width: calc(100% - var(--space-8)); /* Responsive width with margins */
+  pointer-events: none; /* Allow clicks to pass through container */
+}
+
+/* Individual Notification */
+.notification {
+  background: var(--bg-surface);
+  border-left: var(--border-width-accent) solid var(--color-info);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  pointer-events: auto; /* Re-enable clicks on notifications */
+  transition: opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+  opacity: 0;
+  transform: translateX(20px);
+  animation: notificationSlideIn 0.3s forwards;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+@keyframes notificationSlideIn {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes notificationSlideOut {
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+/* Notification Types */
+.notification-success {
+  border-left-color: var(--color-success);
+  background-color: var(--color-success-light);
+}
+
+.notification-danger {
+  border-left-color: var(--color-danger);
+  background-color: var(--color-danger-light);
+}
+
+.notification-warning {
+  border-left-color: var(--color-warning);
+  background-color: var(--color-warning-light);
+}
+
+.notification-info {
+  border-left-color: var(--color-info);
+  background-color: var(--color-info-light);
+}
+
+/* Close Button */
+.notification-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  font-size: 1.25rem;
+  line-height: 1;
+  opacity: 0.6;
+  flex-shrink: 0;
+  margin-top: -2px; /* Visual alignment */
+}
+
+.notification-close:hover {
+  opacity: 1;
+  color: var(--text-primary);
+}
+
+.notification-message {
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    line-height: 1.4;
+    flex-grow: 1;
+}
+
+@media (max-width: 480px) {
+  .notification-container {
+    top: var(--space-2);
+    right: var(--space-2);
+    left: var(--space-2);
+    width: auto;
+    max-width: none;
+  }
+}

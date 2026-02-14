@@ -1,0 +1,126 @@
+/* ============================================================================
+   LIKERT - Likert scale interaction styles
+   ============================================================================
+   
+   PURPOSE: Styles for likert scale/survey interactions
+   
+   INCLUDES:
+   - Table layout for scale and questions
+   - Responsive adjustments for mobile
+   - Radio button alignment
+   - Row striping for readability
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   - Requires: base.css (for .interaction container)
+   
+   USED BY:
+   - Surveys and feedback forms
+   - Confidence checks
+   - Attitude assessments
+   
+   AI DEBUGGING TIPS:
+   - Table overflowing? Check .likert-container overflow-x: auto
+   - Radio buttons not centered? Verify text-align: center on .likert-option
+   - Labels not showing on mobile? Check media queries for ::before content
+   
+   COMMON CLASSES:
+   .likert-container      - Scrollable wrapper for table
+   .likert-table          - Main data table
+   .likert-header-question - Header for question text column
+   .likert-header-option  - Header for scale options
+   .likert-row            - Question row (odd/even)
+   .likert-question-text  - The question statement
+   .likert-option         - Cell containing radio button
+   
+   LAST UPDATED: 2025-11-18
+   ============================================================================ */
+
+.likert-container {
+  overflow-x: auto;
+  margin: var(--space-4) 0;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.likert-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px; /* Ensure readable width on small screens */
+}
+
+.likert-table th,
+.likert-table td {
+  padding: var(--space-3) var(--space-4);
+  text-align: center;
+  vertical-align: middle;
+}
+
+/* Headers */
+.likert-table thead {
+  background-color: var(--bg-muted);
+  border-bottom: 2px solid var(--color-gray-300);
+}
+
+.likert-header-question {
+  text-align: left !important;
+  width: 40%;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-gray-800);
+}
+
+.likert-header-option {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-gray-700);
+  font-size: var(--font-size-sm);
+}
+
+/* Rows */
+.likert-row {
+  border-bottom: 1px solid var(--color-gray-200);
+  transition: background-color var(--transition-fast);
+}
+
+.likert-row:last-child {
+  border-bottom: none;
+}
+
+.likert-row.odd {
+  background-color: var(--bg-surface);
+}
+
+.likert-row.even {
+  background-color: var(--bg-subtle);
+}
+
+.likert-row:hover {
+  background-color: var(--color-primary-alpha-10);
+}
+
+/* Question Text Cell */
+.likert-question-text {
+  text-align: left !important;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-gray-900);
+}
+
+/* Radio Buttons */
+.likert-option input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .likert-header-option {
+    font-size: var(--font-size-xs);
+    padding: var(--space-2);
+  }
+  
+  .likert-question-text {
+    font-size: var(--font-size-sm);
+  }
+}

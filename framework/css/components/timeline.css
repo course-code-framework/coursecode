@@ -1,0 +1,154 @@
+/* ========================================
+   UI COMPONENT: Timeline
+   Use for: Chronological events, processes, history
+   Variants: icon, compact
+   ======================================== */
+[data-component="timeline"] {
+  max-width: 900px;
+  margin: 0 auto;
+  position: relative;
+  padding: var(--space-8) 0 var(--space-4);
+}
+
+/* Vertical line connecting timeline items */
+[data-component="timeline"]::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: calc(var(--space-8) + var(--space-8) + var(--space-4));
+  bottom: calc(var(--space-4) + var(--space-6));
+  width: 3px;
+  background: var(--color-gray-200);
+  transform: translateX(-50%);
+}
+
+
+
+[data-component="timeline"] .timeline-item {
+  display: flex;
+  margin-bottom: var(--space-8);
+  position: relative;
+  padding-top: var(--space-8);
+}
+
+[data-component="timeline"] .timeline-item:last-child {
+  margin-bottom: 0;
+}
+
+/* Alternating left/right layout */
+[data-component="timeline"] .timeline-item:nth-child(odd) {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+[data-component="timeline"] .timeline-item:nth-child(even) {
+  text-align: left;
+}
+
+/* Timeline content container */
+[data-component="timeline"] .timeline-content {
+  width: calc(50% - 40px);
+  padding: var(--space-5);
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-gray-200);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Timeline marker (center node) */
+[data-component="timeline"] .timeline-marker {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--space-8) + var(--space-5));
+  width: 16px;
+  height: 16px;
+  background: var(--color-primary);
+  border: 3px solid var(--bg-surface);
+  border-radius: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 0 0 3px var(--color-primary);
+  z-index: 2;
+}
+
+/* Active/highlighted timeline marker */
+[data-component="timeline"] .timeline-item.active .timeline-marker {
+  width: 20px;
+  height: 20px;
+  background: var(--color-secondary);
+  box-shadow: 0 0 0 3px var(--color-secondary);
+}
+
+/* Timeline date/label - positioned above marker with solid background */
+[data-component="timeline"] .timeline-date {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-white);
+  background: var(--color-primary);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+  z-index: 3;
+  box-shadow: var(--shadow-sm);
+}
+
+[data-component="timeline"] .timeline-content h3 {
+  margin-top: 0;
+  margin-bottom: var(--space-2);
+  color: var(--color-primary);
+}
+
+[data-component="timeline"] .timeline-content p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+/* Icon variant for timeline markers */
+[data-component="timeline"][data-style="icon"] .timeline-marker {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-lg);
+}
+
+/* Compact timeline variant */
+[data-component="timeline"][data-style="compact"] .timeline-content {
+  padding: var(--space-3);
+}
+
+[data-component="timeline"][data-style="compact"] .timeline-marker {
+  width: 14px;
+  height: 14px;
+}
+
+@media (max-width: 768px) {
+
+  /* Stack timeline on mobile - all items to the right */
+  [data-component="timeline"]::before {
+    left: 20px;
+  }
+
+  [data-component="timeline"] .timeline-item,
+  [data-component="timeline"] .timeline-item:nth-child(odd) {
+    flex-direction: row;
+    text-align: left;
+    padding-left: 50px;
+  }
+
+  [data-component="timeline"] .timeline-content {
+    width: 100%;
+  }
+
+  [data-component="timeline"] .timeline-marker {
+    left: 20px;
+  }
+
+  [data-component="timeline"] .timeline-date {
+    left: 20px;
+  }
+}

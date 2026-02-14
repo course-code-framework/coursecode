@@ -1,0 +1,684 @@
+/* ============================================================================
+   SIDEBAR - Navigation sidebar, menu items, sections, and accessibility menu
+   ============================================================================
+   
+   PURPOSE: Sidebar styling for course navigation and menu structure
+   
+   INCLUDES:
+   - Sidebar container (overlay and static modes)
+   - Sidebar toggle button and backdrop
+   - Navigation menu container
+   - Navigation items, sections, and collapsible groups
+   - Accessibility menu (header dropdown)
+   - Navigation icons and labels
+   - Locked/visited/active states
+   - Tooltips for locked items
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   - Requires: 02-layout.css (for app-body structure)
+   
+   USED BY: All pages - core navigation sidebar
+   
+   DEBUGGING TIPS:
+   - Sidebar not showing? Check `.sidebar.collapsed` class
+   - Nav items not clickable? Check `.nav-item.locked` state
+   - Scroll issues? Check `nav#menu` overflow properties
+   - Accessibility menu not appearing? Check `#accessibility-menu[hidden]`
+   - Visited checkmarks missing? Check `.nav-item.visited:not(.locked)` rule
+   
+   ============================================================================ */
+
+/* Sidebar Toggle Button in Header */
+.sidebar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--btn-min-height);
+  height: var(--btn-min-height);
+  background: var(--header-control-bg);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-interactive), box-shadow var(--transition-interactive), opacity var(--transition-fast);
+  color: var(--header-control-text);
+  font-size: var(--font-size-2xl);
+  margin-right: var(--space-2);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.sidebar-toggle:hover {
+  background: var(--header-control-bg-hover);
+  transform: translateY(var(--motion-lift-sm));
+}
+
+.sidebar-toggle:focus-visible {
+  outline: 2px solid var(--header-control-focus);
+  outline-offset: 2px;
+}
+
+.sidebar-toggle:active {
+  background: var(--header-control-bg-active);
+  transform: scale(var(--motion-press-scale));
+}
+
+/* Disabled state - no visual change except cursor
+   Uses higher specificity to override global button:disabled styles */
+.sidebar-toggle:disabled,
+.sidebar-toggle[aria-disabled="true"],
+button.sidebar-toggle:disabled {
+  cursor: not-allowed;
+  pointer-events: auto;
+  /* Keep pointer events to show cursor */
+  background: transparent;
+  color: var(--header-control-text);
+  border-color: transparent;
+  opacity: 1;
+}
+
+.sidebar-toggle:disabled:hover,
+.sidebar-toggle[aria-disabled="true"]:hover,
+button.sidebar-toggle:disabled:hover {
+  background: transparent;
+  color: var(--header-control-text);
+  border-color: transparent;
+  transform: none;
+  box-shadow: none;
+}
+
+.sidebar-toggle:disabled:active,
+.sidebar-toggle[aria-disabled="true"]:active,
+button.sidebar-toggle:disabled:active {
+  background: transparent;
+  transform: none;
+}
+
+.sidebar-toggle .toggle-icon {
+  display: block;
+  line-height: 1;
+  user-select: none;
+  transition: transform var(--transition-normal);
+}
+
+/* Keep header control icons optically centered (menu + accessibility gear). */
+.sidebar-toggle > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.sidebar-toggle > span > svg,
+.sidebar-toggle > svg {
+  display: block;
+  width: 1em;
+  height: 1em;
+}
+
+/* Rotate icon when sidebar is open */
+.sidebar-toggle[aria-expanded="true"] .toggle-icon {
+  transform: rotate(90deg);
+}
+
+/* Accessibility popup menu */
+#accessibility-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: var(--space-6);
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-1);
+  min-width: 160px;
+  z-index: var(--z-dropdown);
+  border: var(--border-width-thin) solid var(--border-default);
+}
+
+#accessibility-menu[hidden] {
+  display: none;
+}
+
+#accessibility-menu button[hidden] {
+  display: none;
+}
+
+#accessibility-menu button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+  text-align: left;
+}
+
+#accessibility-menu button:hover {
+  background: var(--bg-surface-hover);
+}
+
+#accessibility-menu button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+#accessibility-menu button.active {
+  background: var(--color-primary-alpha-10);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+#accessibility-menu button.active::after {
+  content: "✓";
+  margin-left: auto;
+  font-weight: var(--font-weight-bold);
+}
+
+/* Icon size in menu */
+#accessibility-menu button span:first-child {
+  font-size: var(--font-size-base);
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#accessibility-menu .menu-label {
+  flex: 1;
+  font-weight: var(--font-weight-medium);
+}
+
+#accessibility-menu .menu-divider {
+  border: none;
+  border-top: 1px solid var(--border-default);
+  margin: var(--space-2) 0;
+}
+
+#accessibility-menu .menu-divider[hidden] {
+  display: none;
+}
+
+/* Sidebar Navigation - Always Overlay (Fixed Position) */
+.sidebar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--sidebar-width, 280px);
+  height: 100%;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: var(--z-overlay);
+  box-shadow: var(--shadow-xl);
+  transition: transform var(--transition-slow);
+  will-change: transform;
+  color: var(--sidebar-text);
+}
+
+.sidebar.collapsed {
+  transform: translateX(-100%);
+}
+
+.sidebar.position-right {
+  left: auto;
+  right: 0;
+  border-right: none;
+  border-left: 1px solid var(--sidebar-border);
+}
+
+.sidebar.position-right.collapsed {
+  transform: translateX(100%);
+}
+
+.app-body.sidebar-static .sidebar {
+  position: relative;
+  flex: 0 0 var(--sidebar-width, 280px);
+  height: 100%;
+  transform: none !important;
+  box-shadow: none;
+  z-index: auto;
+}
+
+.app-body.sidebar-static .sidebar.collapsed {
+  transform: none;
+}
+
+.app-body.sidebar-static-right {
+  flex-direction: row-reverse;
+}
+
+.app-body.sidebar-static-right .sidebar {
+  border-left: 1px solid var(--sidebar-border);
+  border-right: none;
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar {
+    transition: none;
+  }
+
+  .sidebar-backdrop {
+    transition: none;
+  }
+}
+
+/* Navigation Menu Container */
+nav#menu {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-4) 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--sidebar-scrollbar-thumb) transparent;
+}
+
+/* Custom scrollbar for webkit browsers */
+nav#menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+nav#menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+nav#menu::-webkit-scrollbar-thumb {
+  background: var(--sidebar-scrollbar-thumb);
+  border-radius: 3px;
+}
+
+nav#menu::-webkit-scrollbar-thumb:hover {
+  background: var(--sidebar-scrollbar-thumb-hover);
+}
+
+/* Sidebar Backdrop */
+.sidebar-backdrop {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--sidebar-backdrop);
+  z-index: 99;
+  opacity: 0;
+  transition: opacity var(--transition-slow);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.sidebar-backdrop.visible {
+  display: block;
+  opacity: 1;
+}
+
+.app-body.sidebar-static #sidebar-backdrop {
+  display: none !important;
+}
+
+/* Navigation List - Reset default list styles */
+.nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Navigation Items (Individual Slides) */
+.nav-item {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-item button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  color: var(--sidebar-text);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  border: none;
+  border-left: 3px solid transparent;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  transition: background 0.2s ease-out, color 0.2s ease-out, border-color 0.2s ease-out;
+  cursor: pointer;
+}
+
+.nav-item button:hover {
+  background: var(--sidebar-hover-bg);
+  color: var(--sidebar-hover-text);
+  border-left-color: var(--sidebar-hover-text);
+}
+
+.nav-item button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+.nav-item.active button {
+  background: var(--sidebar-active-bg);
+  border-left-color: var(--sidebar-active-text);
+  color: var(--sidebar-active-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.nav-item.visited button {
+  /* Visited state indicated by checkmark only - no background change needed */
+}
+
+/* When a visited item is also the active item, ensure the styles combine well. */
+.nav-item.visited.active button {
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-active-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+/*
+ * Adds a checkmark icon to visited slides for an explicit completion indicator.
+ * Refined styling: smaller, muted color that doesn't distract.
+ */
+.nav-item.visited:not(.locked) button::after {
+  content: '✓';
+  margin-left: auto;
+  color: var(--color-success);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
+  opacity: 0.7;
+}
+
+/* Locked navigation items (gated content) */
+.nav-item.locked button {
+  color: var(--sidebar-muted-text);
+  cursor: not-allowed;
+  position: relative;
+  /* Removed pointer-events: none to allow tooltips to show on hover */
+  /* Removed opacity from here - applied to children instead to avoid affecting tooltip */
+}
+
+.nav-item.locked button .slide-icon,
+.nav-item.locked button .slide-label,
+.nav-item.locked button .lock-icon {
+  opacity: 0.5;
+}
+
+/* Lock icon moved to a separate span to avoid conflict with tooltip ::after */
+.nav-item.locked .lock-icon {
+  margin-left: auto;
+  font-size: var(--font-size-sm);
+  opacity: 0.7;
+}
+
+.nav-item.locked button:hover {
+  background: transparent;
+  border-left-color: transparent;
+}
+
+/* Icon and label within navigation items */
+.slide-icon,
+.section-icon {
+  font-size: var(--font-size-lg);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.slide-label,
+.section-label {
+  flex: 1;
+  line-height: var(--line-height-normal);
+}
+
+/* Navigation Sections (Collapsible Groups) */
+.nav-section {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Spacing between sections - no borders */
+.nav-section+.nav-section,
+.nav-item+.nav-section,
+.nav-section+.nav-item {
+  margin-top: var(--space-2);
+}
+
+.section-toggle {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--sidebar-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  width: 100%;
+  text-align: left;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.section-toggle:hover {
+  background: var(--sidebar-hover-bg);
+  color: var(--sidebar-hover-text);
+}
+
+.section-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.toggle-indicator {
+  font-size: var(--font-size-lg);
+  transition: transform var(--transition-fast);
+  color: var(--sidebar-muted-text);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.nav-section.expanded .toggle-indicator {
+  transform: rotate(90deg);
+}
+
+/* Section with all children locked - greyed out but still interactive */
+.nav-section.all-children-locked .section-toggle {
+  color: var(--sidebar-muted-text) !important;
+  opacity: 0.6;
+}
+
+.nav-section.all-children-locked .section-toggle:hover {
+  background: transparent !important;
+}
+
+.nav-section.all-children-locked .section-icon,
+.nav-section.all-children-locked .section-label,
+.nav-section.all-children-locked .toggle-indicator {
+  color: var(--sidebar-muted-text) !important;
+  opacity: 0.7;
+}
+
+/* Section Children Container */
+.section-children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--transition-slow);
+}
+
+.nav-section.expanded .section-children {
+  max-height: 2000px;
+}
+
+/* Nested navigation items within sections */
+.section-children .nav-item button {
+  padding-left: var(--space-8);
+  font-size: var(--font-size-sm);
+}
+
+.section-children .nav-section .section-toggle {
+  padding-left: var(--space-8);
+}
+
+
+.section-children .section-children .nav-item button {
+  padding-left: var(--space-12);
+  font-size: var(--font-size-xs);
+}
+
+/* Respect reduced motion for section expansion */
+@media (prefers-reduced-motion: reduce) {
+  .section-children {
+    transition: none;
+  }
+
+  .nav-section.expanded .section-children {
+    max-height: none;
+  }
+}
+
+/* ============================================================================
+   SIDEBAR STYLE VARIANTS
+   ============================================================================
+   
+   Activate a style by adding data-sidebar-style attribute to :root or sidebar:
+   <html data-sidebar-style="dark"> or <aside class="sidebar" data-sidebar-style="dark">
+   
+   ========================================================================= */
+
+/* Dark - Dark background with light text */
+[data-sidebar-style="dark"] .sidebar,
+.sidebar[data-sidebar-style="dark"] {
+  --sidebar-bg: var(--color-gray-800);
+  --sidebar-text: var(--color-gray-100);
+  --sidebar-border: var(--color-gray-700);
+  --sidebar-active-bg: var(--color-white-alpha-25);
+  --sidebar-active-text: var(--color-white);
+  --sidebar-hover-bg: var(--color-white-alpha-15);
+  --sidebar-hover-text: var(--color-white);
+
+  background: var(--sidebar-bg);
+  border-right-color: var(--sidebar-border);
+  color: var(--sidebar-text);
+}
+
+[data-sidebar-style="dark"] .sidebar .section-toggle,
+.sidebar[data-sidebar-style="dark"] .section-toggle {
+  color: var(--sidebar-text);
+}
+
+[data-sidebar-style="dark"] .sidebar .section-toggle:hover,
+.sidebar[data-sidebar-style="dark"] .section-toggle:hover {
+  background: var(--sidebar-hover-bg);
+}
+
+[data-sidebar-style="dark"] .sidebar .toggle-indicator,
+.sidebar[data-sidebar-style="dark"] .toggle-indicator {
+  color: var(--color-gray-400);
+}
+
+[data-sidebar-style="dark"] .sidebar .nav-item.visited button,
+.sidebar[data-sidebar-style="dark"] .nav-item.visited button {
+  background-color: var(--sidebar-hover-bg);
+}
+
+/* Primary - Uses primary color as background */
+[data-sidebar-style="primary"] .sidebar,
+.sidebar[data-sidebar-style="primary"] {
+  --sidebar-bg: var(--color-primary);
+  --sidebar-text: var(--color-white);
+  --sidebar-border: var(--color-primary-hover);
+  --sidebar-active-bg: var(--color-white-alpha-25);
+  --sidebar-active-text: var(--color-white);
+  --sidebar-hover-bg: var(--color-white-alpha-15);
+  --sidebar-hover-text: var(--color-white);
+
+  background: var(--color-primary);
+  border-right-color: var(--color-primary-hover);
+  color: var(--color-white);
+}
+
+[data-sidebar-style="primary"] .sidebar .section-toggle,
+.sidebar[data-sidebar-style="primary"] .section-toggle {
+  color: var(--color-white);
+}
+
+[data-sidebar-style="primary"] .sidebar .section-toggle:hover,
+.sidebar[data-sidebar-style="primary"] .section-toggle:hover {
+  background: var(--sidebar-hover-bg);
+}
+
+[data-sidebar-style="primary"] .sidebar .toggle-indicator,
+.sidebar[data-sidebar-style="primary"] .toggle-indicator {
+  color: var(--color-white-alpha-80);
+}
+
+[data-sidebar-style="primary"] .sidebar .nav-item.visited button,
+.sidebar[data-sidebar-style="primary"] .nav-item.visited button {
+  background-color: var(--sidebar-hover-bg);
+}
+
+[data-sidebar-style="primary"] .sidebar .nav-item.visited:not(.locked) button::after,
+.sidebar[data-sidebar-style="primary"] .nav-item.visited:not(.locked) button::after {
+  color: var(--color-white);
+}
+
+/* Minimal - Borderless, subtle background */
+[data-sidebar-style="minimal"] .sidebar,
+.sidebar[data-sidebar-style="minimal"] {
+  border-right: none;
+  box-shadow: none;
+  background: var(--bg-subtle);
+}
+
+[data-sidebar-style="minimal"] .sidebar .nav-item button,
+.sidebar[data-sidebar-style="minimal"] .nav-item button {
+  border-left: none;
+  border-radius: var(--radius-md);
+  margin: 0 var(--space-2);
+}
+
+[data-sidebar-style="minimal"] .sidebar .nav-item button:hover,
+.sidebar[data-sidebar-style="minimal"] .nav-item button:hover {
+  background: var(--bg-inset);
+}
+
+[data-sidebar-style="minimal"] .sidebar .nav-item.active button,
+.sidebar[data-sidebar-style="minimal"] .nav-item.active button {
+  background: var(--color-primary-alpha-10);
+  color: var(--color-primary);
+}
+
+/* ============================================================================
+   SIDEBAR FOOTER - Exit button for mobile (hidden on desktop)
+   ============================================================================ */
+
+.nav-sidebar-footer {
+  display: none;
+  padding: var(--space-4);
+  border-top: 1px solid var(--sidebar-border);
+  background: var(--sidebar-bg);
+}
+
+.nav-sidebar-footer .nav-sidebar-exit {
+  width: 100%;
+  justify-content: center;
+  gap: var(--space-2);
+}

@@ -1,0 +1,80 @@
+/* ============================================================================
+   FLEXBOX UTILITIES - Flex layout helper classes
+   ============================================================================
+   
+   PURPOSE: Utility classes for flexbox layouts
+   
+   INCLUDES:
+   - Flex display and direction
+   - Alignment and justification
+   - Flex wrap and gaps
+   - Common flex patterns
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for --space-* variables)
+   
+   USAGE:
+   <div class="flex items-center justify-between">...</div>
+   <div class="flex flex-col gap-4">...</div>
+   <div class="flex-center">Centered content</div>
+   
+   ============================================================================ */
+
+/* Layout Utilities - Display & Flex */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.flex-row { flex-direction: row; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-nowrap { flex-wrap: nowrap; }
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-start {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.items-end { align-items: flex-end; }
+
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.justify-start { justify-content: flex-start; }
+.justify-end { justify-content: flex-end; }
+
+.self-center { align-self: center; }
+.self-start { align-self: flex-start; }
+.self-end { align-self: flex-end; }
+
+/* Flex Grow */
+.flex-1 { flex: 1; }
+.flex-grow { flex-grow: 1; }
+.flex-shrink { flex-shrink: 1; }
+.flex-shrink-0 { flex-shrink: 0; }
+
+.gap-0 { gap: 0; }
+.gap-1 { gap: var(--space-1); }
+.gap-2 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-3); }
+.gap-4 { gap: var(--space-4); }
+.gap-5 { gap: var(--space-5); }
+.gap-6 { gap: var(--space-6); }
+.gap-8 { gap: var(--space-8); }
+.gap-10 { gap: var(--space-10); }
+.gap-12 { gap: var(--space-12); }
+.gap-16 { gap: var(--space-16); }
+.gap-20 { gap: var(--space-20); }
+.gap-24 { gap: var(--space-24); }
+

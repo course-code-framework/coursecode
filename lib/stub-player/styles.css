@@ -1,0 +1,15 @@
+/* Stub Player Styles — split into per-module partials */
+@import url('./styles/_base.css');
+@import url('./styles/_header-bar.css');
+@import url('./styles/_debug-panel.css');
+@import url('./styles/_edit-mode.css');
+
+@import url('./styles/_content-viewer.css');
+@import url('./styles/_config-panel.css');
+@import url('./styles/_interactions-panel.css');
+@import url('./styles/_assessments-panel.css');
+@import url('./styles/_interaction-editor.css');
+@import url('./styles/_login-screen.css');
+@import url('./styles/_catalog-panel.css');
+@import url('./styles/_catalog-icons.css');
+@import url('./styles/_outline-mode.css');

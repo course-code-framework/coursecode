@@ -1,0 +1,2 @@
+# Exclude design tokens from formatting to preserve manual formatting
+framework/css/design-tokens.css

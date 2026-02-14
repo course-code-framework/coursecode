@@ -1,0 +1,989 @@
+        /* Status Dashboard — project stage overview */
+
+        #stub-player-outline-mode {
+            position: fixed;
+            top: 40px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--color-primary-deep);
+            color: var(--color-gray-200);
+            overflow-y: auto;
+            display: none;
+            z-index: 10;
+        }
+
+        #stub-player-outline-mode.visible {
+            display: block;
+        }
+
+        #stub-player-outline-content {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 32px 24px 60px;
+            position: relative;
+        }
+
+        /* ── Close button (pinned top-left) ──────── */
+
+        .outline-close-btn {
+            position: sticky;
+            top: 12px;
+            float: right;
+            margin-right: -8px;
+            margin-top: -12px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: none;
+            border-radius: 50%;
+            color: var(--color-gray-750);
+            font-size: 24px;
+            line-height: 1;
+            cursor: pointer;
+            z-index: 20;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+
+        .outline-close-btn:hover {
+            color: var(--color-white);
+        }
+
+        /* Loading */
+        .outline-loading {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--color-gray-750);
+            font-size: 14px;
+        }
+
+        /* ── Stepper ────────────────────────────── */
+
+        .outline-stepper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 32px;
+            padding: 20px 0;
+        }
+
+        .stepper-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 8px;
+            transition: transform 0.15s;
+        }
+
+        .stepper-step:hover {
+            transform: scale(1.05);
+        }
+
+        .stepper-dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            border: 2px solid var(--color-primary-panel);
+            color: var(--color-gray-750);
+            background: var(--color-primary-deep);
+            transition: all 0.2s;
+        }
+
+        .stepper-label {
+            font-size: 10px;
+            color: var(--color-gray-750);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .stepper-step.completed .stepper-dot {
+            background: var(--color-success);
+            border-color: var(--color-success);
+            color: var(--color-white);
+        }
+
+        .stepper-step.completed .stepper-label {
+            color: var(--color-success-soft);
+        }
+
+        .stepper-step.current .stepper-dot {
+            background: var(--color-warning);
+            border-color: var(--color-warning);
+            color: var(--color-white);
+        }
+
+        .stepper-step.current .stepper-label {
+            color: var(--color-warning);
+            font-weight: 600;
+        }
+
+        .stepper-step.viewing .stepper-dot {
+            box-shadow: 0 0 0 3px rgba(138, 163, 219, 0.3);
+        }
+
+        .stepper-line {
+            flex: 1;
+            height: 2px;
+            background: var(--color-primary-panel);
+            min-width: 24px;
+            max-width: 60px;
+            margin: 0 -2px;
+            align-self: flex-start;
+            margin-top: 20px;
+        }
+
+        /* ── Stage Header ───────────────────────── */
+
+        .outline-stage-header {
+            margin-bottom: 24px;
+        }
+
+        .outline-stage-header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--color-white);
+            margin: 0 0 6px;
+        }
+
+        .outline-stage-desc {
+            font-size: 14px;
+            color: var(--color-gray-600);
+            line-height: 1.5;
+            margin: 0 0 16px;
+        }
+
+        .outline-skip-btn {
+            background: var(--color-primary-panel);
+            color: var(--color-info-soft);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .outline-skip-btn:hover {
+            background: var(--color-info);
+            color: var(--color-white);
+        }
+
+        /* ── Cards ───────────────────────────────── */
+
+        .outline-card {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid transparent;
+        }
+
+        .outline-card h2 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-white);
+            margin: 0 0 12px;
+        }
+
+        .outline-card-empty {
+            border-color: var(--color-primary-panel);
+        }
+
+        .outline-card-empty p {
+            color: var(--color-gray-750);
+            font-size: 13px;
+            margin: 0;
+        }
+
+        .outline-card-success {
+            border-color: rgba(29, 118, 72, 0.4);
+            background: rgba(29, 118, 72, 0.08);
+        }
+
+        .outline-card-success p {
+            color: var(--color-gray-600);
+            font-size: 13px;
+            margin: 0 0 16px;
+        }
+
+        /* ── Steps list ──────────────────────────── */
+
+        .outline-steps {
+            padding-left: 20px;
+            margin: 0;
+        }
+
+        .outline-steps li {
+            font-size: 13px;
+            color: var(--color-gray-400);
+            line-height: 1.6;
+            margin-bottom: 4px;
+        }
+
+        .outline-steps code,
+        .outline-card code,
+        .outline-card-empty code {
+            background: var(--color-primary-panel);
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: var(--color-accent);
+            font-size: 12px;
+        }
+
+        /* ── Dropzone (integrated in refs card) ──── */
+
+        .outline-refs-card {
+            transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+        }
+
+        .outline-refs-card.dragover {
+            border-color: var(--color-warning);
+            background: rgba(241, 135, 1, 0.04);
+            box-shadow: 0 0 24px rgba(241, 135, 1, 0.08);
+        }
+
+        .outline-refs-card.uploading {
+            border-color: var(--color-success);
+            background: rgba(29, 118, 72, 0.04);
+        }
+
+        /* Empty state: dropzone IS the content */
+        .outline-dropzone-empty {
+            padding: 32px 12px;
+            text-align: center;
+            border: 2px dashed var(--color-primary-panel);
+            border-radius: 8px;
+            transition: border-color 0.2s;
+        }
+
+        .outline-refs-card.dragover .outline-dropzone-empty {
+            border-color: var(--color-warning);
+        }
+
+        .outline-dropzone-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .outline-dropzone-text {
+            font-size: 14px;
+            color: var(--color-gray-200);
+            font-weight: 500;
+        }
+
+        .outline-dropzone-hint {
+            font-size: 11px;
+            color: var(--color-gray-750);
+            margin-top: 6px;
+        }
+
+        .outline-dropzone-hint code {
+            background: var(--color-primary-panel);
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: var(--color-accent);
+            font-size: 11px;
+        }
+
+        /* Inline "add more" bar at bottom of refs list */
+        .outline-dropzone-bar {
+            margin-top: 12px;
+            padding: 10px;
+            text-align: center;
+            border: 1px dashed var(--color-primary-panel);
+            border-radius: 6px;
+            transition: border-color 0.15s, background 0.15s;
+        }
+
+        .outline-refs-card.dragover .outline-dropzone-bar {
+            border-color: var(--color-warning);
+            background: rgba(241, 135, 1, 0.04);
+        }
+
+        .outline-dropzone-bar-text {
+            font-size: 12px;
+            color: var(--color-gray-750);
+        }
+
+        /* ── Stats row ───────────────────────────── */
+
+        .outline-stats {
+            display: flex;
+            gap: 12px;
+        }
+
+        .outline-stat {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            border: 1px solid var(--color-primary-panel);
+        }
+
+        .outline-stat-num {
+            display: block;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--color-white);
+            margin-bottom: 4px;
+        }
+
+        .outline-stat-label {
+            display: block;
+            font-size: 11px;
+            color: var(--color-gray-750);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .outline-stat.stat-error .outline-stat-num { color: var(--color-danger); }
+        .outline-stat.stat-warning .outline-stat-num { color: var(--color-warning); }
+        .outline-stat.stat-success .outline-stat-num { color: var(--color-success-soft); }
+
+        /* ── Export commands ──────────────────────── */
+
+        .outline-export-cmds {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 12px;
+        }
+
+        /* ── Checklist ───────────────────────────── */
+
+        .outline-checklist {
+            padding: 20px;
+        }
+
+        .outline-checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(30, 51, 84, 0.5);
+        }
+
+        .outline-checklist-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .outline-check {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            flex-shrink: 0;
+            border: 2px solid var(--color-primary-panel);
+            color: transparent;
+            background: var(--color-primary-deep);
+        }
+
+        .outline-checklist-item.done .outline-check {
+            background: var(--color-success);
+            border-color: var(--color-success);
+            color: var(--color-white);
+        }
+
+        .outline-check-label {
+            font-size: 13px;
+            color: var(--color-gray-200);
+            font-weight: 500;
+        }
+
+        .outline-checklist-item.done .outline-check-label {
+            color: var(--color-gray-600);
+        }
+
+        .outline-check-detail {
+            margin-left: auto;
+            font-size: 11px;
+            color: var(--color-gray-750);
+            white-space: nowrap;
+        }
+
+        /* ── Card header (h2 + action button) ──── */
+
+        .outline-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .outline-card-header h2 {
+            margin: 0;
+        }
+
+        .outline-open-file-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--color-primary-panel);
+            color: var(--color-info-soft);
+            border: none;
+            padding: 6px 12px;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+            white-space: nowrap;
+        }
+
+        .outline-open-file-btn:hover {
+            background: var(--color-info);
+            color: var(--color-white);
+        }
+
+        .outline-open-file-btn svg {
+            flex-shrink: 0;
+        }
+
+        /* ── Scrollable outline preview ─────────── */
+
+        .outline-markdown-scroll {
+            max-height: 400px;
+            overflow-y: auto;
+            position: relative;
+            mask-image: linear-gradient(to bottom, black calc(100% - 32px), transparent 100%);
+            -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 32px), transparent 100%);
+        }
+
+        /* ── Markdown (outline preview) ──────────── */
+
+        .outline-markdown {
+            font-size: 13px;
+            line-height: 1.7;
+            color: var(--color-gray-400);
+        }
+
+        .outline-markdown h1,
+        .outline-markdown h2,
+        .outline-markdown h3 {
+            color: var(--color-white);
+            margin: 16px 0 8px;
+        }
+
+        .outline-markdown h1 { font-size: 18px; }
+        .outline-markdown h2 { font-size: 15px; }
+        .outline-markdown h3 { font-size: 14px; }
+
+        .outline-markdown p { margin: 0 0 8px; }
+
+        .outline-markdown ul,
+        .outline-markdown ol {
+            padding-left: 20px;
+            margin: 0 0 8px;
+        }
+
+        .outline-markdown li { margin-bottom: 4px; }
+
+        .outline-markdown code {
+            background: var(--color-primary-panel);
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: var(--color-accent);
+            font-size: 12px;
+        }
+
+        .outline-markdown pre {
+            background: var(--color-primary-panel);
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 0 0 8px;
+        }
+
+        .outline-markdown pre code {
+            padding: 0;
+            background: none;
+        }
+
+        /* ── Reference files ─────────────────────── */
+
+        .outline-ref-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 2px;
+        }
+
+        .outline-ref-item:hover {
+            background: rgba(74, 111, 165, 0.08);
+        }
+
+        .outline-ref-status {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            flex-shrink: 0;
+        }
+
+        .outline-ref-item.converted .outline-ref-status {
+            background: rgba(29, 118, 72, 0.2);
+            color: var(--color-success-soft);
+        }
+
+        .outline-ref-item.pending .outline-ref-status {
+            background: rgba(241, 135, 1, 0.2);
+            color: var(--color-warning);
+        }
+
+        .outline-ref-name {
+            font-size: 13px;
+            color: var(--color-gray-200);
+        }
+
+        .outline-ref-badge {
+            margin-left: auto;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .outline-ref-item.converted .outline-ref-badge {
+            background: rgba(52, 211, 153, 0.15);
+            color: var(--color-success-soft);
+        }
+
+        .outline-ref-item.pending .outline-ref-badge {
+            background: rgba(241, 135, 1, 0.15);
+            color: var(--color-warning-bright);
+        }
+
+        /* ── Convert action bar ──────────────────── */
+
+        .outline-convert-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-top: 14px;
+            padding: 12px 14px;
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+            border: 1px solid var(--color-primary-panel);
+        }
+
+        .outline-convert-overwrite {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--color-gray-600);
+            user-select: none;
+        }
+
+        .outline-convert-overwrite input[type="checkbox"] {
+            accent-color: var(--color-warning);
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+        }
+
+        .outline-convert-overwrite span {
+            white-space: nowrap;
+        }
+
+        .outline-convert-btn {
+            background: var(--color-warning);
+            color: var(--color-white);
+            border: none;
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.15s, opacity 0.15s, transform 0.1s;
+        }
+
+        .outline-convert-btn:hover:not(:disabled) {
+            background: color-mix(in srgb, var(--color-warning) 80%, var(--color-black));
+            transform: translateY(-1px);
+        }
+
+        .outline-convert-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .outline-convert-btn:disabled {
+            opacity: 0.7;
+            cursor: default;
+        }
+
+        .outline-convert-btn.converting {
+            background: var(--color-primary-panel);
+            animation: pulse-convert 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-convert {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+
+        /* ── "or" divider ───────────────────────────── */
+
+        .outline-or-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .outline-or-line {
+            flex: 1;
+            height: 1px;
+            background: var(--color-primary-panel);
+        }
+
+        .outline-or-text {
+            color: var(--color-gray-750);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .outline-branch-btn {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            width: 100%;
+            padding: 16px;
+            margin-bottom: 16px;
+            border-radius: 8px;
+            border: 1px solid var(--color-primary-panel);
+            background: rgba(0, 0, 0, 0.15);
+            color: var(--color-gray-200);
+            cursor: pointer;
+            text-align: left;
+            transition: border-color 0.15s, background 0.15s, transform 0.1s;
+        }
+
+        .outline-branch-btn:hover {
+            border-color: var(--color-info);
+            background: rgba(74, 111, 165, 0.08);
+            transform: translateY(-1px);
+        }
+
+        .outline-branch-icon {
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+
+        .outline-branch-btn strong {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-white);
+            margin-bottom: 2px;
+        }
+
+        .outline-branch-btn span:not(.outline-branch-icon) {
+            font-size: 12px;
+            color: var(--color-gray-750);
+        }
+
+        /* ── Back button (sub-views) ─────────────────── */
+
+        .outline-back-btn {
+            background: none;
+            border: none;
+            color: var(--color-info-soft);
+            font-size: 13px;
+            cursor: pointer;
+            padding: 4px 0;
+            margin-bottom: 12px;
+            transition: color 0.15s;
+        }
+
+        .outline-back-btn:hover {
+            color: var(--color-white);
+        }
+
+        /* ── Convert-to-course dropzone ────────────── */
+
+        .outline-convert-dropzone {
+            border: 1px dashed var(--color-primary-panel);
+            transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+        }
+
+        .outline-convert-dropzone.dragover {
+            border-color: var(--color-warning);
+            background: rgba(241, 135, 1, 0.04);
+            box-shadow: 0 0 24px rgba(241, 135, 1, 0.08);
+        }
+
+        .outline-convert-dropzone.uploading {
+            border-color: var(--color-success);
+            background: rgba(29, 118, 72, 0.04);
+        }
+
+        /* ── Hint text (used in import view) ──────── */
+
+        .outline-hint {
+            font-size: 12px;
+            color: var(--color-gray-600);
+            margin: 16px 0 0;
+            padding: 10px 12px;
+            background: rgba(30, 51, 84, 0.3);
+            border-radius: 6px;
+            border-left: 3px solid var(--color-warning);
+        }
+
+        /* ── Filled stepper connector lines ──────── */
+
+        .stepper-line-filled {
+            background: var(--color-success);
+        }
+
+        /* ── Reference file preview links (Stage 2) ── */
+
+        .outline-ref-links {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .outline-ref-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            color: var(--color-gray-200);
+            transition: background 0.15s;
+        }
+
+        .outline-ref-link:hover {
+            background: rgba(74, 111, 165, 0.12);
+        }
+
+        .outline-ref-link-icon {
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .outline-ref-link-name {
+            font-size: 13px;
+            flex: 1;
+        }
+
+        .outline-ref-link-arrow {
+            font-size: 12px;
+            color: var(--color-gray-750);
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .outline-ref-link:hover .outline-ref-link-arrow {
+            opacity: 1;
+        }
+
+        /* ── Slide list (Stage 3) ──────────────────── */
+
+        .outline-slide-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            max-height: 400px;
+            overflow-y: auto;
+            mask-image: linear-gradient(to bottom, black calc(100% - 24px), transparent 100%);
+            -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 24px), transparent 100%);
+        }
+
+        .outline-slide-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 10px;
+            border-radius: 5px;
+            transition: background 0.15s;
+        }
+
+        .outline-slide-item:hover {
+            background: rgba(74, 111, 165, 0.08);
+        }
+
+        .outline-slide-icon {
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        .outline-slide-id {
+            font-size: 12px;
+            font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+            color: var(--color-accent);
+        }
+
+        .outline-slide-title {
+            font-size: 12px;
+            color: var(--color-gray-600);
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .outline-slide-badge {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        .outline-slide-badge.assessment {
+            background: rgba(138, 163, 219, 0.15);
+            color: var(--color-info-soft);
+        }
+
+        /* ── Copy button (Stage 5 commands) ─────────── */
+
+        .outline-cmd {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+            border: 1px solid var(--color-primary-panel);
+            gap: 8px;
+        }
+
+        .outline-cmd code {
+            font-size: 12px;
+            color: var(--color-accent);
+            flex: 1;
+        }
+
+        .outline-cmd-label {
+            font-size: 11px;
+            color: var(--color-gray-750);
+            white-space: nowrap;
+        }
+
+        .outline-copy-btn {
+            background: none;
+            border: 1px solid var(--color-primary-panel);
+            color: var(--color-gray-600);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+            flex-shrink: 0;
+        }
+
+        .outline-copy-btn:hover {
+            background: var(--color-primary-panel);
+            border-color: var(--color-info);
+            color: var(--color-white);
+        }
+
+        /* ── Build actions (Stage 5) ───────────────── */
+
+        .outline-build-actions {
+            display: flex;
+            gap: 8px;
+            margin: 16px 0 12px;
+        }
+
+        .outline-build-btn {
+            background: var(--color-success);
+            color: var(--color-white);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s, opacity 0.15s;
+        }
+
+        .outline-build-btn:hover:not(:disabled) {
+            background: color-mix(in srgb, var(--color-success) 80%, var(--color-black));
+            transform: translateY(-1px);
+        }
+
+        .outline-build-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .outline-build-btn:disabled {
+            opacity: 0.7;
+            cursor: default;
+        }
+
+        .outline-build-format {
+            background: var(--color-primary-panel);
+            color: var(--color-gray-200);
+            border: 1px solid rgba(74, 111, 165, 0.3);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            appearance: auto;
+        }
+
+        .outline-build-format:focus {
+            outline: 2px solid var(--color-info);
+            outline-offset: -1px;
+        }
+
+        .outline-build-status {
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-bottom: 12px;
+        }
+
+        .outline-build-status.building {
+            background: rgba(241, 135, 1, 0.1);
+            border: 1px solid rgba(241, 135, 1, 0.3);
+            color: var(--color-warning);
+            animation: pulse-convert 1.5s ease-in-out infinite;
+        }
+
+        .outline-build-status.success {
+            background: rgba(29, 118, 72, 0.1);
+            border: 1px solid rgba(29, 118, 72, 0.3);
+            color: var(--color-success-soft);
+        }
+
+        .outline-build-status.error {
+            background: rgba(220, 38, 38, 0.1);
+            border: 1px solid rgba(220, 38, 38, 0.3);
+            color: var(--color-danger);
+        }

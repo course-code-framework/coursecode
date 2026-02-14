@@ -1,0 +1,708 @@
+/* ============================================================================
+   BUTTONS - Unified button system with variants and states
+   ============================================================================
+   
+   WHAT: Consistent button styling across all interactive elements
+   
+   INCLUDES:
+   - Base button styles (.btn, .nav-btn, .btn-nav, .btn-submit)
+   - Variants: primary, secondary, success, info, warning, danger, reset, hint, gradient
+   - Size variants: .btn-sm, .btn-lg
+   - Outline variants: .btn-outline-primary, .btn-outline-secondary
+   - States: hover, active, disabled, focus
+   
+   DEPENDENCIES:
+   - design-tokens.css (--color-*, --btn-*, --transition-*)
+   - accessibility.css (enhanced focus states)
+   
+   USED BY:
+   - Navigation (prev/next buttons)
+   - Interactions (check answer, reset, show hint)
+   - Assessments (submit, retake)
+   - Modals (confirm, cancel)
+   - All clickable actions
+   
+   AI DEBUGGING TIPS:
+   - Button not clickable? Check if :disabled attribute is set
+   - Wrong color? Verify variant class (.btn-primary vs .btn-secondary)
+   - Hover not working? Check :not(:disabled) in hover selector
+   - Focus ring missing? Ensure accessibility.css loads after this file
+   - Transform not working? Check @media (prefers-reduced-motion)
+   
+   STRUCTURE:
+   1. Base .btn styles (60-105)
+   2. Variants: primary, secondary, success, info, reset, hint (110-230)
+   3. Gradient variant (235-260)
+   4. Outline variants (265-295)
+   5. Disabled and focus states (300-320)
+   
+   COMMON CLASSES:
+   .btn              - Base button (required on all buttons)
+   .btn-primary      - Primary action (purple background)
+   .btn-secondary    - Secondary action (white background)
+   .btn-success      - Positive action (green background)
+   .btn-info         - Info/hint action (blue background)
+   .btn-warning      - Warning action (orange background)
+   .btn-danger       - Danger/destructive action (red background)
+   .btn-reset        - Reset action (gray)
+   .btn-gradient     - Special call-to-action (gradient)
+   :disabled         - Disabled state (add as attribute)
+   
+   LAST UPDATED: 2024-11-18
+   ============================================================================ */
+
+/* ============================================================================
+   UNIFIED BUTTON SYSTEM - All button types use consistent styling
+   ============================================================================ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--btn-padding-y) var(--btn-padding-x);
+  border-radius: var(--btn-border-radius);
+  font-size: var(--btn-font-size);
+  font-weight: var(--btn-font-weight);
+  line-height: 1;
+  text-decoration: none;
+  background: transparent;
+  color: inherit;
+  border: var(--border-width-sm) solid transparent;
+  cursor: pointer;
+  transition: var(--btn-transition);
+  will-change: transform;
+  font-family: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+/* SVG icons directly in buttons - no wrapper needed */
+.btn>svg,
+.btn>.icon {
+  display: block;
+  flex-shrink: 0;
+  width: 1.25em;
+  height: 1.25em;
+}
+
+/* Scale icons with button size */
+.btn-sm>svg,
+.btn-sm>.icon {
+  width: 1em;
+  height: 1em;
+}
+
+.btn-lg>svg,
+.btn-lg>.icon {
+  width: 1.5em;
+  height: 1.5em;
+}
+
+/* Icon-only button - square aspect ratio, centered icon */
+.btn-icon-only {
+  padding: var(--space-2);
+  aspect-ratio: 1;
+  min-width: var(--btn-min-height);
+  min-height: var(--btn-min-height);
+}
+
+.btn-icon-only.btn-sm {
+  padding: var(--space-1);
+  min-width: 32px;
+  min-height: 32px;
+}
+
+.btn-icon-only.btn-lg {
+  padding: var(--space-3);
+  min-width: 56px;
+  min-height: 56px;
+}
+
+
+
+/* Primary button - Uses primary color for main action */
+.btn-primary,
+.btn-submit {
+  background: var(--color-primary);
+  color: var(--color-white);
+  border-color: var(--color-primary);
+}
+
+.btn-primary:hover:not(:disabled),
+.btn-submit:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  color: var(--color-white);
+  border-color: var(--color-primary-hover);
+  box-shadow: var(--shadow-md);
+  transform: translateY(var(--btn-hover-translate-y));
+  text-decoration: none;
+}
+
+.btn-primary:active:not(:disabled),
+.btn-submit:active:not(:disabled) {
+  transform: translateY(0) scale(var(--motion-press-scale));
+  box-shadow: var(--shadow-sm);
+}
+
+/* Secondary button - Filled brand-secondary style */
+.btn-secondary {
+  background: var(--color-secondary);
+  color: var(--color-secondary-text);
+  border-color: var(--color-secondary);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--color-secondary-hover);
+  border-color: var(--color-secondary-hover);
+  color: var(--color-secondary-text);
+  box-shadow: var(--shadow-md);
+  transform: translateY(var(--btn-hover-translate-y));
+  text-decoration: none;
+}
+
+/* Success button - Green for positive actions */
+.btn-success,
+.btn-check {
+  background: var(--color-success);
+  color: var(--color-white);
+  border-color: var(--color-success);
+}
+
+.btn-success:hover:not(:disabled),
+.btn-check:hover:not(:disabled) {
+  background: var(--color-success-hover);
+  color: var(--color-white);
+  border-color: var(--color-success-hover);
+  box-shadow: var(--shadow-md);
+  transform: translateY(var(--btn-hover-translate-y));
+  text-decoration: none;
+}
+
+/* Reset button - Gray style */
+.btn-reset {
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+  border-color: var(--border-strong);
+}
+
+.btn-reset:hover:not(:disabled) {
+  background: var(--bg-inset);
+  color: var(--text-secondary);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+  transform: translateY(var(--btn-hover-translate-y));
+  text-decoration: none;
+}
+
+/* Hint button - Info style */
+.btn-hint,
+.btn-info {
+  background: var(--color-info);
+  color: #ffffff;
+  /* Using hardcoded white instead of --color-white which inverts in dark mode.
+     See dark mode override below for proper dark text on lighter info background. */
+  border-color: var(--color-info);
+}
+
+.btn-hint:hover:not(:disabled),
+.btn-info:hover:not(:disabled) {
+  background: var(--color-info);
+  color: #ffffff;
+  border-color: var(--color-info);
+  filter: brightness(0.9);
+  box-shadow: var(--shadow-md);
+  transform: translateY(var(--btn-hover-translate-y));
+  text-decoration: none;
+}
+
+/* Warning button - Warning style */
+.btn-warning {
+  background: var(--color-warning);
+  color: var(--color-on-warning);
+  /* Dark text for better contrast on amber background */
+  border-color: var(--color-warning);
+}
+
+.btn-warning:hover:not(:disabled) {
+  background: var(--color-warning);
+  color: var(--color-on-warning);
+  border-color: var(--color-warning);
+  filter: brightness(0.9);
+  box-shadow: var(--shadow-md);
+  transform: translateY(var(--btn-hover-translate-y));
+  text-decoration: none;
+}
+
+/* Danger button - Error/destructive style */
+.btn-danger {
+  background: var(--color-danger);
+  color: var(--color-on-danger);
+  /* Dark text for better contrast on orange/red background */
+  border-color: var(--color-danger);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--color-danger);
+  color: var(--color-on-danger);
+  border-color: var(--color-danger);
+  filter: brightness(0.9);
+  box-shadow: var(--shadow-md);
+  transform: translateY(var(--btn-hover-translate-y));
+  text-decoration: none;
+}
+
+/* Link button - Looks like a link but with button semantics */
+.btn-link {
+  background: transparent;
+  color: var(--color-primary);
+  border-color: transparent;
+  padding-left: 0;
+  padding-right: 0;
+  text-decoration: none;
+  box-shadow: none;
+}
+
+.btn-link:hover:not(:disabled) {
+  background: transparent;
+  color: var(--color-primary-hover);
+  border-color: transparent;
+  text-decoration: underline;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn-link:focus {
+  box-shadow: none;
+}
+
+/* Gradient button variant - Enhanced button with gradient background and shimmer effect */
+.btn-gradient {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--btn-padding-y) var(--btn-padding-x);
+  border-radius: var(--btn-border-radius);
+  font-size: var(--btn-font-size);
+  font-weight: var(--btn-font-weight);
+  min-height: var(--btn-min-height);
+  background: var(--gradient-primary);
+  color: var(--color-white);
+  border: 2px solid transparent;
+  border-color: transparent;
+  box-shadow: 0 4px 12px var(--color-secondary-alpha-30);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: var(--btn-transition);
+  font-family: inherit;
+}
+
+.btn-gradient::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: var(--gradient-shimmer);
+  transition: left 0.5s;
+  pointer-events: none;
+}
+
+.btn-gradient:hover:not(:disabled)::before {
+  left: 100%;
+}
+
+.btn-gradient:hover:not(:disabled) {
+  background: var(--gradient-primary);
+  filter: brightness(0.94);
+  box-shadow: 0 6px 20px var(--color-secondary-alpha-30);
+  transform: translateY(var(--btn-hover-translate-y));
+}
+
+.btn-gradient:active:not(:disabled) {
+  transform: translateY(0) scale(var(--motion-press-scale));
+  filter: none;
+  box-shadow: 0 2px 8px var(--color-secondary-alpha-30);
+}
+
+/* Button Size Variants */
+.btn-sm {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+}
+
+.btn-lg {
+  padding: var(--space-4) var(--space-6);
+  font-size: var(--font-size-lg);
+}
+
+/* Button Outline Variants */
+.btn-outline-primary {
+  background: transparent;
+  color: var(--color-primary);
+  border-width: var(--border-width-sm);
+  border-color: var(--color-primary-alpha-30);
+}
+
+.btn-outline-primary:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: var(--color-white);
+  box-shadow: var(--shadow-md);
+  transform: translateY(var(--btn-hover-translate-y));
+}
+
+.btn-outline-secondary {
+  background: transparent;
+  color: var(--color-secondary-dark);
+  /* Secondary outline uses brand-secondary color identity */
+  border-width: var(--border-width-sm);
+  border-color: color-mix(in srgb, var(--color-secondary-dark) 60%, var(--bg-surface));
+}
+
+.btn-outline-secondary:hover:not(:disabled) {
+  background: var(--color-secondary);
+  color: var(--color-secondary-text);
+  border-color: var(--color-secondary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(var(--btn-hover-translate-y));
+}
+
+.btn-gradient:focus-visible {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+   BUTTON SHAPE VARIANTS
+   ============================================================================
+   Add shape modifiers to change button corner styling.
+   
+   USAGE:
+   <button class="btn btn-primary btn-rounded">Rounded</button>
+   <button class="btn btn-primary btn-square">Square</button>
+   <button class="btn btn-primary btn-pill">Pill</button>
+   ============================================================================ */
+
+/* Rounded - More rounded corners (slightly more than default) */
+.btn-rounded {
+  border-radius: var(--radius-xl);
+}
+
+/* Square - Sharp corners, no rounding */
+.btn-square {
+  border-radius: 0;
+}
+
+/* Pill - Fully rounded ends (capsule shape) */
+.btn-pill {
+  border-radius: var(--radius-full);
+  padding-left: var(--space-6);
+  padding-right: var(--space-6);
+}
+
+/* Disabled state */
+.btn:disabled,
+.nav-btn:disabled,
+.btn-nav:disabled,
+.btn-submit:disabled {
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+  border-color: var(--color-disabled-border);
+  opacity: 1;
+  transition: background 0.25s ease-out, color 0.25s ease-out, opacity 0.25s ease-out, border-color 0.25s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .btn:disabled,
+  .nav-btn:disabled,
+  .btn-nav:disabled,
+  .btn-submit:disabled {
+    transition: none;
+  }
+}
+
+/* Ensure no hover effects on disabled buttons */
+.btn:disabled:hover,
+.nav-btn:disabled:hover,
+.btn-nav:disabled:hover,
+.btn-submit:disabled:hover {
+  background: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
+  border-color: var(--color-disabled-border);
+  transform: none;
+  box-shadow: none;
+}
+
+/* Focus state */
+.btn:focus-visible,
+.nav-btn:focus-visible,
+.btn-nav:focus-visible,
+.btn-submit:focus-visible {
+  outline: 2px solid var(--focus-ring-color);
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================
+   
+   NOTE: Most button styles adapt automatically via design tokens. These 
+   overrides handle specific cases where automatic adaptation doesn't work:
+   - Info button: Uses lighter blue in dark mode, needs dark text
+   - Secondary button: Uses secondary brand color with explicit on-color text
+   
+   ============================================================================ */
+
+[data-theme="dark"] .btn-hint,
+[data-theme="dark"] .btn-info {
+  color: #1f2937;
+  /* Dark text for contrast on lighter info blue in dark mode */
+}
+
+[data-theme="dark"] .btn-hint:hover:not(:disabled),
+[data-theme="dark"] .btn-info:hover:not(:disabled) {
+  color: #1f2937;
+}
+
+[data-theme="dark"] .btn-secondary {
+  background: var(--color-secondary);
+  color: var(--color-secondary-text);
+  border-color: var(--color-secondary);
+}
+
+[data-theme="dark"] .btn-secondary:hover:not(:disabled) {
+  background: var(--color-secondary-hover);
+  color: var(--color-secondary-text);
+  border-color: var(--color-secondary-hover);
+}
+
+/* ============================================================================
+   DATA-LAYOUT VARIANTS
+   ============================================================================
+   Button styling controlled by data-layout attribute on <html>.
+   These styles are used by the layout system (framework/css/layouts/).
+   ============================================================================ */
+
+/* -----------------------------------------------------------------------------
+   Article & Focused: Compact icon-only nav buttons
+   ----------------------------------------------------------------------------- */
+
+[data-layout="article"] footer #prevBtn,
+[data-layout="article"] footer #nextBtn,
+[data-layout="article"] footer #exitBtn,
+[data-layout="focused"] footer #prevBtn,
+[data-layout="focused"] footer #nextBtn,
+[data-layout="focused"] footer #exitBtn {
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  position: relative;
+  background: var(--nav-btn-bg);
+  color: var(--nav-btn-text);
+  border-color: var(--nav-btn-border);
+  box-shadow: none;
+}
+
+[data-layout="article"] footer #exitBtn,
+[data-layout="focused"] footer #exitBtn {
+  width: auto;
+  height: auto;
+  min-height: 40px;
+  padding: var(--space-2) var(--space-4);
+}
+
+/* Disable hover lift effect - keep compact buttons stable */
+[data-layout="article"] footer #prevBtn:hover:not(:disabled),
+[data-layout="article"] footer #nextBtn:hover:not(:disabled),
+[data-layout="article"] footer #exitBtn:hover:not(:disabled),
+[data-layout="focused"] footer #prevBtn:hover:not(:disabled),
+[data-layout="focused"] footer #nextBtn:hover:not(:disabled),
+[data-layout="focused"] footer #exitBtn:hover:not(:disabled) {
+  background: var(--nav-btn-hover-bg);
+  color: var(--nav-btn-hover-text);
+  border-color: var(--nav-btn-hover-border);
+  transform: none;
+}
+
+/* Muted disabled state for compact nav controls */
+[data-layout="article"] footer #prevBtn:disabled,
+[data-layout="article"] footer #nextBtn:disabled,
+[data-layout="article"] footer #exitBtn:disabled,
+[data-layout="focused"] footer #prevBtn:disabled,
+[data-layout="focused"] footer #nextBtn:disabled,
+[data-layout="focused"] footer #exitBtn:disabled {
+  background: var(--nav-btn-disabled-bg);
+  color: var(--nav-btn-disabled-text);
+  border-color: var(--nav-btn-disabled-border);
+  box-shadow: none;
+}
+
+/* Default layout nav controls should match the same neutral shell treatment */
+html:not([data-layout="article"]):not([data-layout="focused"]):not([data-layout="presentation"]) footer #prevBtn,
+html:not([data-layout="article"]):not([data-layout="focused"]):not([data-layout="presentation"]) footer #nextBtn,
+html:not([data-layout="article"]):not([data-layout="focused"]):not([data-layout="presentation"]) footer #exitBtn {
+  background: var(--nav-btn-bg);
+  color: var(--nav-btn-text);
+  border-color: var(--nav-btn-border);
+  box-shadow: none;
+}
+
+html:not([data-layout="article"]):not([data-layout="focused"]):not([data-layout="presentation"]) footer #prevBtn:hover:not(:disabled),
+html:not([data-layout="article"]):not([data-layout="focused"]):not([data-layout="presentation"]) footer #nextBtn:hover:not(:disabled),
+html:not([data-layout="article"]):not([data-layout="focused"]):not([data-layout="presentation"]) footer #exitBtn:hover:not(:disabled) {
+  background: var(--nav-btn-hover-bg);
+  color: var(--nav-btn-hover-text);
+  border-color: var(--nav-btn-hover-border);
+}
+
+html:not([data-layout="article"]):not([data-layout="focused"]):not([data-layout="presentation"]) footer #prevBtn:disabled,
+html:not([data-layout="article"]):not([data-layout="focused"]):not([data-layout="presentation"]) footer #nextBtn:disabled,
+html:not([data-layout="article"]):not([data-layout="focused"]):not([data-layout="presentation"]) footer #exitBtn:disabled {
+  background: var(--nav-btn-disabled-bg);
+  color: var(--nav-btn-disabled-text);
+  border-color: var(--nav-btn-disabled-border);
+  box-shadow: none;
+}
+
+/* Hide text labels visually, keep for screen readers (sr-only pattern) */
+[data-layout="article"] footer #prevBtn .btn-text,
+[data-layout="article"] footer #nextBtn .btn-text,
+[data-layout="focused"] footer #prevBtn .btn-text,
+[data-layout="focused"] footer #nextBtn .btn-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Reset icon offsets for centered display */
+[data-layout="article"] footer #prevBtn>svg,
+[data-layout="article"] footer #nextBtn>svg,
+[data-layout="focused"] footer #prevBtn>svg,
+[data-layout="focused"] footer #nextBtn>svg {
+  display: block;
+  margin: 0;
+  width: 20px;
+  height: 20px;
+}
+
+/* -----------------------------------------------------------------------------
+   Article & Focused Mobile: Compact nav buttons
+   ----------------------------------------------------------------------------- */
+
+html.bp-max-mobile-landscape[data-layout="article"] footer #prevBtn,
+html.bp-max-mobile-landscape[data-layout="article"] footer #nextBtn {
+  width: 44px;
+  max-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  overflow: hidden;
+  touch-action: manipulation;
+}
+
+html.bp-max-mobile-landscape[data-layout="article"] footer #prevBtn>svg,
+html.bp-max-mobile-landscape[data-layout="article"] footer #nextBtn>svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+}
+
+/* -----------------------------------------------------------------------------
+   Presentation: Edge navigation buttons
+   ----------------------------------------------------------------------------- */
+
+[data-layout="presentation"] #prevBtn,
+[data-layout="presentation"] #nextBtn {
+  pointer-events: auto;
+  border-radius: var(--radius-full);
+  width: var(--nav-edge-control-size);
+  height: var(--nav-edge-control-size);
+  padding: 0;
+  opacity: var(--nav-btn-edge-opacity);
+  transition: opacity var(--transition-fast), transform var(--transition-interactive), background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-interactive);
+  background: var(--nav-edge-bg);
+  border: 1px solid var(--nav-edge-border);
+  box-shadow: var(--nav-edge-shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  font-size: 0;
+  line-height: 0;
+  text-indent: -9999px;
+  overflow: hidden;
+}
+
+[data-layout="presentation"] #prevBtn:hover:not(:disabled),
+[data-layout="presentation"] #nextBtn:hover:not(:disabled) {
+  opacity: 1;
+  transform: scale(var(--nav-edge-hover-scale));
+  background: var(--nav-edge-bg-hover);
+  box-shadow: var(--nav-edge-shadow-hover);
+}
+
+[data-layout="presentation"] #prevBtn:active:not(:disabled),
+[data-layout="presentation"] #nextBtn:active:not(:disabled) {
+  transform: scale(var(--nav-edge-active-scale));
+}
+
+[data-layout="presentation"] #prevBtn:disabled,
+[data-layout="presentation"] #nextBtn:disabled {
+  opacity: var(--nav-btn-edge-opacity-disabled);
+  background: var(--nav-btn-disabled-bg);
+  border-color: var(--nav-btn-disabled-border);
+  color: var(--nav-btn-disabled-text);
+  box-shadow: none;
+}
+
+[data-layout="presentation"] #prevBtn>svg,
+[data-layout="presentation"] #nextBtn>svg {
+  display: block;
+  font-size: var(--font-size-2xl);
+  color: currentColor;
+  width: var(--nav-edge-icon-size);
+  height: var(--nav-edge-icon-size);
+  margin: 0;
+  text-indent: 0;
+  flex-shrink: 0;
+}
+
+[data-layout="presentation"] #prevBtn:focus-visible,
+[data-layout="presentation"] #nextBtn:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+  box-shadow: var(--nav-edge-shadow-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  [data-layout="presentation"] #prevBtn,
+  [data-layout="presentation"] #nextBtn {
+    transition: none;
+  }
+
+  [data-layout="presentation"] #prevBtn:hover:not(:disabled),
+  [data-layout="presentation"] #nextBtn:hover:not(:disabled) {
+    transform: none;
+  }
+}

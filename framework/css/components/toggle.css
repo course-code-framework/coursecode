@@ -1,0 +1,95 @@
+/* ============================================================================
+   TOGGLE SWITCHES - Custom styled toggle switches
+   ============================================================================
+   
+   PURPOSE: Accessible toggle switch component for boolean state switching
+   
+   INCLUDES:
+   - Toggle switch styling (on/off states)
+   - Color variations (primary, success)
+   - Focus states and disabled states
+   - Label positioning
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   - Requires: ui-components/toggle-group.js (JavaScript component)
+   
+   USED BY: Settings, feature toggles, boolean preferences
+   
+   USAGE:
+   <label class="toggle-switch">
+     <input type="checkbox" />
+     <span class="toggle-slider"></span>
+     <span class="toggle-label">Feature Name</span>
+   </label>
+   
+   ============================================================================ */
+
+.toggle-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  gap: var(--space-3);
+  user-select: none;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.toggle-slider {
+  position: relative;
+  width: 48px;
+  height: 24px;
+  background-color: var(--color-gray-400);
+  border-radius: 24px;
+  transition: background-color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.toggle-slider::before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: transform var(--transition-fast);
+  border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: var(--color-primary);
+}
+
+.toggle-switch.toggle-success input:checked + .toggle-slider {
+  background-color: var(--color-success);
+}
+
+.toggle-switch input:focus-visible + .toggle-slider {
+  box-shadow: 0 0 0 3px var(--color-primary-alpha-10);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(24px);
+}
+
+.toggle-switch input:disabled + .toggle-slider {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.toggle-label {
+  font-size: var(--font-size-base);
+  color: var(--color-gray-900);
+  font-weight: var(--font-weight-medium);
+}

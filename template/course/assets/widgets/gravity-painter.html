@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gravity Painter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f1a;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            min-height: 300px;
+        }
+
+        canvas {
+            flex: 1;
+            cursor: crosshair;
+            background: linear-gradient(180deg, #0f0f1a 0%, #1a1a2e 100%);
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: #1e1e30;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        select,
+        input[type="range"] {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            color: white;
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+
+        input[type="range"] {
+            width: 80px;
+            cursor: pointer;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-clear {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-complete {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .btn-complete:disabled {
+            background: rgba(255, 255, 255, 0.1);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .particle-count {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .instructions {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: rgba(255, 255, 255, 0.3);
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+
+        .instructions.hidden {
+            opacity: 0;
+        }
+
+        .instructions h2 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            font-weight: 400;
+        }
+
+        .instructions p {
+            font-size: 13px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <canvas id="canvas"></canvas>
+        <div class="controls">
+            <div class="control-group">
+                <label>Brush:</label>
+                <select id="brush-type">
+                    <option value="rainbow">Rainbow</option>
+                    <option value="fire">Fire</option>
+                    <option value="ice">Ice</option>
+                    <option value="cosmic">Cosmic</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Gravity:</label>
+                <input type="range" id="gravity" min="0" max="100" value="50">
+            </div>
+            <div class="control-group">
+                <label>Size:</label>
+                <input type="range" id="size" min="2" max="15" value="6">
+            </div>
+            <span class="particle-count"><span id="count">0</span> particles</span>
+            <div class="control-group">
+                <button class="btn-clear" onclick="clearCanvas()">Clear</button>
+                <button class="btn-complete" id="complete-btn" onclick="markComplete()" disabled>
+                    Create 100+ to Complete
+                </button>
+            </div>
+        </div>
+        <div class="instructions" id="instructions">
+            <h2>✨ Click and drag to paint with particles</h2>
+            <p>They fall with gravity and bounce off the edges</p>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const countDisplay = document.getElementById('count');
+        const completeBtn = document.getElementById('complete-btn');
+        const instructions = document.getElementById('instructions');
+
+        let particles = [];
+        let isDrawing = false;
+        let totalCreated = 0;
+        let isComplete = false;
+
+        // Color palettes
+        const palettes = {
+            rainbow: () => `hsl(${Math.random() * 360}, 80%, 60%)`,
+            fire: () => `hsl(${Math.random() * 40 + 10}, 100%, ${50 + Math.random() * 30}%)`,
+            ice: () => `hsl(${180 + Math.random() * 40}, 70%, ${60 + Math.random() * 30}%)`,
+            cosmic: () => `hsl(${260 + Math.random() * 60}, 80%, ${50 + Math.random() * 40}%)`
+        };
+
+        class Particle {
+            constructor(x, y, color, size) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 4;
+                this.vy = (Math.random() - 0.5) * 4;
+                this.color = color;
+                this.size = size;
+                this.alpha = 1;
+                this.life = 400 + Math.random() * 300;
+            }
+
+            update(gravity) {
+                this.vy += gravity * 0.01;
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Bounce off walls
+                if (this.x < this.size) {
+                    this.x = this.size;
+                    this.vx *= -0.7;
+                }
+                if (this.x > canvas.width - this.size) {
+                    this.x = canvas.width - this.size;
+                    this.vx *= -0.7;
+                }
+                if (this.y > canvas.height - this.size) {
+                    this.y = canvas.height - this.size;
+                    this.vy *= -0.7;
+                    this.vx *= 0.98; // Friction
+                }
+                if (this.y < this.size) {
+                    this.y = this.size;
+                    this.vy *= -0.7;
+                }
+
+                this.life--;
+                if (this.life < 100) {
+                    this.alpha = this.life / 100;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+
+                // Glow effect
+                ctx.shadowBlur = this.size * 2;
+                ctx.shadowColor = this.color;
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function resize() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function addParticles(x, y) {
+            const brushType = document.getElementById('brush-type').value;
+            const size = parseInt(document.getElementById('size').value);
+            const count = Math.floor(Math.random() * 3) + 2;
+
+            for (let i = 0; i < count; i++) {
+                const color = palettes[brushType]();
+                particles.push(new Particle(x, y, color, size));
+                totalCreated++;
+            }
+
+            updateCount();
+
+            // Hide instructions after first interaction
+            instructions.classList.add('hidden');
+        }
+
+        function updateCount() {
+            countDisplay.textContent = particles.length;
+
+            if (totalCreated >= 100 && !isComplete) {
+                completeBtn.disabled = false;
+                completeBtn.textContent = 'Mark Complete ✓';
+            }
+        }
+
+        function clearCanvas() {
+            particles = [];
+            updateCount();
+        }
+
+        function markComplete() {
+            if (totalCreated >= 100 && !isComplete) {
+                isComplete = true;
+                completeBtn.disabled = true;
+                completeBtn.textContent = 'Completed! 🎉';
+
+                // Signal completion to CourseCode
+                parent.postMessage({
+                    type: 'coursecode:flag',
+                    key: 'gravity-painter-complete',
+                    value: true
+                }, '*');
+
+                parent.postMessage({
+                    type: 'coursecode:log',
+                    level: 'info',
+                    message: `Gravity Painter completed with ${totalCreated} particles created`
+                }, '*');
+            }
+        }
+
+        function animate() {
+            const gravity = parseInt(document.getElementById('gravity').value);
+
+            // Fade effect (trail)
+            ctx.fillStyle = 'rgba(15, 15, 26, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Update and draw particles
+            particles = particles.filter(p => p.life > 0);
+            particles.forEach(p => {
+                p.update(gravity);
+                p.draw();
+            });
+
+            updateCount();
+            requestAnimationFrame(animate);
+        }
+
+        // Event listeners
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            const pos = getPos(e);
+            addParticles(pos.x, pos.y);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            const pos = getPos(e);
+            addParticles(pos.x, pos.y);
+        });
+
+        canvas.addEventListener('mouseup', () => isDrawing = false);
+        canvas.addEventListener('mouseleave', () => isDrawing = false);
+
+        // Touch support
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            isDrawing = true;
+            const pos = getPos(e);
+            addParticles(pos.x, pos.y);
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (!isDrawing) return;
+            const pos = getPos(e);
+            addParticles(pos.x, pos.y);
+        });
+
+        canvas.addEventListener('touchend', () => isDrawing = false);
+
+        window.addEventListener('resize', resize);
+
+        // Initialize
+        resize();
+        animate();
+
+        // Signal ready
+        parent.postMessage({ type: 'coursecode:ready' }, '*');
+    </script>
+</body>
+
+</html>

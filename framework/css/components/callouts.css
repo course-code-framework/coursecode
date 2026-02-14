@@ -1,0 +1,1280 @@
+/* ============================================================================
+   CALLOUTS & ALERTS - Informational banners and dismissible alerts
+   ============================================================================
+   
+   PURPOSE: Highlight important information, warnings, and notices
+   
+   INCLUDES:
+   - Base callout styles
+   - Callout variants (info, success, warning, error, note, tip, important, quote, example, definition)
+   - Callout style variants (outlined, filled, minimal, banner, card)
+   - Callout size variants (compact, large)
+   - Callout with icon support (data-icon attribute)
+   - Callout with title support
+   - Dismissible callouts
+   - Alert component (dismissible version)
+   - Alert close button
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   
+   USED BY:
+   - Content slides for important notices
+   - Warning messages
+   - Success confirmations
+   - Error notifications
+   - Tips and helpful hints
+   - Quotations and definitions
+   
+   AI DEBUGGING TIPS:
+   - Callout not showing? Check if parent has display: none or hidden
+   - Wrong color? Verify variant class (.callout--info, .callout--success, etc.)
+   - Border not visible? Check border-left-color is being applied
+   - Icon missing? Add callout-with-icon class and data-icon attribute
+   - Style not applying? Check data-callout-style attribute value
+   
+   STRUCTURE:
+   1. Callout CSS variables (configurable accent colors)
+   2. Callout base styles
+   3. Callout type variants (info, success, warning, error, note, tip, etc.)
+   4. Callout style variants (outlined, filled, minimal, banner, card)
+   5. Callout size variants (compact, large)
+   6. Callout with icon
+   7. Callout with title
+   8. Dismissible callouts
+   9. Alert component
+   
+   COMMON CLASSES:
+   .callout              - Base callout (required)
+   .callout--info         - Blue info callout
+   .callout--success      - Green success callout
+   .callout--warning      - Orange warning callout
+   .callout--danger        - Red error callout
+   .callout-note         - Gray neutral note
+   .callout-tip          - Purple helpful tip
+   .callout-important    - Strong emphasis
+   .callout-quote        - Quotation styling
+   .callout-example      - Example/code block
+   .callout-definition   - Term definition
+   .callout--compact      - Smaller size
+   .callout--large        - Larger size
+   .callout-with-icon    - Enable icon display
+   .callout-with-title   - Structured title+body
+   .callout--dismissible  - Can be closed
+   .alert                - Dismissible alert
+   .alert-close          - Close button for alerts
+   
+   DATA ATTRIBUTES:
+   data-callout-style="outlined|filled|minimal|banner|card"
+   data-icon="auto|info|success|warning|error|tip|note"
+   data-icon-position="left|top"
+   
+   LAST UPDATED: 2024-12-04
+   ============================================================================ */
+
+/* ============================================================================
+   CALLOUT CSS VARIABLES - Configurable accent colors
+   ============================================================================
+   
+   These variables allow custom callout colors via theme overrides.
+   Example: .callout-custom { --callout-accent: #8b5cf6; --callout-bg: #f5f3ff; }
+   ============================================================================ */
+
+.callout {
+  /* Default values - overridden by variant classes */
+  --callout-accent: var(--color-info);
+  --callout-bg: var(--color-info-light);
+  --callout-text: var(--text-body);
+  --callout-heading: var(--callout-accent);
+  --callout-icon-bg: color-mix(in srgb, var(--callout-accent) 12%, transparent);
+}
+
+/* ============================================================================
+   CALLOUT COMPONENT - Base Styles
+   ============================================================================ */
+
+.callout {
+  position: relative;
+  padding: var(--space-4) var(--space-5);
+  background: linear-gradient(135deg,
+      var(--callout-bg) 0%,
+      color-mix(in srgb, var(--callout-bg) 85%, white) 100%);
+  border-width: 1px 1px 1px 3px;
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--callout-accent) 15%, transparent);
+  border-left-color: var(--callout-accent);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 4px 12px rgba(0, 0, 0, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  color: var(--callout-text);
+  overflow: hidden;
+
+  /* Smooth transitions for interactive states */
+  transition:
+    box-shadow var(--transition-normal),
+    transform var(--transition-normal),
+    border-color var(--transition-normal);
+}
+
+/* Subtle hover enhancement - makes callouts feel more polished */
+.callout:hover {
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.06),
+    0 8px 20px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  border-color: color-mix(in srgb, var(--callout-accent) 25%, transparent);
+  border-left-color: var(--callout-accent);
+}
+
+/* Focus state for interactive/clickable callouts */
+.callout:focus-within {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* Don't show focus outline when video player elements are focused inside callout */
+.callout:has(.video-player-wrapper):focus-within {
+  outline: none;
+}
+
+/* Responsive padding - more breathing room on larger screens */
+@media (min-width: 768px) {
+  .callout {
+    padding: var(--space-5) var(--space-6);
+  }
+}
+
+.callout p {
+  margin: 0;
+  line-height: var(--line-height-relaxed);
+  font-size: var(--font-size-base);
+  letter-spacing: -0.01em;
+}
+
+.callout p+p {
+  margin-top: var(--space-3);
+}
+
+.callout h3,
+.callout h4 {
+  margin-top: 0;
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--callout-heading);
+  letter-spacing: -0.02em;
+}
+
+/* Better heading spacing when followed by content */
+.callout h3+p,
+.callout h4+p {
+  margin-top: 0;
+}
+
+.callout ul,
+.callout ol {
+  margin: var(--space-2) 0;
+  padding-left: var(--space-5);
+}
+
+.callout li {
+  margin-bottom: var(--space-1);
+}
+
+.callout li:last-child {
+  margin-bottom: 0;
+}
+
+/* Links inside callouts - inherit accent color */
+.callout a {
+  color: var(--callout-accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  transition: color var(--transition-fast), text-decoration-color var(--transition-fast);
+}
+
+.callout a:hover {
+  color: var(--callout-heading);
+  text-decoration-thickness: 2px;
+}
+
+/* Code inside callouts */
+.callout code {
+  background-color: var(--bg-muted);
+  padding: 0.125em 0.375em;
+  border-radius: var(--radius-sm);
+  font-size: 0.9em;
+  font-family: var(--font-family-mono, ui-monospace, monospace);
+}
+
+/* Strong/bold text uses accent color for emphasis */
+.callout strong {
+  color: var(--callout-heading);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .callout {
+    transition: none;
+  }
+}
+
+/* ============================================================================
+   CALLOUT TYPE VARIANTS - Semantic color types
+   ============================================================================ */
+
+/* Info - Blue (default) */
+.callout--info {
+  --callout-accent: var(--color-info);
+  --callout-bg: var(--color-info-light);
+  --callout-icon-bg: color-mix(in srgb, var(--color-info) 12%, transparent);
+}
+
+/* Success - Green */
+.callout--success {
+  --callout-accent: var(--color-success);
+  --callout-bg: var(--color-success-light);
+  --callout-icon-bg: color-mix(in srgb, var(--color-success) 12%, transparent);
+}
+
+/* Warning - Orange/Amber */
+.callout--warning {
+  --callout-accent: var(--color-warning-text);
+  --callout-bg: var(--color-warning-light);
+  --callout-icon-bg: color-mix(in srgb, var(--color-warning) 15%, transparent);
+}
+
+/* Error - Red */
+.callout--danger {
+  --callout-accent: var(--color-danger-text);
+  --callout-bg: var(--color-danger-light);
+  --callout-icon-bg: color-mix(in srgb, var(--color-danger) 12%, transparent);
+}
+
+/* Note - Neutral gray */
+.callout-note {
+  --callout-accent: var(--text-secondary);
+  --callout-bg: var(--bg-subtle);
+  --callout-heading: var(--text-primary);
+  --callout-icon-bg: color-mix(in srgb, var(--text-secondary) 12%, transparent);
+}
+
+/* Tip - Purple */
+.callout-tip {
+  --callout-accent: var(--color-secondary);
+  --callout-bg: var(--color-secondary-alpha-05);
+  --callout-icon-bg: color-mix(in srgb, var(--color-secondary) 12%, transparent);
+}
+
+/* Important - Strong emphasis (dark/bold) */
+.callout-important {
+  --callout-accent: var(--text-primary);
+  --callout-bg: var(--bg-muted);
+  --callout-heading: var(--text-primary);
+  --callout-icon-bg: color-mix(in srgb, var(--text-primary) 10%, transparent);
+}
+
+/* Quote - Styled for quotations */
+.callout-quote {
+  --callout-accent: var(--text-muted);
+  --callout-bg: var(--bg-subtle);
+  --callout-heading: var(--text-secondary);
+  font-style: italic;
+  padding-left: calc(var(--space-5) + 1.75rem);
+}
+
+.callout-quote::before {
+  content: '"';
+  position: absolute;
+  left: var(--space-5);
+  top: var(--space-3);
+  font-size: 2.5rem;
+  line-height: 1;
+  color: var(--border-strong);
+  font-style: normal;
+  font-family: Georgia, serif;
+}
+
+.callout-quote cite,
+.callout-quote .callout-author {
+  display: block;
+  margin-top: var(--space-3);
+  font-style: normal;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.callout-quote cite::before,
+.callout-quote .callout-author::before {
+  content: '— ';
+}
+
+/* Example - For code/example blocks */
+.callout-example {
+  --callout-accent: var(--text-muted);
+  --callout-bg: var(--bg-subtle);
+  --callout-icon-bg: color-mix(in srgb, var(--text-muted) 12%, transparent);
+  font-family: var(--font-family-mono, ui-monospace, monospace);
+  font-size: var(--font-size-sm);
+}
+
+/* Definition - For term definitions */
+.callout-definition {
+  --callout-accent: var(--color-primary);
+  --callout-bg: var(--color-primary-alpha-10);
+  --callout-icon-bg: color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+.callout-definition .callout-term {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  margin-bottom: var(--space-1);
+}
+
+/* ============================================================================
+   CALLOUT STYLE VARIANTS - Visual style via data attribute
+   ============================================================================
+   
+   Usage: <div class="callout callout--info" data-callout-style="outlined">
+   ============================================================================ */
+
+/* Default style (left border) is the base - no additional styling needed */
+
+/* Outlined - Border all around, no background fill */
+.callout[data-callout-style="outlined"],
+.callout--outlined {
+  background: transparent;
+  border-width: 2px 2px 2px 3px;
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--callout-accent) 40%, transparent);
+  border-left-color: var(--callout-accent);
+  box-shadow: none;
+}
+
+.callout--outlined:hover,
+.callout[data-callout-style="outlined"]:hover {
+  border-color: color-mix(in srgb, var(--callout-accent) 60%, transparent);
+  border-left-color: var(--callout-accent);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--callout-accent) 10%, transparent);
+}
+
+/* Filled - Stronger background, no left border accent */
+.callout[data-callout-style="filled"],
+.callout--filled {
+  border-left-width: 0;
+  border-radius: var(--radius-xl);
+  border: none;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.callout--filled.callout--info,
+.callout[data-callout-style="filled"].callout--info {
+  background-color: var(--color-info);
+  color: var(--color-white);
+  --callout-heading: var(--color-white);
+}
+
+.callout--filled.callout--success,
+.callout[data-callout-style="filled"].callout--success {
+  background-color: var(--color-success);
+  color: var(--color-white);
+  --callout-heading: var(--color-white);
+}
+
+.callout--filled.callout--warning,
+.callout[data-callout-style="filled"].callout--warning {
+  background-color: var(--color-warning);
+  color: var(--color-gray-900);
+  --callout-heading: var(--color-gray-900);
+}
+
+.callout--filled.callout--danger,
+.callout[data-callout-style="filled"].callout--danger {
+  background-color: var(--color-danger);
+  color: var(--color-white);
+  --callout-heading: var(--color-white);
+}
+
+.callout--filled.callout-tip,
+.callout[data-callout-style="filled"].callout-tip {
+  background-color: var(--color-secondary);
+  color: var(--color-gray-900);
+  --callout-heading: var(--color-gray-900);
+}
+
+.callout--filled.callout-note,
+.callout[data-callout-style="filled"].callout-note {
+  background-color: var(--color-gray-600);
+  color: var(--color-white);
+  --callout-heading: var(--color-white);
+}
+
+.callout--filled.callout-important,
+.callout[data-callout-style="filled"].callout-important {
+  background-color: var(--color-gray-900);
+  color: var(--color-white);
+  --callout-heading: var(--color-white);
+}
+
+/* Minimal - No border, very subtle background */
+.callout[data-callout-style="minimal"],
+.callout--minimal {
+  border: none;
+  box-shadow: none;
+  background: var(--callout-bg);
+}
+
+.callout--minimal:hover,
+.callout[data-callout-style="minimal"]:hover {
+  box-shadow: none;
+}
+
+/* Banner - Full-width, no border-radius */
+.callout[data-callout-style="banner"],
+.callout--banner {
+  border-radius: 0;
+  margin-left: calc(-1 * var(--space-4));
+  margin-right: calc(-1 * var(--space-4));
+  padding-left: var(--space-6);
+  padding-right: var(--space-6);
+  border-left: 4px solid var(--callout-accent);
+}
+
+/* Card - Card-like with shadow, centered content option */
+.callout[data-callout-style="card"],
+.callout--card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-left-width: 1px;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 6px 16px rgba(0, 0, 0, 0.06);
+  text-align: center;
+  padding: var(--space-6) var(--space-5);
+}
+
+.callout--card:hover,
+.callout[data-callout-style="card"]:hover {
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.06),
+    0 12px 24px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.callout--card .callout-icon,
+.callout[data-callout-style="card"] .callout-icon {
+  margin-bottom: var(--space-3);
+}
+
+/* ============================================================================
+   CALLOUT SIZE VARIANTS
+   ============================================================================ */
+
+/* Compact - Reduced padding, smaller text */
+.callout--compact {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+}
+
+.callout--compact h3,
+.callout--compact h4 {
+  font-size: var(--font-size-base);
+  margin-bottom: var(--space-1);
+}
+
+.callout--compact p {
+  font-size: var(--font-size-sm);
+}
+
+/* Large - Increased padding, larger text */
+.callout--large {
+  padding: var(--space-6) var(--space-8);
+}
+
+.callout--large h3,
+.callout--large h4 {
+  font-size: var(--font-size-xl);
+  margin-bottom: var(--space-3);
+}
+
+.callout--large p {
+  font-size: var(--font-size-lg);
+}
+
+/* ============================================================================
+   CALLOUT WITH ICON - Icon integration via data-icon attribute
+   ============================================================================
+   
+   Usage:
+   <div class="callout callout--info callout-with-icon" data-icon="auto">...</div>
+   <div class="callout callout--warning callout-with-icon" data-icon="warning">...</div>
+   ============================================================================ */
+
+.callout-with-icon {
+  padding-left: calc(var(--space-5) + 2.75rem);
+  position: relative;
+}
+
+.callout-with-icon::before {
+  content: '';
+  position: absolute;
+  left: var(--space-5);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.75rem;
+  height: 1.75rem;
+  background-color: var(--callout-icon-bg);
+  border-radius: 50%;
+  background-size: 1rem 1rem;
+  background-repeat: no-repeat;
+  background-position: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Icon position: top (stacked above content) */
+.callout-with-icon[data-icon-position="top"] {
+  padding-left: var(--space-5);
+  padding-top: calc(var(--space-5) + 3rem);
+}
+
+.callout-with-icon[data-icon-position="top"]::before {
+  left: 50%;
+  top: var(--space-4);
+  transform: translateX(-50%) translateY(0);
+  width: 2.25rem;
+  height: 2.25rem;
+  background-size: 1.25rem 1.25rem;
+}
+
+/* Auto icon - inherits from callout type */
+.callout--info.callout-with-icon[data-icon="auto"]::before,
+.callout-with-icon[data-icon="info"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231d4ed8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='12' y1='16' x2='12' y2='12'/%3E%3Cline x1='12' y1='8' x2='12.01' y2='8'/%3E%3C/svg%3E");
+}
+
+.callout--success.callout-with-icon[data-icon="auto"]::before,
+.callout-with-icon[data-icon="success"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23007a43' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 11.08V12a10 10 0 1 1-5.93-9.14'/%3E%3Cpolyline points='22 4 12 14.01 9 11.01'/%3E%3C/svg%3E");
+}
+
+.callout--warning.callout-with-icon[data-icon="auto"]::before,
+.callout-with-icon[data-icon="warning"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b45309' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'/%3E%3Cline x1='12' y1='9' x2='12' y2='13'/%3E%3Cline x1='12' y1='17' x2='12.01' y2='17'/%3E%3C/svg%3E");
+}
+
+.callout--danger.callout-with-icon[data-icon="auto"]::before,
+.callout-with-icon[data-icon="error"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b91c1c' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='15' y1='9' x2='9' y2='15'/%3E%3Cline x1='9' y1='9' x2='15' y2='15'/%3E%3C/svg%3E");
+}
+
+.callout-tip.callout-with-icon[data-icon="auto"]::before,
+.callout-with-icon[data-icon="tip"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23581c87' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z'/%3E%3C/svg%3E");
+}
+
+.callout-note.callout-with-icon[data-icon="auto"]::before,
+.callout-with-icon[data-icon="note"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cline x1='16' y1='13' x2='8' y2='13'/%3E%3Cline x1='16' y1='17' x2='8' y2='17'/%3E%3Cpolyline points='10 9 9 9 8 9'/%3E%3C/svg%3E");
+}
+
+.callout-important.callout-with-icon[data-icon="auto"]::before,
+.callout-with-icon[data-icon="important"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111827' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'/%3E%3Cline x1='12' y1='9' x2='12' y2='13'/%3E%3Cline x1='12' y1='17' x2='12.01' y2='17'/%3E%3C/svg%3E");
+}
+
+.callout-definition.callout-with-icon[data-icon="auto"]::before,
+.callout-with-icon[data-icon="definition"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23240250' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/%3E%3Cpath d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/%3E%3C/svg%3E");
+}
+
+/* Compact size adjustments for icons */
+.callout--compact.callout-with-icon {
+  padding-left: calc(var(--space-3) + 2.25rem);
+}
+
+.callout--compact.callout-with-icon::before {
+  left: var(--space-3);
+  width: 1.5rem;
+  height: 1.5rem;
+  background-size: 0.875rem 0.875rem;
+}
+
+/* Large size adjustments for icons */
+.callout--large.callout-with-icon {
+  padding-left: calc(var(--space-8) + 3.5rem);
+}
+
+.callout--large.callout-with-icon::before {
+  left: var(--space-7);
+  width: 2.25rem;
+  height: 2.25rem;
+  background-size: 1.25rem 1.25rem;
+}
+
+/* Filled style icon adjustments (white icons on dark background) */
+.callout--filled.callout-with-icon::before,
+.callout[data-callout-style="filled"].callout-with-icon::before {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================================================
+   CALLOUT WITH CUSTOM ICON/EMOJI - Inline element support
+   ============================================================================
+   
+   For custom emojis or icons not covered by data-icon attribute.
+   Uses a real element instead of ::before pseudo-element.
+   
+   Usage:
+   <div class="callout callout--warning callout-has-icon">
+     <span class="callout-icon">🔄</span>
+     <div class="callout-content">
+       <h3>Title</h3>
+       <p>Message content here.</p>
+     </div>
+   </div>
+   
+   Or simpler (no title):
+   <div class="callout callout--info callout-has-icon">
+     <span class="callout-icon">💡</span>
+     <p>Simple message with emoji.</p>
+   </div>
+   ============================================================================ */
+
+.callout-has-icon {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+/* Icon container - works with emoji, SVG, or icon fonts */
+.callout-has-icon>.callout-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Default size - use .icon-* classes to override */
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+/* Allow icon size classes to override */
+.callout-has-icon>.callout-icon.icon-xs {
+  font-size: 0.75rem;
+}
+
+.callout-has-icon>.callout-icon.icon-sm {
+  font-size: 1rem;
+}
+
+.callout-has-icon>.callout-icon.icon-md {
+  font-size: 1.25rem;
+}
+
+.callout-has-icon>.callout-icon.icon-lg {
+  font-size: 1.5rem;
+}
+
+.callout-has-icon>.callout-icon.icon-xl {
+  font-size: 2rem;
+}
+
+.callout-has-icon>.callout-icon.icon-2xl {
+  font-size: 3rem;
+}
+
+.callout-has-icon>.callout-icon.icon-3xl {
+  font-size: 4rem;
+}
+
+/* Optional: Add circle background with modifier class */
+.callout-has-icon>.callout-icon.callout-icon-circle {
+  width: 2.5rem;
+  height: 2.5rem;
+  background-color: var(--callout-icon-bg);
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* SVG icons inside .callout-icon */
+.callout-has-icon>.callout-icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--callout-accent);
+}
+
+/* Content wrapper - takes remaining space */
+.callout-has-icon>.callout-content {
+  flex: 1;
+  min-width: 0;
+  /* Prevent overflow */
+}
+
+/* Direct paragraph (no wrapper needed for simple callouts) */
+.callout-has-icon>p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  /* Center single paragraph with icon */
+  align-self: center;
+}
+
+/* Reset heading margins inside content */
+.callout-has-icon .callout-content h3,
+.callout-has-icon .callout-content h4 {
+  margin-top: 0;
+  margin-bottom: var(--space-2);
+}
+
+.callout-has-icon .callout-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* Size variants */
+.callout--compact.callout-has-icon {
+  gap: var(--space-3);
+}
+
+.callout--compact.callout-has-icon>.callout-icon {
+  font-size: 1.125rem;
+}
+
+.callout--compact.callout-has-icon>.callout-icon.callout-icon-circle {
+  width: 2rem;
+  height: 2rem;
+}
+
+.callout--compact.callout-has-icon>.callout-icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.callout--large.callout-has-icon {
+  gap: var(--space-5);
+}
+
+.callout--large.callout-has-icon>.callout-icon {
+  font-size: 2rem;
+}
+
+.callout--large.callout-has-icon>.callout-icon.callout-icon-circle {
+  width: 3.5rem;
+  height: 3.5rem;
+}
+
+.callout--large.callout-has-icon>.callout-icon svg {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+/* Filled style - light icon background */
+.callout--filled.callout-has-icon>.callout-icon,
+.callout[data-callout-style="filled"].callout-has-icon>.callout-icon {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.callout--filled.callout-has-icon>.callout-icon svg,
+.callout[data-callout-style="filled"].callout-has-icon>.callout-icon svg {
+  color: var(--color-white);
+  filter: brightness(0) invert(1);
+}
+
+/* Card style icon adjustments (centered) */
+.callout--card.callout-with-icon,
+.callout[data-callout-style="card"].callout-with-icon {
+  padding-left: var(--space-6);
+  padding-top: calc(var(--space-6) + 3.5rem);
+}
+
+.callout--card.callout-with-icon::before,
+.callout[data-callout-style="card"].callout-with-icon::before {
+  left: 50%;
+  top: var(--space-5);
+  transform: translateX(-50%) translateY(0);
+  width: 2.75rem;
+  height: 2.75rem;
+  background-size: 1.5rem 1.5rem;
+}
+
+/* ============================================================================
+   CALLOUT WITH TITLE - Structured header and body
+   ============================================================================
+   
+   Usage:
+   <div class="callout callout--info callout-with-title">
+     <div class="callout-header">
+       <svg class="callout-icon">...</svg>
+       <h4 class="callout-title">Important Note</h4>
+     </div>
+     <div class="callout-body">
+       Detailed message content here.
+     </div>
+   </div>
+   ============================================================================ */
+
+.callout-with-title {
+  padding: 0;
+}
+
+.callout-with-title .callout-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: linear-gradient(135deg,
+      rgba(0, 0, 0, 0.02) 0%,
+      transparent 100%);
+}
+
+/* Optional: Add border between header and body */
+.callout-with-title .callout-header-bordered {
+  border-bottom: 1px solid color-mix(in srgb, var(--callout-accent) 10%, transparent);
+}
+
+.callout-with-title .callout-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  color: var(--callout-accent);
+  background-color: var(--callout-icon-bg);
+  padding: 0.375rem;
+  border-radius: 50%;
+  box-sizing: content-box;
+}
+
+.callout-with-title .callout-title {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--callout-heading);
+  letter-spacing: -0.01em;
+}
+
+.callout-with-title .callout-body {
+  padding: var(--space-4) var(--space-5);
+}
+
+.callout-with-title .callout-body p:last-child {
+  margin-bottom: 0;
+}
+
+/* ============================================================================
+   DISMISSIBLE CALLOUTS
+   ============================================================================
+   
+   Usage:
+   <div class="callout callout--info callout--dismissible">
+     <button class="callout-close" aria-label="Dismiss">&times;</button>
+     <p>This callout can be dismissed.</p>
+   </div>
+   ============================================================================ */
+
+.callout--dismissible {
+  padding-right: calc(var(--space-4) + 2.5rem);
+}
+
+.callout-close {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  width: 1.75rem;
+  height: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--callout-accent);
+  opacity: 0.7;
+  cursor: pointer;
+  transition: opacity var(--transition-fast), background-color var(--transition-fast);
+}
+
+.callout-close:hover {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.callout-close:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* Filled style close button (white) */
+.callout--filled .callout-close,
+.callout[data-callout-style="filled"] .callout-close {
+  color: var(--color-white);
+}
+
+.callout--filled .callout-close:hover,
+.callout[data-callout-style="filled"] .callout-close:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================================================
+   ALERT COMPONENT - Dismissible variant of callouts
+   ============================================================================ */
+
+.alert {
+  position: relative;
+  padding: var(--space-4) var(--space-8) var(--space-4) var(--space-4);
+  margin-bottom: var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  border-left-width: 4px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.alert p {
+  margin: 0;
+  line-height: var(--line-height-normal);
+}
+
+.alert-info {
+  color: var(--color-info-text);
+  background-color: var(--color-info-light);
+  border-color: var(--color-info);
+}
+
+.alert-success {
+  color: var(--color-success-text);
+  background-color: var(--color-success-light);
+  border-color: var(--color-success);
+}
+
+.alert-warning {
+  color: var(--color-warning-text);
+  background-color: var(--color-warning-light);
+  border-color: var(--color-warning);
+}
+
+.alert-danger {
+  color: var(--color-danger-text);
+  background-color: var(--color-danger-light);
+  border-color: var(--color-danger);
+}
+
+.alert-close {
+  position: absolute;
+  top: 50%;
+  right: var(--space-4);
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  font-weight: bold;
+  line-height: 1;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+  padding: 0 var(--space-2);
+}
+
+.alert-close:hover {
+  opacity: 1;
+}
+
+/* ============================================================================
+   CALLOUT - Modern, structured context panel system
+   ============================================================================
+
+   PURPOSE:
+   - Cleaner default ("tonal") callouts for high-frequency usage
+   - Consistent content slots: icon, title, body, meta, actions
+   - Explicit severity + density modifiers
+
+   USAGE:
+   <aside class="callout callout--warning">
+     <span class="callout__icon">⚠</span>
+     <h4 class="callout__title">Heads up</h4>
+     <div class="callout__body"><p>Message text.</p></div>
+     <div class="callout__actions"><button class="btn btn-sm btn-outline-secondary">Action</button></div>
+   </aside>
+
+   MODIFIERS:
+   - Severity: callout--neutral|info|success|warning|danger
+   - Density:  callout--compact|spacious
+   - Style:    callout--filled
+   - Behavior: callout--actionable|dismissible
+   ============================================================================ */
+
+.callout {
+  --callout-accent: var(--color-info);
+  --callout-bg: var(--color-info-light);
+  --callout-border: color-mix(in srgb, var(--callout-accent) 16%, transparent);
+  --callout-title: var(--color-info-text);
+  --callout-text: var(--text-body);
+  --callout-link: var(--callout-title);
+  --callout-fill: var(--color-info);
+  --callout-on-fill: var(--color-white);
+
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: var(--space-3);
+  row-gap: var(--space-2);
+  align-items: start;
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width-thin) solid var(--callout-border);
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--callout-bg) 28%, var(--bg-surface));
+  color: var(--callout-text);
+  box-shadow: var(--shadow-xs);
+}
+
+/* Accent rail for quick scanability in dense content */
+.callout::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--border-width-thick);
+  border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+  background: var(--callout-accent);
+}
+
+/* No icon: collapse to single-column layout */
+.callout:not(:has(.callout__icon)) {
+  grid-template-columns: 1fr;
+}
+
+.callout__title,
+.callout__body,
+.callout__meta,
+.callout__actions {
+  grid-column: 2;
+}
+
+.callout:not(:has(.callout__icon)) .callout__title,
+.callout:not(:has(.callout__icon)) .callout__body,
+.callout:not(:has(.callout__icon)) .callout__meta,
+.callout:not(:has(.callout__icon)) .callout__actions {
+  grid-column: 1;
+}
+
+.callout__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.1rem;
+  color: var(--callout-title);
+  font-size: 1rem;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+}
+
+.callout__title {
+  margin: 0;
+  justify-self: start;
+  text-align: left;
+  color: var(--callout-title);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+  letter-spacing: 0.01em;
+}
+
+.callout__body {
+  color: var(--callout-text);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+}
+
+.callout__body p {
+  margin: 0;
+}
+
+.callout__body p + p {
+  margin-top: var(--space-2);
+}
+
+.callout__meta {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: var(--line-height-normal);
+}
+
+.callout__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.callout a {
+  color: var(--callout-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.callout a:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* Severity modifiers */
+.callout--neutral {
+  --callout-accent: var(--text-secondary);
+  --callout-bg: var(--bg-subtle);
+  --callout-border: color-mix(in srgb, var(--text-secondary) 34%, transparent);
+  --callout-title: var(--text-primary);
+  --callout-link: var(--color-primary);
+  --callout-fill: var(--color-gray-700);
+  --callout-on-fill: var(--color-white);
+}
+
+.callout--info {
+  --callout-accent: var(--color-info);
+  --callout-bg: var(--color-info-light);
+  --callout-border: color-mix(in srgb, var(--color-info) 18%, transparent);
+  --callout-title: var(--color-info-text);
+  --callout-link: var(--color-info-text);
+  --callout-fill: var(--color-info);
+  --callout-on-fill: var(--color-white);
+}
+
+.callout--success {
+  --callout-accent: var(--color-success);
+  --callout-bg: var(--color-success-light);
+  --callout-border: color-mix(in srgb, var(--color-success) 18%, transparent);
+  --callout-title: var(--color-success-text);
+  --callout-link: var(--color-success-text);
+  --callout-fill: var(--color-success);
+  --callout-on-fill: var(--color-white);
+}
+
+.callout--warning {
+  --callout-accent: var(--color-warning-text);
+  --callout-bg: var(--color-warning-light);
+  --callout-border: color-mix(in srgb, var(--color-warning) 24%, transparent);
+  --callout-title: var(--color-warning-text);
+  --callout-link: var(--color-warning-text);
+  --callout-fill: var(--color-warning);
+  --callout-on-fill: var(--color-on-warning);
+}
+
+.callout--danger {
+  --callout-accent: var(--color-danger-text);
+  --callout-bg: var(--color-danger-light);
+  --callout-border: color-mix(in srgb, var(--color-danger) 22%, transparent);
+  --callout-title: var(--color-danger-text);
+  --callout-link: var(--color-danger-text);
+  --callout-fill: var(--color-danger);
+  --callout-on-fill: var(--color-on-danger);
+}
+
+/* Density modifiers */
+.callout--compact {
+  padding: var(--space-3) var(--space-4);
+  column-gap: var(--space-2);
+  row-gap: var(--space-1);
+}
+
+.callout--compact .callout__title {
+  font-size: var(--font-size-xs);
+}
+
+.callout--compact .callout__body {
+  font-size: var(--font-size-sm);
+}
+
+.callout--spacious {
+  padding: var(--space-5) var(--space-6);
+  column-gap: var(--space-4);
+  row-gap: var(--space-2);
+}
+
+/* Filled variant for high urgency only */
+.callout--filled {
+  background: var(--callout-fill);
+  color: var(--callout-on-fill);
+  border-color: transparent;
+}
+
+.callout--filled::before {
+  display: none;
+}
+
+.callout--filled .callout__title,
+.callout--filled .callout__icon,
+.callout--filled .callout__body,
+.callout--filled .callout__meta,
+.callout--filled a {
+  color: var(--callout-on-fill);
+}
+
+/* Optional interactive state */
+.callout--actionable {
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-interactive), transform var(--transition-interactive);
+}
+
+.callout--actionable:hover {
+  border-color: color-mix(in srgb, var(--callout-accent) 38%, transparent);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(var(--motion-lift-sm));
+}
+
+.callout--actionable:active {
+  transform: translateY(0) scale(var(--motion-press-scale));
+}
+
+.callout--actionable:focus-within {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* Dismissible variant */
+.callout--dismissible {
+  padding-right: calc(var(--space-6) + 2rem);
+}
+
+.callout__dismiss {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  font-size: 1rem;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: currentColor;
+  opacity: 0.7;
+  cursor: pointer;
+  transition: opacity var(--transition-fast), background-color var(--transition-fast);
+}
+
+.callout__dismiss:hover {
+  opacity: 1;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.callout__dismiss:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .callout--actionable {
+    transition: none;
+  }
+}

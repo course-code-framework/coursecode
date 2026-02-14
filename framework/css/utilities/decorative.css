@@ -1,0 +1,442 @@
+/* ============================================================================
+   DECORATIVE UTILITIES - Dividers, background patterns, and visual elements
+   ============================================================================
+   
+   PURPOSE: Utility classes for adding visual polish and breaking up content
+   
+   INCLUDES:
+   - Decorative dividers (dotted, dashed, gradient, etc.)
+   - Background pattern utilities
+   - Border decorations
+   - Section decorations
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for color and spacing variables)
+   
+   USAGE:
+   <hr class="divider divider-gradient">
+   <section class="bg-dots">...</section>
+   
+   ============================================================================ */
+
+/* ============================================================================
+   DECORATIVE DIVIDERS
+   ============================================================================ */
+
+/* Base divider - horizontal rule reset */
+.divider {
+  border: none;
+  height: 1px;
+  background: var(--bg-inset);
+}
+
+/* Dotted divider */
+.divider-dotted {
+  height: 0;
+  border: none;
+  border-top: 2px dotted var(--color-gray-300);
+  background: transparent;
+}
+
+/* Dashed divider */
+.divider-dashed {
+  height: 0;
+  border: none;
+  border-top: 2px dashed var(--color-gray-300);
+  background: transparent;
+}
+
+/* Gradient fade divider */
+.divider-gradient {
+  height: 2px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--color-gray-300) 20%,
+    var(--color-gray-300) 80%,
+    transparent
+  );
+}
+
+/* Accent gradient divider */
+.divider-accent {
+  height: 3px;
+  background: var(--gradient-primary);
+}
+
+/* Thick decorative divider */
+.divider-thick {
+  height: 4px;
+  background: var(--bg-inset);
+  border-radius: var(--radius-full);
+}
+
+/* Icon divider - centered icon with lines */
+.divider-icon {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--color-gray-400);
+}
+
+.divider-icon::before,
+.divider-icon::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--bg-inset);
+}
+
+.divider-icon::before {
+  margin-right: var(--space-4);
+}
+
+.divider-icon::after {
+  margin-left: var(--space-4);
+}
+
+/* ============================================================================
+   BACKGROUND PATTERN UTILITIES
+   ============================================================================
+   Subtle background patterns for sections.
+   Note: These use CSS-only patterns for performance.
+   ============================================================================ */
+
+/* Subtle dot pattern */
+.bg-dots {
+  background-image: radial-gradient(
+    circle,
+    var(--color-gray-200) 1px,
+    transparent 1px
+  );
+  background-size: 20px 20px;
+}
+
+/* Grid line pattern */
+.bg-grid {
+  background-image: 
+    linear-gradient(var(--color-gray-100) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-gray-100) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Diagonal lines pattern */
+.bg-diagonal {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    var(--color-gray-50) 10px,
+    var(--color-gray-50) 20px
+  );
+}
+
+/* Soft gradient wash */
+.bg-gradient-subtle {
+  background: linear-gradient(
+    180deg,
+    var(--color-gray-50) 0%,
+    transparent 100%
+  );
+}
+
+/* Primary color gradient wash */
+.bg-gradient-primary {
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-alpha-10) 0%,
+    transparent 100%
+  );
+}
+
+/* Dark gradient backgrounds - designed for white text */
+.bg-gradient-dark {
+  background: var(--gradient-header);
+  color: var(--color-white);
+}
+
+.bg-gradient-dark-primary {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: var(--color-white);
+}
+
+.bg-gradient-dark-secondary {
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-secondary-dark));
+  color: var(--color-gray-900);
+}
+
+.bg-gradient-dark-accent {
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dark));
+  color: var(--color-gray-900);
+}
+
+/* Gradient token utilities - apply predefined gradient tokens directly */
+.gradient-header {
+  background: var(--gradient-header);
+  color: var(--color-white);
+}
+
+.gradient-success {
+  background: var(--gradient-success);
+  color: var(--color-white);
+}
+
+.gradient-progress {
+  background: var(--gradient-progress);
+  color: var(--color-white);
+}
+
+.gradient-subtle {
+  background: var(--gradient-subtle);
+}
+
+/* ============================================================================
+   CUSTOM GRADIENT UTILITY
+   ============================================================================
+   
+   Flexible gradient builder using CSS custom properties.
+   Set --gradient-from and --gradient-to to any color token.
+   
+   Usage:
+   <div class="gradient" style="--gradient-from: var(--color-primary); --gradient-to: var(--color-secondary);">
+   
+   Or with data attributes for common patterns:
+   <div class="gradient" data-gradient="primary-secondary">
+   <div class="gradient" data-gradient="primary-dark">
+   <div class="gradient" data-gradient="secondary-accent">
+   
+   ============================================================================ */
+
+.gradient {
+  --gradient-from: var(--color-primary);
+  --gradient-to: var(--color-primary-dark);
+  --gradient-angle: 135deg;
+  background: linear-gradient(var(--gradient-angle), var(--gradient-from), var(--gradient-to));
+  color: var(--color-white);
+}
+
+/* Ensure text inside gradients inherits white color (overrides heading defaults) */
+.gradient h1, .gradient h2, .gradient h3, .gradient h4, .gradient h5, .gradient h6,
+.gradient p, .gradient span, .gradient a, .gradient li {
+  color: inherit;
+}
+
+/* Common gradient presets via data attribute */
+.gradient[data-gradient="primary-secondary"] {
+  --gradient-from: var(--color-primary);
+  --gradient-to: var(--color-secondary);
+}
+
+.gradient[data-gradient="primary-dark"] {
+  --gradient-from: var(--color-primary);
+  --gradient-to: var(--color-primary-dark);
+}
+
+.gradient[data-gradient="secondary-dark"] {
+  --gradient-from: var(--color-secondary);
+  --gradient-to: var(--color-secondary-dark);
+}
+
+.gradient[data-gradient="secondary-accent"] {
+  --gradient-from: var(--color-secondary);
+  --gradient-to: var(--color-accent);
+}
+
+.gradient[data-gradient="accent-dark"] {
+  --gradient-from: var(--color-accent);
+  --gradient-to: var(--color-accent-dark);
+}
+
+.gradient[data-gradient="success"] {
+  --gradient-from: var(--color-success);
+  --gradient-to: var(--color-accent-dark);
+}
+
+.gradient[data-gradient="info"] {
+  --gradient-from: var(--color-info);
+  --gradient-to: var(--color-primary);
+}
+
+.gradient[data-gradient="warning"] {
+  --gradient-from: var(--color-warning);
+  --gradient-to: var(--color-warning-hover);
+}
+
+.gradient[data-gradient="error"] {
+  --gradient-from: var(--color-danger);
+  --gradient-to: var(--color-danger-hover);
+}
+
+/* Light gradient variant (for light backgrounds, dark text) */
+.gradient-light {
+  --gradient-from: var(--color-primary-light);
+  --gradient-to: var(--color-secondary-light);
+  --gradient-angle: 135deg;
+  background: linear-gradient(var(--gradient-angle), var(--gradient-from), var(--gradient-to));
+  color: var(--text-primary);
+}
+
+/* Ensure text inside light gradients inherits dark color */
+.gradient-light h1, .gradient-light h2, .gradient-light h3, .gradient-light h4, .gradient-light h5, .gradient-light h6,
+.gradient-light p, .gradient-light span, .gradient-light a, .gradient-light li {
+  color: inherit;
+}
+
+/* Gradient angle modifiers */
+.gradient-horizontal, .gradient-light.gradient-horizontal {
+  --gradient-angle: 90deg;
+}
+
+.gradient-vertical, .gradient-light.gradient-vertical {
+  --gradient-angle: 180deg;
+}
+
+.gradient-diagonal, .gradient-light.gradient-diagonal {
+  --gradient-angle: 135deg;
+}
+
+.gradient-radial {
+  background: radial-gradient(circle, var(--gradient-from), var(--gradient-to));
+}
+
+/* ============================================================================
+   BORDER DECORATIONS
+   ============================================================================ */
+
+/* Gradient border effect using pseudo-element */
+.border-gradient {
+  position: relative;
+  border: none;
+}
+
+.border-gradient::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  background: var(--gradient-primary);
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* Double line border */
+.border-double {
+  border: 4px double var(--color-gray-300);
+}
+
+/* Dashed border */
+.border-dashed {
+  border: 2px dashed var(--color-gray-300);
+}
+
+/* ============================================================================
+   SECTION DECORATIONS
+   ============================================================================ */
+
+/* Decorative corner elements */
+.section-decorated {
+  position: relative;
+}
+
+.section-decorated::before,
+.section-decorated::after {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-color: var(--color-primary-alpha-30);
+  border-style: solid;
+}
+
+.section-decorated::before {
+  top: 0;
+  left: 0;
+  border-width: 3px 0 0 3px;
+  border-radius: var(--radius-lg) 0 0 0;
+}
+
+.section-decorated::after {
+  bottom: 0;
+  right: 0;
+  border-width: 0 3px 3px 0;
+  border-radius: 0 0 var(--radius-lg) 0;
+}
+
+/* Wave pattern at top (using SVG data URI) */
+.section-wave-top {
+  position: relative;
+  padding-top: 40px;
+}
+
+.section-wave-top::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 40' preserveAspectRatio='none'%3E%3Cpath fill='%23f3f4f6' d='M0,40 L0,20 Q300,0 600,20 T1200,20 L1200,40 Z'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+}
+
+/* Wave pattern at bottom */
+.section-wave-bottom {
+  position: relative;
+  padding-bottom: 40px;
+}
+
+.section-wave-bottom::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 40' preserveAspectRatio='none'%3E%3Cpath fill='%23f3f4f6' d='M0,0 L0,20 Q300,40 600,20 T1200,20 L1200,0 Z'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+}
+
+/* Angled top edge */
+.section-angle-top {
+  position: relative;
+  margin-top: 40px;
+}
+
+.section-angle-top::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(
+    to bottom right,
+    transparent 49.5%,
+    var(--color-gray-50) 50%
+  );
+}
+
+/* Angled bottom edge */
+.section-angle-bottom {
+  position: relative;
+  margin-bottom: 40px;
+}
+
+.section-angle-bottom::after {
+  content: '';
+  position: absolute;
+  bottom: -40px;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(
+    to top right,
+    var(--color-gray-50) 49.5%,
+    transparent 50%
+  );
+}

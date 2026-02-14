@@ -1,0 +1,87 @@
+/* ============================================================================
+   Breadcrumbs Component
+   ============================================================================
+   
+   Simple text-based breadcrumbs shown in the top-left of the slide area.
+   Hidden when the sidebar is open to avoid duplication.
+   Clicking opens the sidebar.
+   
+   ============================================================================ */
+
+.breadcrumbs {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color var(--transition-fast), opacity var(--transition-normal);
+    position: absolute;
+    top: var(--space-2);
+    left: var(--space-2);
+    z-index: 10;
+    max-width: calc(100% - var(--space-8));
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+}
+
+.breadcrumbs:hover {
+    color: var(--color-primary);
+}
+
+.breadcrumbs:focus-visible {
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: 2px;
+}
+
+/* Hide breadcrumbs when sidebar is open */
+.sidebar:not(.collapsed) ~ main .breadcrumbs,
+html:not(.bp-mobile) .sidebar:not(.collapsed) ~ main .breadcrumbs {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Breadcrumb segments */
+.breadcrumbs-segment {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
+}
+
+.breadcrumbs-segment:last-child {
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-medium);
+}
+
+.breadcrumbs:hover .breadcrumbs-segment:last-child {
+    color: var(--color-primary);
+}
+
+/* Separator */
+.breadcrumbs-separator {
+    opacity: 0.75;
+    flex-shrink: 0;
+    font-size: 0.95em;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-secondary);
+}
+
+/* Mobile adjustments */
+@media (max-width: 767px) {
+    .breadcrumbs {
+        padding: var(--space-1);
+        top: var(--space-1);
+        left: var(--space-1);
+    }
+    
+    .breadcrumbs-segment {
+        max-width: 100px;
+    }
+}
+
+/* When hidden via config */
+.breadcrumbs[hidden] {
+    display: none;
+}

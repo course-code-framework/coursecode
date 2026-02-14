@@ -1,0 +1,203 @@
+/* ========================================
+   UI COMPONENT: Checklist
+   Use for: Compliance lists, task completion, requirements
+   Marker is CSS-generated via ::before — no empty span needed in HTML.
+   Variants: cards, minimal, numbered
+   ======================================== */
+[data-component="checklist"] {
+  max-width: 700px;
+  margin-inline: auto;
+  counter-reset: checklist;
+}
+
+[data-component="checklist"] .checklist-group {
+  margin-bottom: var(--space-6);
+}
+
+[data-component="checklist"] .checklist-group:last-child {
+  margin-bottom: 0;
+}
+
+[data-component="checklist"] .checklist-group-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--color-gray-200);
+}
+
+[data-component="checklist"] .checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-2);
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-gray-300);
+  transition: var(--transition-normal);
+  counter-increment: checklist;
+}
+
+[data-component="checklist"] .checklist-item:last-child {
+  margin-bottom: 0;
+}
+
+[data-component="checklist"] .checklist-item:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Checkbox-style marker (auto-generated) */
+[data-component="checklist"] .checklist-item::before {
+  content: '';
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--color-gray-400);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
+  margin-top: 2px;
+}
+
+/* Completed state */
+[data-component="checklist"] .checklist-item.completed::before {
+  content: '✓';
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-white);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
+}
+
+[data-component="checklist"] .checklist-item.completed .checklist-text {
+  color: var(--text-secondary);
+}
+
+/* Checklist text content */
+[data-component="checklist"] .checklist-text {
+  flex: 1;
+}
+
+[data-component="checklist"] .checklist-text strong {
+  display: block;
+  color: var(--text-primary);
+  margin-bottom: var(--space-1);
+}
+
+[data-component="checklist"] .checklist-text p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+/* Optional status indicator */
+[data-component="checklist"] .checklist-status {
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+[data-component="checklist"] .checklist-status.status-required {
+  background: var(--color-danger-alpha-10, rgba(239, 68, 68, 0.1));
+  color: var(--color-danger-text);
+}
+
+[data-component="checklist"] .checklist-status.status-optional {
+  background: var(--bg-muted);
+  color: var(--color-gray-600);
+}
+
+[data-component="checklist"] .checklist-status.status-complete {
+  background: var(--color-accent-alpha-10, rgba(16, 185, 129, 0.1));
+  color: var(--color-accent);
+}
+
+/* Card style variant */
+[data-component="checklist"][data-checklist-style="cards"] .checklist-item {
+  padding: var(--space-4);
+  margin-bottom: var(--space-3);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Minimal/flush style variant */
+[data-component="checklist"][data-checklist-style="minimal"] .checklist-item {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-gray-100);
+  border-radius: 0;
+  padding: var(--space-3) 0;
+}
+
+[data-component="checklist"][data-checklist-style="minimal"] .checklist-item:last-child {
+  border-bottom: none;
+}
+
+/* Numbered variant — CSS counter replaces checkbox */
+[data-component="checklist"][data-checklist-style="numbered"] .checklist-item::before {
+  content: counter(checklist);
+  border-radius: 50%;
+  background: var(--color-primary-alpha-10);
+  border-color: transparent;
+  color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
+}
+
+[data-component="checklist"][data-checklist-style="numbered"] .checklist-item.completed::before {
+  content: '✓';
+  background: var(--color-accent);
+  color: var(--color-white);
+}
+
+/* Progress indicator for checklist */
+[data-component="checklist"] .checklist-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3);
+  background: var(--bg-subtle);
+  border-radius: var(--radius-md);
+}
+
+[data-component="checklist"] .checklist-progress-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-inset);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+[data-component="checklist"] .checklist-progress-fill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: var(--radius-full);
+  transition: width var(--transition-normal);
+}
+
+[data-component="checklist"] .checklist-progress-text {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  [data-component="checklist"] .checklist-item {
+    flex-wrap: wrap;
+  }
+
+  [data-component="checklist"] .checklist-status {
+    margin-left: calc(24px + var(--space-3));
+    margin-top: var(--space-2);
+  }
+}

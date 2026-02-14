@@ -1,0 +1,191 @@
+/* ============================================================================
+   PRESENTATION LAYOUT - Full-screen slideshow
+   ============================================================================
+   
+   PURPOSE: Keynote/PowerPoint-style layout with:
+   - No header (completely hidden)
+   - No sidebar
+   - Content fills entire viewport
+   - Edge navigation arrows (left/right)
+   - No scroll (content must fit viewport)
+   
+   BEST FOR: Slideshow presentations, keynote replacements, visual content
+   
+   ============================================================================ */
+
+/* Hide header when sidebar disabled */
+[data-layout="presentation"]:not([data-sidebar-enabled="true"]) .course-header {
+    display: none !important;
+}
+
+/* When sidebar enabled, keep header in DOM but visually hide most of it
+   This allows the fixed-position toggle button to render */
+[data-layout="presentation"][data-sidebar-enabled="true"] .course-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 0;
+    height: 0;
+    overflow: visible;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+/* Hide all header content except the toggle */
+[data-layout="presentation"][data-sidebar-enabled="true"] .course-header>* {
+    visibility: hidden;
+}
+
+[data-layout="presentation"][data-sidebar-enabled="true"] .course-header #sidebar-toggle {
+    visibility: visible;
+}
+
+/* Sidebar visibility controlled by data attribute */
+/* Hide sidebar when disabled */
+[data-layout="presentation"]:not([data-sidebar-enabled="true"]) .sidebar {
+    display: none !important;
+}
+
+[data-layout="presentation"]:not([data-sidebar-enabled="true"]) #sidebar-backdrop {
+    display: none !important;
+}
+
+[data-layout="presentation"]:not([data-sidebar-enabled="true"]) #sidebar-toggle {
+    display: none !important;
+}
+
+/* FAB toggle button for presentation layout - top-left, transparent like nav arrows */
+[data-layout="presentation"][data-sidebar-enabled="true"] #sidebar-toggle {
+    --header-control-bg: var(--nav-edge-bg);
+    --header-control-bg-hover: var(--nav-edge-bg-hover);
+    --header-control-text: var(--text-primary);
+    --header-border: var(--nav-edge-border);
+    position: fixed;
+    top: calc(var(--space-4) + env(safe-area-inset-top, 0px));
+    left: calc(var(--space-4) + env(safe-area-inset-left, 0px));
+    z-index: var(--z-fixed);
+    width: var(--nav-edge-control-size);
+    height: var(--nav-edge-control-size);
+    border-radius: var(--radius-full);
+    background: var(--header-control-bg);
+    border: 1px solid var(--header-border);
+    box-shadow: var(--nav-edge-shadow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: var(--nav-btn-edge-opacity);
+    transition: opacity var(--transition-fast), transform var(--transition-interactive), background var(--transition-fast), box-shadow var(--transition-interactive);
+    color: var(--header-control-text);
+}
+
+[data-layout="presentation"][data-sidebar-enabled="true"] #sidebar-toggle:hover {
+    opacity: 1;
+    transform: scale(var(--nav-edge-hover-scale));
+    background: var(--header-control-bg-hover);
+    box-shadow: var(--nav-edge-shadow-hover);
+}
+
+[data-layout="presentation"][data-sidebar-enabled="true"] #sidebar-toggle:active {
+    transform: scale(var(--nav-edge-active-scale));
+}
+
+[data-layout="presentation"][data-sidebar-enabled="true"] #sidebar-toggle[aria-expanded="true"] {
+    opacity: 1;
+}
+
+[data-layout="presentation"][data-sidebar-enabled="true"] #sidebar-toggle:focus-visible {
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: 2px;
+}
+
+/* App body fills full height */
+[data-layout="presentation"] .app-body {
+    height: 100vh;
+}
+
+/* Content fills viewport, no scroll */
+[data-layout="presentation"] main#content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 0 var(--space-24);
+    height: 100%;
+    box-sizing: border-box;
+}
+
+[data-layout="presentation"] main#content>section {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+    max-width: 100%;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-8);
+}
+
+/* Slide container fills space */
+[data-layout="presentation"] #slide-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* Footer and nav-controls styling moved to components/footer.css - DATA-LAYOUT VARIANTS section */
+
+/* Button styling moved to components/buttons.css - DATA-LAYOUT VARIANTS section */
+/* Engagement styling moved to components/engagement.css - DATA-LAYOUT VARIANTS section */
+
+/* Audio player styling moved to components/audio-player.css - DATA-LAYOUT VARIANTS section */
+
+/* Hide exit button */
+[data-layout="presentation"] .nav-exit-button {
+    display: none !important;
+}
+
+/* Breadcrumbs visibility now controlled by navigation.breadcrumbs.enabled config */
+[data-layout="presentation"] .breadcrumb-nav,
+[data-layout="presentation"] .breadcrumbs {
+    display: none !important;
+}
+
+/* Small viewport fallback — allow scrolling when content can't fit */
+@media (max-height: 500px), (max-width: 768px) {
+    [data-layout="presentation"] main#content {
+        overflow-y: auto;
+        align-items: flex-start;
+    }
+
+    [data-layout="presentation"] main#content>section {
+        align-items: flex-start;
+        height: auto;
+        min-height: 100%;
+    }
+
+    [data-layout="presentation"] #slide-container {
+        align-items: flex-start;
+        height: auto;
+        min-height: 100%;
+    }
+}
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+
+    [data-layout="presentation"] #prevBtn,
+    [data-layout="presentation"] #nextBtn {
+        transition: none;
+    }
+
+    [data-layout="presentation"] #prevBtn:hover:not(:disabled),
+    [data-layout="presentation"] #nextBtn:hover:not(:disabled) {
+        transform: none;
+    }
+}

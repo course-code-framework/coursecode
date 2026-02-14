@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title id="page-title">Loading...</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" id="page-description" content="" />
+  <!-- Skip link is styled via framework.css for accessibility -->
+  <script type="module" crossorigin src="/assets/index-D8AaJkY8.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-D7ygUs80.css">
+</head>
+<body>
+  <!-- Accessibility: Skip to main content link -->
+  <a href="#content" class="skip-link">Skip to main content</a>
+
+  <div id="app" role="application" aria-label="SCORM Learning Module">
+    <!-- ========== LIVE REGIONS FOR SCREEN READERS ========== -->
+    <!-- Progress/status announcements for screen readers -->
+    <div id="progress-announce" aria-live="polite" aria-atomic="true" class="sr-only"></div>
+    
+    <!-- ========== HEADER ========== -->
+    <header role="banner">
+      <!-- Navigation Menu Toggle -->
+      <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="sidebar" data-testid="nav-menu-toggle">
+        <span class="toggle-icon" aria-hidden="true">☰</span>
+      </button>
+
+      <!-- Branding -->
+      <div id="brand" aria-label="Course brand">
+        <!-- Dynamically populated from course-config.js -->
+      </div>
+
+      <!-- Accessibility Options Menu -->
+      <button id="accessibility-button" class="sidebar-toggle" aria-label="Accessibility options" aria-haspopup="true" aria-expanded="false" title="Accessibility settings">
+        <span aria-hidden="true">⚙️</span>
+      </button>
+
+      <!-- Accessibility Menu Popup -->
+      <div id="accessibility-menu" class="popup-menu" role="menu" aria-label="Settings" hidden>
+        <button id="theme-toggle" role="menuitem" aria-label="Toggle dark mode" title="Switch between light and dark themes">
+          <span aria-hidden="true">🌙</span>
+          <span class="menu-label">Dark Mode</span>
+        </button>
+        <button id="font-size-toggle" role="menuitem" aria-label="Increase font size" title="Make text larger">
+          <span aria-hidden="true">A+</span>
+          <span class="menu-label">Font Size</span>
+        </button>
+        <button id="high-contrast-toggle" role="menuitem" aria-label="Toggle high contrast" title="Enable high contrast mode">
+          <span aria-hidden="true">◐</span>
+          <span class="menu-label">High Contrast</span>
+        </button>
+        <button id="reduced-motion-toggle" role="menuitem" aria-label="Toggle reduced motion" title="Reduce animations and transitions">
+          <span aria-hidden="true">⏸</span>
+          <span class="menu-label">Reduced Motion</span>
+        </button>
+        <hr class="menu-divider" id="report-issue-divider" hidden />
+        <button id="report-issue-button" role="menuitem" aria-label="Report an issue" hidden>
+          <span aria-hidden="true"><!-- Icon --></span>
+          <span class="menu-label">Report Issue</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ========== MAIN CONTENT AREA ========== -->
+    <div class="app-body">
+      <!-- Sidebar Backdrop (for mobile overlay) -->
+      <div id="sidebar-backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+
+      <!-- Navigation Sidebar -->
+      <aside id="sidebar" class="sidebar collapsed" aria-label="Course navigation sidebar">
+        <nav id="menu" aria-label="Course navigation menu" role="navigation">
+          <!-- Dynamically populated from course-config.js -->
+          <div id="menu-help" class="sr-only">Use these buttons to navigate between course sections</div>
+        </nav>
+      </aside>
+
+      <!-- Main Content -->
+      <main id="content" tabindex="-1" role="main" aria-live="polite" aria-atomic="false">
+        <!-- Loading indicator -->
+        <div id="loading" aria-hidden="true">
+          <div class="spinner" role="status" aria-label="Loading"></div>
+          <span class="loading-text">Loading course content...</span>
+        </div>
+        <!-- Slide content injected here -->
+        <div id="slide-container"></div>
+      </main>
+    </div>
+
+    <!-- ========== FOOTER / NAVIGATION CONTROLS ========== -->
+    <footer class="app-footer" role="contentinfo">
+      <div class="nav-controls" role="toolbar" aria-label="Navigation controls">
+        <div class="nav-nav-buttons">
+          <!-- Previous/Next Navigation -->
+          <button id="prevBtn" class="btn btn-secondary" aria-describedby="nav-help" aria-keyshortcuts="Alt+Left" data-action="nav-prev" data-testid="nav-prev">
+            <span aria-hidden="true">‹</span> Previous
+          </button>
+          <button id="nextBtn" class="btn btn-secondary" aria-describedby="nav-help" aria-keyshortcuts="Alt+Right" data-action="nav-next" data-testid="nav-next">
+            Next <span aria-hidden="true">›</span>
+          </button>
+          <!-- Engagement Progress Indicator -->
+          <div id="engagement-indicator" class="engagement-indicator-footer tooltip" hidden aria-live="polite" data-tooltip="Slide Progress: 0%" data-testid="engagement-indicator">
+            <svg class="engagement-circle" width="32" height="32" viewBox="0 0 32 32" aria-hidden="true">
+              <circle class="engagement-track" cx="16" cy="16" r="14" fill="none" stroke-width="3"></circle>
+              <circle class="engagement-progress" cx="16" cy="16" r="14" fill="none" stroke-width="3" stroke-linecap="round"></circle>
+              <text class="engagement-checkmark" x="16" y="16" text-anchor="middle" dominant-baseline="central" font-size="16">✓</text>
+            </svg>
+          </div>
+        </div>
+        <!-- Audio Player (hidden by default, shown when narration is active) -->
+        <div id="audio-player" hidden aria-label="Audio narration player" data-testid="audio-player">
+          <!-- Controls rendered by audio-player.js -->
+        </div>
+        <!-- Exit Course Button -->
+        <div class="nav-exit-button">
+          <button id="exitBtn" class="btn btn-secondary" aria-describedby="nav-help" data-action="exit-course" data-testid="nav-exit">
+            <span aria-hidden="true">🚪</span> Exit Course
+          </button>
+        </div>
+      </div>
+      <!-- Screen reader help text -->
+      <div id="nav-help" class="sr-only">Use Previous/Next to navigate, or use keyboard shortcuts</div>
+    </footer>
+
+    <!-- ========== GLOBAL MODAL ========== -->
+    <div id="global-modal" class="modal" role="dialog" aria-labelledby="global-modal-title" aria-describedby="global-modal-body" aria-hidden="true" data-testid="modal-global">
+      <div class="modal-header">
+        <h2 id="global-modal-title" class="modal-title"></h2>
+        <button class="modal-close" aria-label="Close dialog" data-action="close-modal">&times;</button>
+      </div>
+      <div id="global-modal-body" class="modal-body">
+        <!-- Dynamic content injected here -->
+      </div>
+      <div id="global-modal-footer" class="modal-footer">
+        <!-- Dynamic buttons injected here -->
+      </div>
+    </div>
+
+    <!-- Modal Backdrop -->
+    <div class="modal-backdrop" aria-hidden="true"></div>
+
+    <!-- ========== NOTIFICATIONS ========== -->
+    <div id="notification-container" class="notification-container" aria-live="polite" aria-relevant="additions"></div>
+  </div>
+
+  <!-- ========== SCRIPTS ========== -->
+  <!-- SCORM API wrapper (classic script, not module, to attach functions to window) -->
+  <script src="./js/vendor/scorm_api_wrapper.js"></script>
+  
+  <!-- Application entry point (Vite-compatible module) -->
+</body>
+</html>

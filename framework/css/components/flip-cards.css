@@ -1,0 +1,253 @@
+/* ============================================================================
+   FLIP CARDS - Interactive 3D Flip Card Component
+   ============================================================================
+   
+   PURPOSE: Interactive cards that reveal content on hover/focus
+   
+   INCLUDES:
+   - Base flip card structure
+   - Front and back face styling
+   - 3D transform animations
+   - Accessibility support (focus-within)
+   
+   DEPENDENCIES:
+   - design-tokens.css
+   
+   USAGE:
+   <div class="flip-card">
+     <div class="flip-card-inner">
+       <div class="flip-card-front">
+         <!-- Front Content -->
+       </div>
+       <div class="flip-card-back">
+         <!-- Back Content -->
+       </div>
+     </div>
+   </div>
+   
+   ============================================================================ */
+
+.flip-card {
+  background-color: transparent;
+  perspective: 1000px;
+  width: 100%; /* Fill grid cell or container width */
+  min-width: 0; /* Allow shrinking in flex/grid contexts */
+  min-height: var(--size-card-min-height);
+  cursor: pointer; /* Indicate interactivity */
+}
+
+/* Flip cards in grid layouts need explicit sizing since content is absolutely positioned.
+   Without min-width, grid columns collapse to 0px because absolutely positioned children
+   contribute no intrinsic size. The width/height: 100% ensures cards fill their grid cell. */
+.card-grid .flip-card,
+.card-grid-2 .flip-card,
+.card-grid-3 .flip-card {
+  min-width: 200px; /* Establish minimum for grid sizing */
+  width: 100%; /* Fill the entire grid cell width */
+  height: 100%; /* Fill the entire grid cell height (for equal row heights) */
+}
+
+.flip-card-inner {
+  display: grid; /* Grid allows both faces to contribute to height */
+  width: 100%;
+  height: 100%; /* Fill parent flip-card height */
+  min-height: var(--size-card-min-height);
+  text-align: center;
+  transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+/* Flip when .is-flipped class is present (toggled via JS) */
+.flip-card.is-flipped .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+/* Both faces occupy the same grid cell, so the taller one sets the height */
+.flip-card-front,
+.flip-card-back {
+  grid-area: 1 / 1; /* Both in same cell */
+  width: 100%;
+  box-sizing: border-box;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border: var(--border-width-thin) solid var(--color-gray-300);
+  background-color: var(--bg-elevated);
+}
+
+.flip-card-front {
+  color: var(--color-text);
+  z-index: 2;
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  border-color: var(--color-primary);
+  z-index: 1;
+}
+
+/* Flip card content container - handles text alignment */
+.flip-card-content {
+  width: 100%;
+  text-align: left; /* Default to left-aligned text for readability */
+}
+
+/* Front face content typically centered */
+.flip-card-front .flip-card-content {
+  text-align: center;
+}
+
+/* Back face keeps left alignment for lists/paragraphs but centers the block */
+.flip-card-back .flip-card-content {
+  text-align: center; /* Center headings */
+}
+
+/* Lists and paragraphs on back should be left-aligned for readability */
+.flip-card-back .flip-card-content ul,
+.flip-card-back .flip-card-content ol,
+.flip-card-back .flip-card-content p:not(:first-child) {
+  text-align: left;
+}
+
+/* High contrast text for back of card - inherit white for all text elements */
+.flip-card-back .flip-card-title,
+.flip-card-back .flip-card-text,
+.flip-card-back h1,
+.flip-card-back h2,
+.flip-card-back h3,
+.flip-card-back h4,
+.flip-card-back h5,
+.flip-card-back h6,
+.flip-card-back p,
+.flip-card-back li,
+.flip-card-back strong,
+.flip-card-back b {
+  color: inherit;
+}
+
+/* Ensure strong/bold text stays bold white, not theme colors */
+.flip-card-back strong,
+.flip-card-back b {
+  font-weight: var(--font-weight-bold);
+}
+
+/* Styled list markers should also be white on dark backgrounds */
+.flip-card-back .list-styled li::marker,
+.flip-card-back .list-numbered li::marker {
+  color: var(--color-white);
+}
+
+/* Callouts inside flip card back need special handling */
+.flip-card-back .callout {
+  --callout-bg: rgba(255, 255, 255, 0.15);
+  --callout-border: rgba(255, 255, 255, 0.3);
+  background-color: var(--callout-bg);
+  border-color: var(--callout-border);
+}
+
+.flip-card-back .callout p,
+.flip-card-back .callout strong {
+  color: var(--color-white);
+}
+
+/* Warning callout gets a slightly different treatment for visibility */
+.flip-card-back .callout-warning {
+  --callout-bg: rgba(255, 193, 7, 0.2);
+  --callout-border: rgba(255, 193, 7, 0.5);
+}
+
+/* Variant: Light Back (Alternative for better readability) */
+.flip-card-back.bg-light {
+  background-color: var(--bg-subtle);
+  color: var(--color-text);
+  border-color: var(--color-gray-300);
+}
+.flip-card-back.bg-light .flip-card-title,
+.flip-card-back.bg-light .flip-card-text,
+.flip-card-back.bg-light h1,
+.flip-card-back.bg-light h2,
+.flip-card-back.bg-light h3,
+.flip-card-back.bg-light h4,
+.flip-card-back.bg-light p,
+.flip-card-back.bg-light li,
+.flip-card-back.bg-light strong {
+  color: var(--color-text);
+}
+
+.flip-card-back.bg-light .list-styled li::marker,
+.flip-card-back.bg-light .list-numbered li::marker {
+  color: var(--color-primary);
+}
+
+.flip-card-back.bg-light .callout {
+  --callout-bg: initial;
+  --callout-border: initial;
+  background-color: var(--callout-bg);
+  border-color: var(--callout-border);
+}
+
+/* Variant: Subtle/Light Semantic Backgrounds - Override white text with dark text */
+.flip-card-back.bg-primary-subtle,
+.flip-card-back.bg-secondary-subtle,
+.flip-card-back.bg-success-subtle,
+.flip-card-back.bg-warning-subtle,
+.flip-card-back.bg-danger-subtle,
+.flip-card-back.bg-info-subtle {
+  color: var(--color-text);
+  border-color: var(--color-gray-300);
+}
+
+.flip-card-back.bg-primary-subtle .flip-card-title,
+.flip-card-back.bg-primary-subtle .flip-card-text,
+.flip-card-back.bg-secondary-subtle .flip-card-title,
+.flip-card-back.bg-secondary-subtle .flip-card-text,
+.flip-card-back.bg-success-subtle .flip-card-title,
+.flip-card-back.bg-success-subtle .flip-card-text,
+.flip-card-back.bg-warning-subtle .flip-card-title,
+.flip-card-back.bg-warning-subtle .flip-card-text,
+.flip-card-back.bg-danger-subtle .flip-card-title,
+.flip-card-back.bg-danger-subtle .flip-card-text,
+.flip-card-back.bg-info-subtle .flip-card-title,
+.flip-card-back.bg-info-subtle .flip-card-text {
+  color: var(--color-text);
+  text-shadow: none;
+}
+
+/* Variant: Secondary Color */
+.flip-card-back.bg-secondary {
+  background-color: var(--color-secondary);
+  border-color: var(--color-secondary);
+  color: var(--color-text); /* Secondary is usually light/yellow */
+}
+
+/* Variant: Dark Color */
+.flip-card-back.bg-dark {
+  background-color: var(--color-gray-900);
+  border-color: var(--color-gray-900);
+}
+
+/* Content styling helpers */
+.flip-card-icon {
+  font-size: 3rem;
+  margin-bottom: var(--space-4);
+  display: block;
+}
+
+.flip-card-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-2);
+}
+
+.flip-card-text {
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+}

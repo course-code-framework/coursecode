@@ -1,0 +1,115 @@
+/* ============================================================================
+   CUSTOM DROPDOWN - Styled dropdown component
+   ============================================================================
+   
+   PURPOSE: JavaScript-driven custom dropdown with full styling control
+   
+   INCLUDES:
+   - Dropdown trigger button with custom styling
+   - Dropdown menu with scrollable options
+   - Active state and selected state styling
+   - Focus states for accessibility
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   - Requires: ui-components/dropdown.js (JavaScript component)
+   
+   USED BY: Course authors who need advanced dropdown functionality
+   
+   USAGE:
+   <div class="custom-dropdown">
+     <button class="dropdown-trigger" data-action="toggle-dropdown">Choose an option</button>
+     <div class="dropdown-menu">
+       <div class="dropdown-item" data-value="option-1">Option 1</div>
+       <div class="dropdown-item" data-value="option-2">Option 2</div>
+     </div>
+   </div>
+   
+   WHEN TO USE:
+   - You need filtering or search functionality
+   - You need complex option rendering
+   - You need dynamic option loading
+   - For simple form dropdowns, use native <select> instead
+   
+   ============================================================================ */
+
+.custom-dropdown {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+button.dropdown-trigger {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--bg-elevated);
+  border: var(--border-width-md) solid var(--color-gray-300);
+  border-radius: var(--radius-lg);
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--font-size-base);
+  color: var(--color-gray-900);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast);
+}
+
+button.dropdown-trigger:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-alpha-10);
+}
+
+button.dropdown-trigger:hover {
+  border-color: var(--color-secondary);
+}
+
+button.dropdown-trigger::after {
+  content: '▼';
+  font-size: 0.8em;
+  margin-left: var(--space-2);
+  color: var(--color-gray-500);
+  transition: transform var(--transition-fast);
+}
+
+button.dropdown-trigger[aria-expanded="true"]::after {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--bg-elevated);
+  border: var(--border-width-thin) solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  margin-top: var(--space-1);
+  max-height: var(--size-dropdown-max-height);
+  overflow-y: auto;
+}
+
+.dropdown-menu.active {
+  display: block;
+}
+
+.dropdown-item {
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+  color: var(--color-gray-900);
+}
+
+.dropdown-item:hover {
+  background-color: var(--bg-muted);
+}
+
+.dropdown-item.selected {
+  background-color: var(--color-primary-alpha-10);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+}

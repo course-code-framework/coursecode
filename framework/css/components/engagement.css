@@ -1,0 +1,412 @@
+/* ============================================================================
+   ENGAGEMENT INDICATOR - Circular progress, checklist, and progress bar
+   ============================================================================
+   
+   PURPOSE: Track and display learner engagement and completion status
+   
+   INCLUDES:
+   - Circular progress indicator in footer (SVG-based)
+   - Engagement checklist component
+   - Engagement progress bar
+   - Completion celebration state
+   - Dark mode and accessibility support
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   
+   USED BY:
+   - Navigation footer (circular progress)
+   - Slide engagement tracking
+   - Completion indicators
+   
+   AI DEBUGGING TIPS:
+   - Progress not animating? Check stroke-dashoffset CSS variable
+   - Checkmark not appearing? Verify .engagement-progress.complete class
+   - High contrast too thick? Check @media (prefers-contrast: high)
+   - Animation jerky? Check @media (prefers-reduced-motion: reduce)
+   - Progress circle not rotating? Verify SVG transform: rotate(-90deg)
+   
+   STRUCTURE:
+   1. Footer engagement indicator (45-60)
+   2. SVG circle base (65-100)
+   3. Progress animation (105-125)
+   4. Checkmark (130-150)
+   5. Engagement indicator component (155-200)
+   6. Checklist (205-250)
+   7. Progress bar (255-295)
+   8. Completion state (300-320)
+   9. Dark mode (325-340)
+   10. High contrast (345-360)
+   11. Reduced motion (365-385)
+   12. Mobile adjustments (390-410)
+   
+   ============================================================================ */
+
+/* ============================================================================
+   ENGAGEMENT INDICATOR - CIRCULAR PROGRESS IN FOOTER
+   ============================================================================ */
+
+.engagement-indicator-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: var(--space-8);
+  position: relative;
+  opacity: 1;
+}
+
+.engagement-indicator-footer[hidden] {
+  display: none;
+}
+
+/* SVG Circular Progress */
+.engagement-circle {
+  display: block;
+  transform: rotate(-90deg);
+  /* Start progress from top */
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+/* Track (background circle) */
+.engagement-track {
+  stroke: var(--border-strong);
+}
+
+/* Progress circle */
+.engagement-progress {
+  stroke: var(--color-primary);
+  /* stroke-dasharray and stroke-dashoffset are set by JavaScript */
+  /* Longer duration (0.8s) for smoother visual updates when timer ticks every second */
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    stroke 0.3s ease;
+  transform-origin: center;
+}
+
+/* When complete, change color and add subtle animation */
+.engagement-progress.complete {
+  stroke: var(--color-success);
+  animation: pulse-success 0.6s ease-out;
+}
+
+@keyframes pulse-success {
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+    filter: drop-shadow(0 0 6px var(--color-success));
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Checkmark */
+.engagement-checkmark {
+  fill: var(--color-success);
+  font-weight: bold;
+  opacity: 0;
+  transition: opacity 0.3s ease 0.2s;
+  /* Delay checkmark appearance */
+  pointer-events: none;
+  transform: rotate(90deg);
+  /* Counter-rotate the checkmark since parent SVG is rotated -90deg */
+  transform-origin: center;
+}
+
+/* ============================================================================
+   ENGAGEMENT INDICATOR COMPONENT (Slide-level tracking)
+   ============================================================================ */
+
+.engagement-indicator {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin: var(--space-4) 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.engagement-indicator--top {
+  margin-bottom: var(--space-6);
+}
+
+.engagement-indicator--bottom {
+  margin-top: var(--space-6);
+}
+
+/* ============================================================================
+   PROGRESS BAR
+   ============================================================================ */
+
+.engagement-progress-bar {
+  position: relative;
+  width: 100%;
+  height: 32px;
+  background: var(--bg-muted);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: var(--space-3);
+}
+
+.engagement-progress-fill {
+  height: 100%;
+  width: var(--progress, 0%);
+  background: linear-gradient(90deg,
+      var(--color-primary),
+      var(--color-secondary));
+  transition: width 0.5s ease;
+  border-radius: var(--radius-md);
+}
+
+.engagement-progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+  z-index: 1;
+}
+
+/* ============================================================================
+   CHECKLIST
+   ============================================================================ */
+
+.engagement-checklist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.engagement-checklist-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+
+.engagement-checklist-item.incomplete {
+  color: var(--text-muted);
+}
+
+.engagement-checklist-item.complete {
+  color: var(--color-success);
+  font-weight: var(--font-weight-medium);
+}
+
+.engagement-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-lg);
+  line-height: 1;
+}
+
+.engagement-checklist-item.incomplete .engagement-icon {
+  color: var(--text-muted);
+}
+
+.engagement-checklist-item.complete .engagement-icon {
+  color: var(--color-success);
+}
+
+.engagement-label {
+  flex: 1;
+  font-size: var(--font-size-sm);
+}
+
+/* ============================================================================
+   COMPLETION STATE
+   ============================================================================ */
+
+.engagement-indicator.engagement-complete {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-success-alpha-10);
+  border: 1px solid var(--color-success-alpha-20);
+  border-radius: var(--radius-md);
+  color: var(--color-success);
+  font-weight: var(--font-weight-semibold);
+}
+
+.engagement-complete .engagement-icon {
+  font-size: var(--font-size-xl);
+}
+
+/* ============================================================================
+   DARK MODE SUPPORT
+   ============================================================================ */
+
+[data-theme="dark"] .engagement-track {
+  stroke: var(--border-strong);
+}
+
+[data-theme="dark"] .engagement-circle {
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.3));
+}
+
+/* ============================================================================
+   HIGH CONTRAST MODE
+   ============================================================================ */
+
+[data-high-contrast="true"] .engagement-progress {
+  stroke-width: 4;
+}
+
+[data-high-contrast="true"] .engagement-track {
+  stroke-width: 4;
+  opacity: 0.8;
+}
+
+/* ============================================================================
+   REDUCED MOTION PREFERENCE
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .engagement-progress {
+    transition: none;
+  }
+
+  .engagement-checkmark {
+    transition: none;
+  }
+
+  .engagement-progress.complete {
+    animation: none;
+  }
+}
+
+/* ============================================================================
+   MOBILE ADJUSTMENTS
+   ============================================================================ */
+
+/* Hide footer progress indicator on mobile - next button disabled state
+   provides sufficient gating feedback without consuming footer space */
+@media (max-width: 767px) {
+  .engagement-indicator-footer {
+    display: none;
+  }
+}
+
+/* Tablet adjustments - slightly smaller */
+@media (max-width: 768px) {
+  .engagement-circle {
+    width: 28px;
+    height: 28px;
+  }
+
+  .engagement-indicator-footer {
+    margin-left: var(--space-2);
+  }
+
+  .engagement-indicator {
+    padding: var(--space-3);
+  }
+
+  .engagement-progress-bar {
+    height: 28px;
+  }
+
+  .engagement-progress-text {
+    font-size: var(--font-size-xs);
+  }
+
+  .engagement-label {
+    font-size: var(--font-size-xs);
+  }
+}
+
+/* Very small screens - even more compact */
+@media (max-width: 480px) {
+  .engagement-circle {
+    width: 24px;
+    height: 24px;
+  }
+
+  .engagement-checkmark {
+    font-size: var(--font-size-sm);
+  }
+}
+
+/* ============================================================================
+   DATA-LAYOUT VARIANTS
+   ============================================================================
+   Engagement styling controlled by data-layout attribute on <html>.
+   These styles are used by the layout system (framework/css/layouts/).
+   ============================================================================ */
+
+/* -----------------------------------------------------------------------------
+   Article & Focused: Progressive gating border indicator on next button
+   ----------------------------------------------------------------------------- 
+   The button border shows progress via conic-gradient.
+   Uses CSS custom property --engagement-progress (0-100) set by JS.
+   ----------------------------------------------------------------------------- */
+
+/* Hide the old circular engagement indicator - we use the button ring instead */
+[data-layout="article"] .engagement-indicator-footer,
+[data-layout="focused"] .engagement-indicator-footer {
+  display: none;
+}
+
+/* Hide engagement indicator in presentation mode */
+[data-layout="presentation"] #engagement-indicator {
+  display: none;
+}
+
+/* Gated state: border becomes the progress indicator */
+/* Uses !important to override global disabled button styles in buttons.css */
+[data-layout="article"] footer #nextBtn.gated,
+[data-layout="article"] footer #nextBtn.gated:disabled,
+[data-layout="focused"] footer #nextBtn.gated,
+[data-layout="focused"] footer #nextBtn.gated:disabled {
+  border: var(--border-width-sm, 1.5px) solid transparent !important;
+  background:
+    linear-gradient(var(--bg-inset), var(--bg-inset)) padding-box,
+    conic-gradient(from 0deg,
+      var(--color-primary) calc(var(--engagement-progress, 0) * 1%),
+      var(--color-gray-300) calc(var(--engagement-progress, 0) * 1%)) border-box !important;
+  transition: background 0.3s ease-out;
+  opacity: 1 !important;
+}
+
+/* Complete state: full green border with brief pulse animation */
+@keyframes border-complete {
+  0% {
+    transform: scale(1);
+  }
+
+  30% {
+    transform: scale(1.05);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+[data-layout="article"] footer #nextBtn.gated.engagement-complete,
+[data-layout="article"] footer #nextBtn.gated.engagement-complete:disabled,
+[data-layout="focused"] footer #nextBtn.gated.engagement-complete,
+[data-layout="focused"] footer #nextBtn.gated.engagement-complete:disabled {
+  background:
+    linear-gradient(var(--bg-inset), var(--bg-inset)) padding-box,
+    conic-gradient(from 0deg,
+      var(--color-success) 100%,
+      var(--color-success) 100%) border-box !important;
+  animation: border-complete 0.4s ease-out;
+}

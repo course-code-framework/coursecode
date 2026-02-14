@@ -1,0 +1,142 @@
+/* ============================================================================
+   EMBED FRAME - Sandboxed iframe for custom HTML/JS apps
+   ============================================================================
+   
+   PURPOSE: Provides CSS-isolated container for embedding custom interactive
+   content within slides. Uses iframe for complete style sandboxing.
+   
+   INCLUDES:
+   - Wrapper with optional aspect ratio
+   - Responsive iframe sizing
+   - Auto-height mode via postMessage
+   - Loading state
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   
+   USED BY: Custom interactive widgets, mini-apps, simulations
+   
+   AI DEBUGGING TIPS:
+   - Iframe not loading? Check src path resolution
+   - Content overlap? Check aspect-ratio or auto-height mode
+   - postMessage not working? Verify sandbox allows 'allow-scripts allow-same-origin'
+   - Resize not working? Ensure no aspect-ratio is set (auto-height mode only)
+   
+   ============================================================================ */
+
+/* Wrapper container */
+.embed-frame-wrapper {
+    position: relative;
+    width: 100%;
+    background: var(--color-gray-800, #374151);
+    /* Neutral loading state */
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: var(--border-width-sm) solid var(--border-default);
+    /* Prevent glow/shadow effects from escaping */
+    isolation: isolate;
+    contain: paint;
+}
+
+/* Fixed aspect ratio mode */
+.embed-frame-wrapper[style*="aspect-ratio"] {
+    min-height: 200px;
+}
+
+/* Auto-height mode */
+.embed-frame-auto-height {
+    min-height: 200px;
+    height: auto;
+}
+
+/* The iframe element */
+.embed-frame-iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: transparent;
+}
+
+/* For aspect ratio mode, position absolutely to fill container */
+.embed-frame-wrapper[style*="aspect-ratio"] .embed-frame-iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+}
+
+/* For auto-height mode, use natural flow */
+.embed-frame-auto-height .embed-frame-iframe {
+    position: relative;
+    min-height: 200px;
+}
+
+/* Focus state for accessibility */
+.embed-frame-wrapper:focus-within {
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: 2px;
+}
+
+/* ============================================================================
+   LOADING STATE
+   ============================================================================ */
+
+/* Loading indicator while iframe loads */
+.embed-frame-wrapper::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 24px;
+    height: 24px;
+    margin: -12px 0 0 -12px;
+    border: 2px solid var(--color-gray-300);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: embed-frame-spin 0.8s linear infinite;
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* Ensure iframe covers the loading spinner */
+.embed-frame-auto-height .embed-frame-iframe {
+    position: relative;
+    z-index: 2;
+}
+
+@keyframes embed-frame-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================ */
+
+/* Ensure aspect ratio is maintained on all screen sizes */
+@media (max-width: 768px) {
+    .embed-frame-wrapper {
+        border-radius: var(--radius-sm);
+    }
+}
+
+/* ============================================================================
+   ACCESSIBILITY - Reduced Motion
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    .embed-frame-wrapper::before {
+        animation: none;
+    }
+}
+
+/* ============================================================================
+   DARK MODE
+   ============================================================================ */
+
+/* Dark mode handled automatically via semantic CSS variables */
+/* Uses: --bg-surface, --border-default, --focus-ring-color */

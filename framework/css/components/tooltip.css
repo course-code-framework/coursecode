@@ -1,0 +1,226 @@
+/* ============================================================================
+   TOOLTIP - Enhanced accessible tooltip component
+   ============================================================================
+   
+   PURPOSE: Positioned tooltip container for contextual help
+   
+   FEATURES:
+   - Automatic positioning (top, bottom, left, right)
+   - Theme variants (dark, light)
+   - Multi-line content support
+   - Smart delay (500ms default) prevents accidental triggers
+   - Position-aware entrance/exit animations
+   - Configurable width
+   - Accessible (keyboard focus, aria-describedby)
+   
+   AUTHOR USAGE:
+   <button data-tooltip="Helpful tip">Hover me</button>
+   <span data-tooltip="Line 1\nLine 2" data-tooltip-position="top">Info</span>
+   <span data-tooltip="Wide content" data-tooltip-width="400">Wide</span>
+   <span data-tooltip="Light tooltip" data-tooltip-theme="light">Light</span>
+   <span data-tooltip="Custom delay" data-tooltip-delay="800">Delayed</span>
+   <span data-tooltip="Instant!" data-tooltip-delay="0">No delay</span>
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   
+   AI DEBUGGING TIPS:
+   - Tooltip not appearing? Check opacity, visibility, and delay setting
+   - Wrong position? Verify data-position attribute is set
+   - Animation choppy? Check transition timing and transform origin
+   - Text wrapping weird? Adjust max-width or white-space
+   
+   ============================================================================ */
+
+/* Base tooltip container (default: dark theme) */
+.tooltip-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: rgba(31, 41, 55, 0.95);
+  color: var(--color-white);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.4;
+  z-index: var(--z-tooltip);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  white-space: normal;
+  max-width: 280px;
+  box-shadow: var(--shadow-lg), 0 0 0 1px var(--color-gray-700);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  text-align: left;
+  /* Smooth entrance/exit animations */
+  transition: 
+    opacity 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0ms 150ms; /* Delay visibility change until after fade out */
+}
+
+/* Position-aware transforms for natural animation direction */
+.tooltip-container[data-position="top"] {
+  transform: translateY(8px) scale(0.96);
+}
+
+.tooltip-container[data-position="bottom"] {
+  transform: translateY(-8px) scale(0.96);
+}
+
+.tooltip-container[data-position="left"] {
+  transform: translateX(8px) scale(0.96);
+}
+
+.tooltip-container[data-position="right"] {
+  transform: translateX(-8px) scale(0.96);
+}
+
+/* Active state */
+.tooltip-container.active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) translateX(0) scale(1);
+  transition: 
+    opacity 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 150ms cubic-bezier(0.4, 0, 0.2, 1),
+    visibility 0ms 0ms; /* Immediate visibility on show */
+}
+
+/* ============================================================================
+   THEME VARIANTS
+   ============================================================================ */
+
+/* Dark theme (default) */
+.tooltip-container.tooltip-theme-dark,
+.tooltip-container:not([class*="tooltip-theme-"]) {
+  background-color: rgba(31, 41, 55, 0.95);
+  color: var(--color-white);
+  box-shadow: var(--shadow-lg), 0 0 0 1px var(--color-gray-700);
+}
+
+/* Light theme */
+.tooltip-container.tooltip-theme-light {
+  background-color: rgba(255, 255, 255, 0.98);
+  color: var(--color-gray-800);
+  box-shadow: var(--shadow-lg), 0 0 0 1px var(--color-gray-200);
+}
+
+/* ============================================================================
+   MULTI-LINE CONTENT STYLING
+   ============================================================================ */
+
+/* Ensure proper line break display */
+.tooltip-container br {
+  display: block;
+  content: "";
+  margin-top: 0.25em;
+}
+
+/* ============================================================================
+   ARROW POINTER
+   ============================================================================ */
+
+/* Arrow element - positioned dynamically by JS based on tooltip position */
+.tooltip-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 6px solid transparent;
+}
+
+/* Arrow positions - JS adds data-position attribute */
+.tooltip-container[data-position="bottom"] .tooltip-arrow {
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-bottom-color: rgba(31, 41, 55, 0.95);
+}
+
+.tooltip-container[data-position="top"] .tooltip-arrow {
+  bottom: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-top-color: rgba(31, 41, 55, 0.95);
+}
+
+.tooltip-container[data-position="left"] .tooltip-arrow {
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-left-color: rgba(31, 41, 55, 0.95);
+}
+
+.tooltip-container[data-position="right"] .tooltip-arrow {
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-right-color: rgba(31, 41, 55, 0.95);
+}
+
+/* Light theme arrow colors */
+.tooltip-container.tooltip-theme-light[data-position="bottom"] .tooltip-arrow {
+  border-bottom-color: rgba(255, 255, 255, 0.98);
+}
+
+.tooltip-container.tooltip-theme-light[data-position="top"] .tooltip-arrow {
+  border-top-color: rgba(255, 255, 255, 0.98);
+}
+
+.tooltip-container.tooltip-theme-light[data-position="left"] .tooltip-arrow {
+  border-left-color: rgba(255, 255, 255, 0.98);
+}
+
+.tooltip-container.tooltip-theme-light[data-position="right"] .tooltip-arrow {
+  border-right-color: rgba(255, 255, 255, 0.98);
+}
+
+/* ============================================================================
+   ICON TRIGGER
+   ============================================================================
+   A small inline info icon that pairs with data-tooltip.
+   
+   Usage:
+     <span class="tooltip-icon" data-tooltip="Helpful context"></span>
+     <span class="tooltip-icon tooltip-icon-lg" data-tooltip="Bigger icon"></span>
+   ============================================================================ */
+
+.tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1em;
+  height: 1.1em;
+  font-size: 0.8em;
+  font-weight: var(--font-weight-semibold);
+  font-style: normal;
+  line-height: 1;
+  color: var(--color-primary);
+  border: 1.5px solid var(--color-primary-alpha-30);
+  border-radius: 50%;
+  cursor: help;
+  vertical-align: 0.1em;
+  margin-inline-start: 0.25em;
+  transition: 
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.tooltip-icon::before {
+  content: "i";
+}
+
+.tooltip-icon:hover {
+  background-color: var(--color-primary-alpha-10);
+  border-color: var(--color-primary);
+}
+
+/* Larger variant */
+.tooltip-icon-lg {
+  width: 1.3em;
+  height: 1.3em;
+  font-size: 0.9em;
+}

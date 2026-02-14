@@ -1,0 +1,75 @@
+/* ============================================================================
+   ACCESSIBILITY - Interaction accessibility enhancements
+   ============================================================================
+   
+   PURPOSE: Accessibility and reduced-motion support for all interactions
+   
+   INCLUDES:
+   - High contrast mode support
+   - Reduced motion support
+   - Focus visibility enhancements
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   - Requires: All interaction-related CSS files
+   
+   USED BY:
+   - All interaction types when prefers-contrast: high or prefers-reduced-motion: reduce
+   
+   AI DEBUGGING TIPS:
+   - Users with vision disabilities can't see borders? @media (prefers-contrast: high) adds thicker borders
+   - Animations causing motion sickness? @media (prefers-reduced-motion: reduce) removes all transitions/animations
+   - Focus states not obvious? High contrast mode uses outline-width: 3px
+   - Animations still playing? prefers-reduced-motion: reduce removes keyframes
+   
+   MEDIA QUERIES:
+   - prefers-contrast: high - For users who need higher visual contrast
+   - prefers-reduced-motion: reduce - For users sensitive to animations
+   
+   LAST UPDATED: 2024-11-18
+   ============================================================================ */
+
+/* ============================================================================
+   HIGH CONTRAST MODE SUPPORT
+   ============================================================================ */
+
+@media (prefers-contrast: high) {
+  .matching-item,
+  .matching-target {
+    border-width: 3px;
+  }
+
+  .matching-item.selected,
+  .matching-target.selected {
+    outline-width: 3px;
+  }
+}
+
+/* ============================================================================
+   REDUCED MOTION SUPPORT
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .matching-item,
+  .matching-target,
+  .drag-item,
+  .drop-zone,
+  .hotspot-area {
+    transition: none;
+  }
+
+  .matching-item:hover,
+  .matching-target:hover,
+  .drag-item:hover,
+  .drag-item:active,
+  .hotspot-area:hover {
+    transform: none;
+  }
+  
+  @keyframes flash-incorrect {
+    0%, 100% {
+      border-color: var(--color-danger);
+      background: var(--color-danger-light);
+    }
+  }
+}

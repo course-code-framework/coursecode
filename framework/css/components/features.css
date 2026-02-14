@@ -1,0 +1,35 @@
+/* ========================================
+   UI COMPONENT: Feature Showcase
+   Use for: Highlighting 3-4 key features
+   ======================================== */
+[data-component="features"] {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-4);
+}
+
+[data-component="features"] .feature-item {
+  text-align: center;
+  padding: var(--space-4);
+  flex: 0 1 200px;
+  max-width: 280px;
+}
+
+[data-component="features"] .feature-icon {
+  font-size: 3rem;
+  margin-bottom: var(--space-3);
+  display: block;
+  color: var(--color-primary);
+}
+
+[data-component="features"] .feature-item h3 {
+  margin-bottom: var(--space-2);
+}
+
+@media (max-width: 640px) {
+  [data-component="features"] .feature-item {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+}

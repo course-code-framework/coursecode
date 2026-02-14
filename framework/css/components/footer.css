@@ -1,0 +1,356 @@
+/* ============================================================================
+   FOOTER - Navigation controls and engagement indicator container
+   ============================================================================
+   
+   PURPOSE: Footer styling for navigation (previous/next/exit) and engagement display
+   
+   INCLUDES:
+   - Footer container and layout
+   - Navigation controls flexbox
+   - Navigation button groups
+   - Exit button positioning
+   - Hide during loading state
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   - Requires: components/buttons.css (for button styles)
+   
+   USED BY: All slides - core application footer
+   
+   AI DEBUGGING TIPS:
+   - Footer not showing? Check if #loading is hiding it
+   - Buttons not aligned? Verify .nav-controls flexbox
+   - Exit button floating? Check margin-left: auto on .nav-exit-button
+   - Mobile footer cramped? Check responsive.css for breakpoints
+   
+   STRUCTURE:
+   1. Footer container (45-60)
+   2. Navigation controls layout (65-85)
+   3. Button groups (90-100)
+   4. Exit button positioning (105-110)
+   5. Loading state (115-120)
+   6. Dark mode (125-130)
+   
+   ============================================================================ */
+
+/* Footer - Clean and Functional - Fixed at Bottom */
+.app-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--footer-padding-y) var(--footer-padding-x);
+  border-top: var(--border-width-md) solid var(--footer-border);
+  background: var(--footer-bg);
+  color: var(--footer-text);
+  flex-shrink: 0;
+}
+
+/* Hide footer during initial loading */
+#app:has(#loading:not([style*="display: none"])) footer {
+  display: none;
+  z-index: var(--z-fixed);
+}
+
+.nav-controls {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex: 1;
+  justify-content: space-between;
+}
+
+.nav-controls .nav-nav-buttons {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+/* Navigation button icons - slightly larger and offset to align chevrons visually */
+#prevBtn>svg,
+#nextBtn>svg {
+  width: 1.5em;
+  height: 1.5em;
+}
+
+/* Offset chevron whitespace for visual alignment */
+#prevBtn>svg {
+  margin-left: -0.5em;
+}
+
+#nextBtn>svg {
+  margin-right: -0.25em;
+}
+
+.nav-controls .nav-exit-button {
+  margin-left: auto;
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.nav-controls .btn {
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.01em;
+}
+
+/* Audio player sits between nav buttons and exit on desktop */
+#audio-player {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* When audio player is present, exit button doesn't need auto margin */
+#audio-player:not([hidden])+.nav-exit-button {
+  margin-left: 0;
+}
+
+/* ============================================================================
+   FOOTER LAYOUT VARIANTS
+   ============================================================================
+   
+   Activate a layout by adding data-footer-layout attribute to :root or footer:
+   <html data-footer-layout="centered"> or <footer data-footer-layout="minimal">
+   
+   ========================================================================= */
+
+/* Centered - All buttons centered */
+[data-footer-layout="centered"] footer,
+footer[data-footer-layout="centered"] {
+  justify-content: center;
+}
+
+[data-footer-layout="centered"] .nav-controls,
+footer[data-footer-layout="centered"] .nav-controls {
+  justify-content: center;
+  flex: none;
+}
+
+[data-footer-layout="centered"] .nav-controls .nav-exit-button,
+footer[data-footer-layout="centered"] .nav-controls .nav-exit-button {
+  margin-left: var(--space-6);
+}
+
+/* Minimal - Smaller, more compact */
+[data-footer-layout="minimal"] footer,
+footer[data-footer-layout="minimal"] {
+  padding: var(--space-2) var(--space-4);
+  border-top-width: 1px;
+  min-height: auto;
+}
+
+[data-footer-layout="minimal"] footer .btn,
+footer[data-footer-layout="minimal"] .btn {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  min-height: 36px;
+}
+
+/* Floating - Floating buttons (for immersive slides) */
+[data-footer-layout="floating"] footer,
+footer[data-footer-layout="floating"] {
+  position: absolute;
+  bottom: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--footer-floating-bg);
+  border: 1px solid var(--footer-floating-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--footer-floating-shadow);
+  padding: var(--space-2) var(--space-4);
+  width: auto;
+  max-width: 90%;
+  z-index: var(--z-fixed);
+}
+
+[data-footer-layout="floating"] .nav-controls,
+footer[data-footer-layout="floating"] .nav-controls {
+  gap: var(--space-2);
+}
+
+/* Dark mode support - removed, semantic variables handle this automatically */
+
+/* ============================================================================
+   DATA-LAYOUT VARIANTS
+   ============================================================================
+   Footer styling controlled by data-layout attribute on <html>.
+   These styles are used by the layout system (framework/css/layouts/).
+   ============================================================================ */
+
+/* -----------------------------------------------------------------------------
+   Article & Focused: Floating pill in bottom-right
+   ----------------------------------------------------------------------------- */
+
+[data-layout="article"] footer,
+[data-layout="focused"] footer {
+  position: fixed;
+  bottom: var(--space-4);
+  right: var(--space-4);
+  left: auto;
+  width: auto;
+  background: var(--layout-floating-nav-bg);
+  border: var(--layout-floating-nav-border);
+  border-radius: var(--layout-floating-nav-radius);
+  box-shadow: var(--layout-floating-nav-shadow);
+  padding: var(--layout-floating-nav-padding);
+  z-index: var(--z-fixed);
+}
+
+[data-layout="article"] .nav-controls,
+[data-layout="focused"] .nav-controls {
+  gap: var(--space-2);
+}
+
+[data-layout="article"] .nav-controls .nav-nav-buttons,
+[data-layout="focused"] .nav-controls .nav-nav-buttons {
+  gap: var(--space-2);
+}
+
+/* Hide exit button in floating footer (too cramped) */
+[data-layout="article"] .nav-exit-button,
+[data-layout="focused"] .nav-exit-button {
+  display: none;
+}
+
+/* -----------------------------------------------------------------------------
+   Presentation: Invisible container, edge navigation
+   ----------------------------------------------------------------------------- */
+
+[data-layout="presentation"] footer {
+  position: static !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: visible !important;
+}
+
+[data-layout="presentation"] .nav-controls {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: var(--z-fixed);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+}
+
+[data-layout="presentation"] .nav-controls .nav-nav-buttons {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 calc(var(--space-4) + env(safe-area-inset-left, 0px)) 0 calc(var(--space-4) + env(safe-area-inset-right, 0px));
+  pointer-events: none;
+}
+
+/* Hide exit button in presentation */
+[data-layout="presentation"] .nav-exit-button {
+  display: none !important;
+}
+
+/* -----------------------------------------------------------------------------
+   Article Mobile: Unified compact footer bar
+   ----------------------------------------------------------------------------- */
+
+html.bp-max-mobile-landscape[data-layout="article"] footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: 100vw;
+  box-sizing: border-box;
+  border-radius: 0;
+  padding-top: var(--space-2);
+  padding-right: calc(var(--space-3) + env(safe-area-inset-right, 0px));
+  padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
+  padding-left: calc(var(--space-3) + env(safe-area-inset-left, 0px));
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  overflow: hidden;
+}
+
+html.bp-max-mobile-landscape[data-layout="article"] .nav-controls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 100%;
+  gap: var(--space-2);
+}
+
+html.bp-max-mobile-landscape[data-layout="article"] .nav-nav-buttons {
+  order: 2;
+  margin-left: auto;
+  margin-right: 0;
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-2);
+  width: auto;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+}
+
+html.bp-max-mobile-landscape[data-layout="article"] .nav-exit-button {
+  order: 3;
+  display: none;
+}
+
+/* -----------------------------------------------------------------------------
+   Traditional Mobile: Three-column grid footer
+   ----------------------------------------------------------------------------- */
+
+html.bp-max-mobile-landscape[data-layout="traditional"] footer {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2) var(--space-3);
+}
+
+html.bp-max-mobile-landscape[data-layout="traditional"] .nav-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+html.bp-max-mobile-landscape[data-layout="traditional"] .nav-nav-buttons {
+  display: contents;
+}
+
+html.bp-max-mobile-landscape[data-layout="traditional"] footer #prevBtn {
+  grid-column: 1;
+  grid-row: 1;
+  width: 100%;
+}
+
+/* Audio player - column 2 row 1 */
+html.bp-max-mobile-landscape[data-layout="traditional"] #audio-player {
+  grid-column: 2;
+  grid-row: 1;
+  width: 100%;
+}
+
+html.bp-max-mobile-landscape[data-layout="traditional"] footer #nextBtn {
+  grid-column: 3;
+  grid-row: 1;
+  width: 100%;
+}
+
+/* ── Nav button visibility toggle ────────────────────────── */
+html[data-nav-buttons="false"] #prevBtn,
+html[data-nav-buttons="false"] #nextBtn {
+  display: none;
+}

@@ -1,0 +1,193 @@
+/* ============================================================================
+   CAROUSEL - Image carousel/slideshow component
+   ============================================================================
+   
+   PURPOSE: Responsive image carousel with navigation and indicators
+   
+   INCLUDES:
+   - Carousel container and track
+   - Slide layout
+   - Navigation buttons (prev/next)
+   - Dot indicators
+   - Responsive behavior
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   - Requires: components/buttons.css (for button states)
+   
+   USED BY:
+   - Image galleries
+   - Content slideshows
+   - Photo tours
+   
+   AI DEBUGGING TIPS:
+   - Slides not showing? Check carousel-track transform
+   - Buttons not clickable? Verify z-index and pointer-events
+   - Dots not aligning? Check absolute positioning
+   - Images overflowing? Verify flex: 0 0 100% on slides
+   
+   ============================================================================ */
+
+.carousel {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  min-height: var(--size-carousel-height); /* Ensure consistent height */
+  background: var(--bg-muted);
+  isolation: isolate; /* Create stacking context */
+  display: flex;
+  flex-direction: column;
+}
+
+.carousel-track {
+  display: flex;
+  transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1); /* Smoother easing */
+  flex: 1; /* Fill the container height */
+  height: 100%;
+}
+
+.carousel-slide {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-subtle);
+  padding: var(--space-6); /* Ensure content isn't against edges */
+  box-sizing: border-box;
+}
+
+.carousel-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Navigation Buttons */
+.carousel-button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: var(--carousel-control-size);
+  height: var(--carousel-control-size);
+  border-radius: 50%;
+  background-color: var(--carousel-control-bg);
+  color: var(--carousel-control-text);
+  border: var(--border-width-thin) solid var(--carousel-control-border);
+  box-shadow: var(--shadow-md);
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+  opacity: 0; /* Hidden by default for cleaner look */
+  padding: 0;
+  line-height: 1;
+}
+
+/* Show buttons on hover or focus */
+.carousel:hover .carousel-button,
+.carousel-button:focus-visible {
+  opacity: 1;
+}
+
+.carousel-button:hover:not(:disabled) {
+  background-color: var(--carousel-control-bg-hover);
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: var(--shadow-lg);
+  color: var(--carousel-control-text-hover);
+}
+
+.carousel-button:focus-visible {
+  outline: 2px solid var(--carousel-control-focus);
+  outline-offset: 2px;
+}
+
+.carousel-button:disabled {
+  opacity: 0;
+  cursor: default;
+  pointer-events: none;
+}
+
+.carousel-button.prev {
+  left: var(--carousel-control-offset);
+}
+
+.carousel-button.next {
+  right: var(--carousel-control-offset);
+}
+
+/* Dots Indicators */
+.carousel-dots {
+  position: absolute;
+  bottom: var(--carousel-dots-bottom);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: var(--carousel-dots-gap);
+  z-index: 10;
+  padding: var(--carousel-dots-padding-y) var(--carousel-dots-padding-x);
+  background-color: var(--carousel-dots-bg);
+  backdrop-filter: blur(4px);
+  border-radius: var(--radius-full);
+}
+
+.carousel-dot {
+  width: var(--carousel-dot-size);
+  height: var(--carousel-dot-size);
+  border-radius: 50%;
+  background-color: var(--carousel-dot-bg);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.3s ease, transform 0.3s ease, width 0.3s ease, border-radius 0.3s ease, opacity 0.3s ease;
+}
+
+.carousel-dot:hover {
+  background-color: var(--carousel-dot-bg-hover);
+}
+
+.carousel-dot.active {
+  background-color: var(--carousel-dot-bg-active);
+  transform: scale(1);
+  width: var(--carousel-dot-active-width); /* Pill shape for active state */
+  border-radius: var(--radius-full);
+}
+
+.carousel-dot:focus-visible {
+  outline: 2px solid var(--carousel-dot-focus);
+  outline-offset: 2px;
+}
+
+/* Optional Caption Support */
+.carousel-caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: var(--carousel-caption-padding-top) var(--carousel-caption-padding-x) var(--carousel-caption-padding-bottom); /* Extra top padding for dots */
+  background: var(--carousel-caption-overlay);
+  color: var(--color-white);
+  text-align: center;
+  pointer-events: none;
+}
+
+.carousel-caption h3 {
+  color: var(--color-white);
+  margin-bottom: 0.5rem;
+  font-size: var(--font-size-lg);
+}
+
+.carousel-caption p {
+  color: var(--color-white-alpha-95);
+  margin: 0;
+  font-size: var(--font-size-sm);
+}

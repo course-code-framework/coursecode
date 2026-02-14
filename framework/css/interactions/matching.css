@@ -1,0 +1,354 @@
+/* ============================================================================
+   MATCHING INTERACTION - Matching question interaction styles
+   ============================================================================
+   
+   PURPOSE: Styles for matching interactions (immediate and deferred modes)
+   
+   INCLUDES:
+   - Container layout (2 columns)
+   - Matching items (left column) styling
+   - Matching targets (right column) styling
+   - Immediate mode (real-time feedback)
+   - Deferred mode (color-coded pairs, check later)
+   - Connection indicators
+   - Correct/incorrect feedback
+   - Animations
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   - Requires: base.css (for .interaction container)
+   
+   USED BY:
+   - Matching questions (vocabulary, definitions, etc.)
+   - Knowledge checks with pairing activities
+   - Assessment items
+   
+   AI DEBUGGING TIPS:
+   - Matching items not showing? Check .matching-container has grid layout
+   - Click/selection not working? Verify event handlers on .matching-item and .matching-target
+   - Feedback not showing? Check .correct/.incorrect classes applied, or .matched class in immediate mode
+   - Connection indicator not visible? Set data-pair-color CSS variable on deferred items
+   - Color pairs not different? Verify --pair-color and --selection-color CSS variables are set
+   - Flash animation not stopping? Ensure animation completes or remove class after duration
+   - Responsive stacking broken? Check @media (max-width: 767px) sets grid-template-columns: 1fr
+   
+   MODES:
+   - Immediate: Real-time feedback, matched items turn green, incorrect shows red flash
+   - Deferred: No feedback until check answer, pairs color-coded, shows connection indicator
+   
+   COMMON CLASSES:
+   .matching-interaction      - Wrapper for entire interaction
+   .matching-container        - 2-column grid layout
+   .matching-column           - Left or right column
+   .matching-column-header    - Column title
+   .matching-item             - Individual item to match (left)
+   .matching-target           - Individual target to match against (right)
+   .matching-item-text        - Text content of item
+   .matching-target-text      - Text content of target
+   .selected                  - Item/target is currently selected
+   .matched                   - Item/target has been matched
+   .correct                   - After check: match was correct
+   .incorrect                 - After check: match was incorrect
+   .immediate/.deferred       - Mode specifier classes
+   .matching-connection-indicator - Color dot showing pairing
+   .matching-feedback-icon    - Checkmark/cross for immediate mode
+   .flash-incorrect           - Animation for incorrect match
+   
+   CSS VARIABLES (per pair):
+   --pair-color      - Color for this pair's matching (deferred mode)
+   --selection-color - Color for this pair's selection state
+   
+   LAST UPDATED: 2024-11-18
+   ============================================================================ */
+
+.matching-interaction {
+  margin: var(--space-4) 0;
+}
+
+.matching-instruction {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  margin-top: var(--space-2);
+  font-style: italic;
+}
+
+.matching-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  margin: var(--space-5) 0;
+  padding: var(--space-4);
+  background: var(--bg-muted);
+  border-radius: var(--radius-lg);
+}
+
+.matching-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.matching-column-header {
+  margin: 0 0 var(--space-3);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-md);
+  padding-bottom: var(--space-2);
+  border-bottom: var(--border-width-md) solid var(--color-secondary-alpha-20);
+}
+
+.matching-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Matching Items (Left Column) */
+.matching-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-surface);
+  border: 2px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
+  text-align: left;
+  min-height: 48px;
+  position: relative;
+}
+
+.matching-item:hover:not(:disabled) {
+  border-color: var(--color-secondary);
+  background: var(--bg-surface);
+  transform: translateX(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.matching-item:focus {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 2px;
+  border-color: var(--color-secondary);
+}
+
+.matching-item.selected {
+  border-color: var(--color-secondary);
+  background: var(--color-secondary-alpha-15);
+  box-shadow: 0 0 0 3px var(--color-secondary-alpha-10);
+  font-weight: var(--font-weight-semibold);
+}
+
+.matching-item.matched {
+  cursor: pointer;
+}
+
+.matching-item.matched:hover {
+  transform: translateX(-2px);
+}
+
+.matching-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Matching Targets (Right Column) */
+.matching-target {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-surface);
+  border: 2px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
+  text-align: left;
+  min-height: 48px;
+  position: relative;
+}
+
+.matching-target:hover:not(:disabled) {
+  border-color: var(--color-secondary);
+  background: var(--bg-surface);
+  transform: translateX(2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.matching-target:focus {
+  outline: 2px solid var(--color-secondary);
+  outline-offset: 2px;
+  border-color: var(--color-secondary);
+}
+
+.matching-target.selected {
+  border-color: var(--color-secondary);
+  background: var(--color-secondary-alpha-15);
+  box-shadow: 0 0 0 3px var(--color-secondary-alpha-10);
+}
+
+.matching-target.matched {
+  cursor: pointer;
+}
+
+.matching-target.matched:hover {
+  transform: translateX(2px);
+}
+
+.matching-target:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Connection Indicator - Deferred Mode */
+.matching-connection-indicator {
+  display: none;
+  width: 8px;
+  height: 8px;
+  margin-left: var(--space-2);
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--pair-color, var(--color-gray-400));
+}
+
+.matching-deferred .matching-target.matched .matching-connection-indicator {
+  display: block;
+}
+
+/* Feedback Icon - Immediate Mode */
+.matching-feedback-icon {
+  display: none;
+  width: 24px;
+  height: 24px;
+  margin-left: var(--space-2);
+  flex-shrink: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.matching-immediate .matching-item.correct .matching-feedback-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-success);
+}
+
+.matching-immediate .matching-item.correct .matching-feedback-icon::before {
+  content: "✓";
+}
+
+/* Immediate Mode - Green for correct matches */
+.matching-immediate .matching-item.matched,
+.matching-immediate .matching-target.matched {
+  border-color: var(--color-success);
+  background: var(--color-success-light);
+  color: var(--color-success);
+  opacity: 1;
+}
+
+/* Deferred Mode - Selected state shows pair color */
+.matching-deferred .matching-item.selected,
+.matching-deferred .matching-target.selected {
+  border-color: var(--selection-color, var(--color-secondary)) !important;
+  background: color-mix(in srgb, var(--selection-color, var(--color-secondary)) 15%, var(--bg-surface)) !important;
+  box-shadow: none !important;
+}
+
+/* Deferred Mode - Focus state also uses pair color */
+.matching-deferred .matching-item:not(.matched):focus,
+.matching-deferred .matching-target:not(.matched):focus {
+  outline-color: var(--selection-color, var(--color-secondary));
+  border-color: var(--selection-color, var(--color-secondary));
+}
+
+/* Deferred Mode - Matched items use pair color for focus */
+.matching-deferred .matching-item.matched:focus,
+.matching-deferred .matching-target.matched:focus {
+  outline-color: var(--pair-color, var(--color-secondary));
+  border-color: var(--pair-color, var(--color-secondary));
+}
+
+/* Deferred Mode - Color-coded pairs */
+.matching-deferred .matching-item.matched,
+.matching-deferred .matching-target.matched {
+  border-color: var(--pair-color, var(--color-secondary));
+  background: color-mix(in srgb, var(--pair-color, var(--color-secondary)) 10%, var(--bg-surface));
+  opacity: 1;
+  cursor: pointer;
+}
+
+.matching-deferred .matching-item.matched:hover,
+.matching-deferred .matching-target.matched:hover {
+  opacity: 1;
+}
+
+/* Correct state (after check answer) */
+.matching-item.correct,
+.matching-target.correct {
+  border-color: var(--color-success) !important;
+  background: var(--color-success-light) !important;
+  color: var(--color-success);
+}
+
+/* Incorrect flash animation */
+@keyframes flash-incorrect {
+  0%, 100% {
+    border-color: var(--color-danger);
+    background: var(--color-danger-light);
+  }
+  50% {
+    border-color: var(--color-danger);
+    background: var(--color-danger);
+    color: var(--color-white);
+  }
+}
+
+.flash-incorrect {
+  animation: flash-incorrect 0.6s ease-in-out;
+}
+
+/* Immediate Mode - Red flash for incorrect */
+.matching-immediate .matching-item.incorrect,
+.matching-immediate .matching-target.incorrect {
+  animation: flash-incorrect 0.6s ease-in-out;
+}
+
+/* Text content */
+.matching-item-text,
+.matching-target-text {
+  flex: 1;
+  line-height: 1.4;
+}
+
+@media (max-width: 1024px) {
+  .matching-container {
+    gap: var(--space-4);
+  }
+}
+
+@media (max-width: 767px) {
+  .matching-container {
+    grid-template-columns: 1fr;
+    gap: var(--space-5);
+    padding: var(--space-3);
+  }
+
+  .matching-column-header {
+    font-size: var(--font-size-base);
+  }
+
+  .matching-item,
+  .matching-target {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--font-size-sm);
+  }
+
+  .matching-instruction {
+    font-size: var(--font-size-xs);
+  }
+}

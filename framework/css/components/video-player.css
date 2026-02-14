@@ -1,0 +1,438 @@
+/* ============================================================================
+   VIDEO PLAYER - Embedded video controls for course content
+   ============================================================================
+   
+   PURPOSE: Native video player with custom controls overlay
+   
+   INCLUDES:
+   - Video container with aspect ratio
+   - Play overlay for initial state
+   - Control bar matching audio player styling
+   - Progress bar with seek functionality
+   - Time display
+   - Mute and fullscreen buttons
+   - Responsive design
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   
+   USED BY: Standalone video player components
+   
+   AI DEBUGGING TIPS:
+   - Video not loading? Check source path resolution
+   - Controls not showing? Check .video-player-controls visibility
+   - Overlay not hiding? Check .hidden class application
+   - Fullscreen broken? Verify wrapper element targeting
+   
+   ============================================================================ */
+
+/* Video player wrapper */
+.video-player-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    background: var(--color-gray-900);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+/* Prevent focus ring from parent card when video player is focused */
+.video-player-wrapper:focus,
+.video-player-wrapper:focus-visible,
+.video-player-wrapper:focus-within {
+    outline: none;
+}
+
+/* Media container - maintains aspect ratio */
+.video-player-media {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: var(--color-gray-900);
+}
+
+/* Video element */
+.video-player-element {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: var(--color-gray-900);
+}
+
+/* Play overlay - shown when paused */
+.video-player-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: opacity var(--transition-normal);
+}
+
+.video-player-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.video-overlay-play-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    background: var(--color-primary);
+    color: var(--color-white);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform var(--transition-fast), background-color var(--transition-fast);
+    box-shadow: var(--shadow-lg);
+}
+
+.video-overlay-play-btn:hover {
+    background: var(--color-primary-hover);
+    transform: scale(1.1);
+}
+
+.video-overlay-play-btn:focus-visible {
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: 4px;
+}
+
+/* Controls wrapper - matches audio player styling */
+.video-player-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-elevated);
+    border-top: var(--border-width-md) solid var(--border-default);
+}
+
+/* Base button styles - matches audio-btn */
+.video-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+    font-size: var(--font-size-md);
+}
+
+.video-btn:hover {
+    background: var(--bg-surface-hover);
+}
+
+.video-btn:focus-visible {
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: 2px;
+}
+
+.video-btn:active {
+    background: var(--bg-surface-active);
+}
+
+/* Play/Pause button - primary action with border */
+.video-btn-play {
+    width: 36px;
+    height: 36px;
+    background: var(--color-primary);
+    color: var(--color-white);
+    border-radius: 50%;
+    border: var(--border-width-md) solid var(--color-gray-300);
+}
+
+.video-btn-play:hover {
+    background: var(--color-primary-hover);
+    border-color: var(--color-primary);
+}
+
+.video-btn-play.playing {
+    background: var(--color-primary);
+    border-color: var(--color-gray-300);
+}
+
+/* Mute button muted state */
+.video-btn-mute.muted {
+    color: var(--text-muted);
+}
+
+/* Fullscreen button */
+.video-btn-fullscreen {
+    margin-left: auto;
+}
+
+/* Icon visibility controlled by JS */
+.video-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+/* Progress bar container - matches audio player */
+.video-progress-container {
+    position: relative;
+    flex: 1;
+    min-width: 100px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: var(--space-1) 0;
+}
+
+.video-progress-container:focus-visible {
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
+
+/* Track (background) */
+.video-progress-track {
+    position: relative;
+    width: 100%;
+    height: 4px;
+    background: var(--color-gray-400);
+    border-radius: 2px;
+    overflow: visible;
+}
+
+/* Fill (progress) */
+.video-progress-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0%;
+    background: var(--color-primary);
+    border-radius: 2px;
+    transition: width 0.1s linear;
+}
+
+/* Handle (draggable) */
+.video-progress-handle {
+    position: absolute;
+    top: 50%;
+    left: 0%;
+    width: 12px;
+    height: 12px;
+    background: var(--color-primary);
+    border: 2px solid var(--bg-surface);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    box-shadow: var(--shadow-sm);
+}
+
+.video-progress-container:hover .video-progress-handle,
+.video-progress-container.dragging .video-progress-handle {
+    transform: translate(-50%, -50%) scale(1.2);
+    box-shadow: var(--shadow-md);
+}
+
+.video-progress-container.dragging .video-progress-fill {
+    transition: none;
+}
+
+/* Time display */
+.video-time {
+    font-size: var(--font-size-xs);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+    white-space: nowrap;
+    min-width: 70px;
+    text-align: center;
+}
+
+.video-time-separator {
+    margin: 0 2px;
+    opacity: 0.6;
+}
+
+/* ============================================================================
+   FULLSCREEN MODE
+   ============================================================================ */
+
+.video-player-wrapper.video-player-fullscreen {
+    border-radius: 0;
+}
+
+.video-player-fullscreen .video-player-media {
+    height: 100vh;
+    aspect-ratio: unset;
+}
+
+.video-player-fullscreen .video-player-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    border-top: none;
+    padding: var(--space-4) var(--space-4) var(--space-3);
+}
+
+.video-player-fullscreen .video-btn {
+    color: var(--color-white);
+}
+
+.video-player-fullscreen .video-time {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.video-player-fullscreen .video-progress-track {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================ */
+
+/* Tablet and below */
+@media (max-width: 768px) {
+    .video-overlay-play-btn {
+        width: 56px;
+        height: 56px;
+    }
+
+    .video-player-controls {
+        padding: var(--space-1) var(--space-2);
+        gap: var(--space-1);
+    }
+
+    .video-btn {
+        width: 28px;
+        height: 28px;
+    }
+
+    .video-btn-play {
+        width: 32px;
+        height: 32px;
+    }
+
+    .video-time {
+        min-width: 60px;
+        font-size: var(--font-size-xs);
+    }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    .video-overlay-play-btn {
+        width: 48px;
+        height: 48px;
+    }
+
+    .video-player-controls {
+        gap: var(--space-1);
+        padding: var(--space-1);
+    }
+
+    .video-btn {
+        width: 24px;
+        height: 24px;
+    }
+
+    .video-btn-play {
+        width: 28px;
+        height: 28px;
+    }
+
+    .video-progress-container {
+        min-width: 60px;
+    }
+
+    /* Hide time display on very small screens */
+    .video-time {
+        display: none;
+    }
+}
+
+/* ============================================================================
+   ACCESSIBILITY - Reduced Motion
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    .video-player-overlay {
+        transition: none;
+    }
+
+    .video-overlay-play-btn {
+        transition: none;
+    }
+
+    .video-progress-fill {
+        transition: none;
+    }
+
+    .video-progress-handle {
+        transition: none;
+    }
+
+    .video-btn {
+        transition: none;
+    }
+}
+
+/* ============================================================================
+   DARK MODE
+   ============================================================================ */
+
+/* Dark mode handled automatically via semantic CSS variables */
+/* No explicit dark mode overrides needed - uses:
+   --bg-elevated, --bg-surface-hover, --bg-surface-active
+   --text-primary, --text-muted
+   --border-default
+   --color-primary, --color-primary-hover
+*/
+
+/* ============================================================================
+   EXTERNAL VIDEO EMBEDS (YouTube, Vimeo)
+   ============================================================================ */
+
+/* External video wrapper - uses platform's native controls */
+.video-player-external {
+    border-radius: var(--radius-md);
+}
+
+/* Responsive container for iframes */
+.video-player-responsive {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: var(--color-gray-900);
+}
+
+/* Iframe fills the responsive container */
+.video-player-iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: var(--radius-md);
+}
+
+/* Platform-specific styles (optional customization) */
+.video-player-youtube .video-player-iframe,
+.video-player-vimeo .video-player-iframe {
+    /* Platforms handle their own styling, just ensure clean iframe */
+    background: var(--color-gray-900);
+}

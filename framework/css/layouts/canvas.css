@@ -1,0 +1,38 @@
+/**
+ * Canvas Layout
+ * 
+ * A true blank-slate layout. ALL framework CSS is reverted to browser
+ * defaults in the content area. Authors bring their own CSS via theme.css
+ * (which loads after framework.css and naturally wins via cascade order).
+ * 
+ * Authors still get full access to LMS drivers, state, engagement,
+ * navigation, interactions, and all other framework JS infrastructure
+ * via window.CourseCode and course-config.js.
+ */
+
+/* --- Hide all framework chrome --- */
+[data-layout="canvas"] .course-header,
+[data-layout="canvas"] .app-footer,
+[data-layout="canvas"] .sidebar,
+[data-layout="canvas"] #sidebar-backdrop,
+[data-layout="canvas"] #sidebar-toggle,
+[data-layout="canvas"] .nav-floating {
+    display: none !important;
+}
+
+/* --- Content fills viewport with no framework styling --- */
+[data-layout="canvas"] .app-body {
+    padding: 0;
+}
+
+[data-layout="canvas"] main#content {
+    padding: 0;
+    background: none;
+    background-image: none;
+}
+
+/* --- Nuclear reset: revert ALL framework styles in slide content --- */
+[data-layout="canvas"] #slide-container,
+[data-layout="canvas"] #slide-container * {
+    all: revert;
+}

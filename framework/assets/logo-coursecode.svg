@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 18 100 64" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Left angle bracket < -->
+  <polyline points="25,22 5,50 25,78" />
+  
+  <!-- Right angle bracket > -->
+  <polyline points="75,22 95,50 75,78" />
+  
+  <!-- Lightbulb: rounded top -->
+  <path d="M50,28 C40,28 33,36 33,45 C33,52 38,56 42,60 L42,65 L58,65 L58,60 C62,56 67,52 67,45 C67,36 60,28 50,28" stroke-width="4" />
+  
+  <!-- Lightbulb: base lines -->
+  <line x1="44" y1="70" x2="56" y2="70" stroke-width="4" />
+  <line x1="46" y1="75" x2="54" y2="75" stroke-width="4" />
+</svg>

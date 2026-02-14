@@ -1,0 +1,475 @@
+/* ============================================================================
+   CARDS - Card component styles with variants and modifiers
+   ============================================================================
+   
+   WHAT: Reusable card components for grouping and organizing content
+   
+   INCLUDES:
+   - Base card styles (.card, .feature-card, .concept-card, .stat-card)
+   - Optional hover effects with .interactive modifier
+   
+   DEPENDENCIES:
+   - design-tokens.css (--color-*, --space-*, --shadow-*, --transition-*)
+   
+   USED BY:
+   - Content slides (grouping related information)
+   - Feature showcases
+   - Statistics displays
+   - Concept explanations
+   - UI components (intro-cards, steps, features, etc.)
+   
+   AI DEBUGGING TIPS:
+   - Hover effect not working? Add .interactive class to enable hover
+   - Shimmer not animating? Verify @keyframes shimmer and prefers-reduced-motion
+   - Card not visible? Check z-index and overflow:hidden on parent
+   - Shadow not showing? Ensure parent doesn't have overflow:hidden
+   
+   STRUCTURE:
+   1. Base card styles (static by default)
+   2. Interactive modifier (opt-in hover effects)
+   3. Card body/footer patterns
+   
+   COMMON CLASSES:
+   .card             - Base card (static, most common)
+   .feature-card     - For feature highlights
+   .concept-card     - For explanatory concepts
+   .stat-card        - For statistics/metrics
+   .interactive      - Enable hover effects for clickable cards
+   
+   LAST UPDATED: 2024-12-04
+   ============================================================================ */
+
+/* Card Component - Unified base class for all card types
+   Cards are static content containers by default (no hover effects).
+   This follows UX best practice: hover effects should only appear on
+   interactive elements to avoid misleading users about clickability.
+*/
+.card,
+.feature-card,
+.concept-card,
+.stat-card {
+  background: var(--bg-surface);
+  border: var(--border-width-thin) solid var(--border-default);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-xs);
+  position: relative;
+  box-sizing: border-box;
+  /* Flex column layout for easy content distribution */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Interactive Card Modifier - Opt-in hover effects for clickable cards
+   Use .card.interactive when the entire card is clickable/interactive.
+   
+   UX Rationale:
+   - Hover effects signal interactivity to users
+   - Only apply to cards that perform an action when clicked
+   - Includes lift effect, shadow change, border highlight, and shimmer
+*/
+
+/* Dark mode: elevate cards above surface containers (tabs, page sections) */
+[data-theme="dark"] .card,
+[data-theme="dark"] .feature-card,
+[data-theme="dark"] .concept-card,
+[data-theme="dark"] .stat-card {
+  background: var(--bg-elevated);
+}
+
+.card.interactive,
+.feature-card.interactive,
+.concept-card.interactive,
+.stat-card.interactive {
+  transition: border-color var(--transition-fast), box-shadow var(--transition-interactive), transform var(--transition-interactive);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+/* Interactive card shimmer effect on hover */
+.card.interactive::before,
+.feature-card.interactive::before,
+.concept-card.interactive::before,
+.stat-card.interactive::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--color-secondary-alpha-05), transparent);
+  transition: left var(--transition-slow);
+}
+
+/* Interactive card hover state */
+.card.interactive:hover,
+.feature-card.interactive:hover,
+.concept-card.interactive:hover,
+.stat-card.interactive:hover {
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in srgb, var(--color-primary) 24%, var(--bg-surface));
+  transform: translateY(var(--motion-lift-sm));
+}
+
+/* No-hover modifier - Explicitly removes any cursor/hover effects
+   Use when a card might inherit interactive styles but should be static.
+*/
+.card.no-hover,
+.feature-card.no-hover,
+.concept-card.no-hover,
+.stat-card.no-hover {
+  cursor: default;
+  pointer-events: auto;
+}
+
+.card.no-hover:hover,
+.feature-card.no-hover:hover,
+.concept-card.no-hover:hover,
+.stat-card.no-hover:hover {
+  transform: none;
+  box-shadow: var(--shadow-xs);
+  border-color: var(--border-default);
+}
+
+.card.interactive:hover::before,
+.feature-card.interactive:hover::before,
+.concept-card.interactive:hover::before,
+.stat-card.interactive:hover::before {
+  left: 100%;
+}
+
+/* Card Header - Top section with background.
+   Negative side margins extend into card padding for full-width background.
+   Card edge padding is removed via :has() so the header sits flush at top.
+   Has a default subtle background — override with any bg-* class. */
+.card-header {
+  margin: 0 calc(-1 * var(--space-6)) var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  border-bottom: var(--border-width-thin) solid var(--border-subtle);
+  border-top-left-radius: var(--radius-xl);
+  border-top-right-radius: var(--radius-xl);
+}
+
+/* Default background when no bg-* override is applied */
+.card-header:not([class*="bg-"]) {
+  background: var(--bg-subtle);
+}
+
+/* Dark mode: bg-subtle is darker than the card bg-elevated, inverting
+   the visual hierarchy.  Use surface-hover so the header stays a step
+   above the card body instead of sinking below it. */
+[data-theme="dark"] .card-header:not([class*="bg-"]) {
+  background: var(--bg-surface-hover);
+}
+
+/* Auto-reset heading/paragraph margins and bold headings inside card-header */
+.card-header > h1,
+.card-header > h2,
+.card-header > h3,
+.card-header > h4,
+.card-header > h5,
+.card-header > h6 {
+  margin: 0;
+  font-weight: 700;
+  line-height: var(--line-height-snug);
+  letter-spacing: -0.015em;
+}
+
+.card-header > p {
+  margin: 0;
+  margin-top: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+
+.card-header.no-border {
+  border-bottom: none;
+}
+
+/* Card Body - Expands to fill available space */
+.card-body {
+  flex: 1 1 auto;
+}
+
+.card-body > p {
+  color: var(--text-body);
+  line-height: var(--line-height-relaxed);
+}
+
+/* Card Footer - Bottom section for actions.
+   margin-top: auto pushes footer to bottom in flex cards.
+   Negative side margins extend to card edges like the header. */
+.card-footer {
+  margin: auto calc(-1 * var(--space-6)) 0;
+  padding: var(--space-4) var(--space-6);
+  border-top: var(--border-width-thin) solid var(--border-subtle);
+  border-bottom-left-radius: var(--radius-xl);
+  border-bottom-right-radius: var(--radius-xl);
+  font-size: var(--font-size-sm);
+}
+
+.card-footer:empty {
+  display: none;
+}
+
+.card-footer.no-border {
+  border-top: none;
+}
+
+/* Edge padding reset — zero card padding where header/footer sit at edges.
+   This makes the header/footer background extend flush to the card border. */
+.card:has(> .card-header:first-child) {
+  padding-top: 0;
+}
+.card:has(> .card-footer:last-child) {
+  padding-bottom: 0;
+}
+
+
+/* ============================================================================
+   CARD STYLE VARIANTS
+   ============================================================================
+   
+   Use these modifier classes to change the visual appearance of cards.
+   Combine with .interactive if the card should have hover effects.
+   
+   USAGE:
+   <div class="card card-outlined">...</div>
+   <div class="card card-elevated interactive">...</div>
+   
+   ============================================================================ */
+
+/* Outlined - Border only, no background fill */
+.card-outlined,
+.card.card-outlined,
+.feature-card.card-outlined,
+.concept-card.card-outlined,
+.stat-card.card-outlined {
+  background: transparent;
+  border: var(--border-width-sm) solid var(--border-strong);
+  box-shadow: none;
+}
+
+.card-outlined.interactive:hover {
+  background: var(--bg-subtle);
+  border-color: var(--color-primary);
+}
+
+/* Elevated - Stronger shadow, more depth */
+.card-elevated,
+.card.card-elevated,
+.feature-card.card-elevated,
+.concept-card.card-elevated,
+.stat-card.card-elevated {
+  box-shadow: var(--shadow-lg);
+  border-color: transparent;
+}
+
+.card-elevated.interactive:hover {
+  box-shadow: var(--shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04));
+  transform: translateY(-6px);
+}
+
+/* Flat - No shadow, minimal border */
+.card-flat,
+.card.card-flat,
+.feature-card.card-flat,
+.concept-card.card-flat,
+.stat-card.card-flat {
+  box-shadow: none;
+  border: var(--border-width-thin) solid var(--border-default);
+}
+
+.card-flat.interactive:hover {
+  box-shadow: var(--shadow-xs);
+  border-color: var(--border-strong);
+}
+
+/* Gradient Border - Decorative gradient border effect */
+.card-gradient,
+.card.card-gradient,
+.feature-card.card-gradient,
+.concept-card.card-gradient,
+.stat-card.card-gradient {
+  border: none;
+  background: var(--bg-surface);
+  position: relative;
+  z-index: 0;
+}
+
+.card-gradient::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 50%, var(--color-accent) 100%);
+  border-radius: inherit;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  z-index: -1;
+}
+
+/* Accent Top - Colored top border accent */
+.card-accent-top,
+.card.card-accent-top,
+.feature-card.card-accent-top,
+.concept-card.card-accent-top,
+.stat-card.card-accent-top {
+  border-top: 4px solid var(--color-primary);
+  border-top-left-radius: var(--radius-md);
+  border-top-right-radius: var(--radius-md);
+}
+
+/* Allow customization of accent color */
+.card-accent-top[data-accent="secondary"] {
+  border-top-color: var(--color-secondary);
+}
+
+.card-accent-top[data-accent="accent"] {
+  border-top-color: var(--color-accent);
+}
+
+.card-accent-top[data-accent="success"] {
+  border-top-color: var(--color-success);
+}
+
+.card-accent-top[data-accent="warning"] {
+  border-top-color: var(--color-warning);
+}
+
+.card-accent-top[data-accent="error"] {
+  border-top-color: var(--color-danger);
+}
+
+.card-accent-top[data-accent="info"] {
+  border-top-color: var(--color-info);
+}
+
+/* Accent Left - Colored left border accent */
+.card-accent-left,
+.card.card-accent-left,
+.feature-card.card-accent-left,
+.concept-card.card-accent-left,
+.stat-card.card-accent-left {
+  border-left: 4px solid var(--color-primary);
+  border-top-left-radius: var(--radius-md);
+  border-bottom-left-radius: var(--radius-md);
+}
+
+/* Allow customization of accent color */
+.card-accent-left[data-accent="secondary"] {
+  border-left-color: var(--color-secondary);
+}
+
+.card-accent-left[data-accent="accent"] {
+  border-left-color: var(--color-accent);
+}
+
+.card-accent-left[data-accent="success"] {
+  border-left-color: var(--color-success);
+}
+
+.card-accent-left[data-accent="warning"] {
+  border-left-color: var(--color-warning);
+}
+
+.card-accent-left[data-accent="error"] {
+  border-left-color: var(--color-danger);
+}
+
+.card-accent-left[data-accent="info"] {
+  border-left-color: var(--color-info);
+}
+
+
+/* ============================================================================
+   CARD GRID LAYOUTS
+   ============================================================================
+   
+   Grid layouts that ensure cards are equal height and properly aligned.
+   Use these instead of generic grid classes when displaying cards side-by-side.
+   
+   USAGE:
+   <div class="card-grid">           <!-- Auto-fit responsive grid -->
+   <div class="card-grid-2">         <!-- Always 2 columns -->
+   <div class="card-grid-3">         <!-- Always 3 columns -->
+   
+   The cards inside will automatically stretch to equal heights.
+   
+   ============================================================================ */
+
+/* Base card grid - responsive auto-fit */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
+/* Ensure cards stretch to fill grid cell height */
+.card-grid > .card,
+.card-grid > .feature-card,
+.card-grid > .concept-card,
+.card-grid > .stat-card,
+.card-grid-2 > .card,
+.card-grid-2 > .feature-card,
+.card-grid-2 > .concept-card,
+.card-grid-2 > .stat-card,
+.card-grid-3 > .card,
+.card-grid-3 > .feature-card,
+.card-grid-3 > .concept-card,
+.card-grid-3 > .stat-card {
+  height: 100%;
+}
+
+/* Note: .flip-card grid support is in flip-cards.css (min-width required
+   because flip card content is absolutely positioned with no intrinsic size) */
+
+/* Fixed 2-column grid */
+.card-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: 1fr; /* Equal height rows across entire grid */
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
+/* Fixed 3-column grid */
+.card-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 1fr; /* Equal height rows across entire grid */
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
+/* Larger gap variants */
+.card-grid.gap-6,
+.card-grid-2.gap-6,
+.card-grid-3.gap-6 {
+  gap: var(--space-6);
+}
+
+.card-grid.gap-8,
+.card-grid-2.gap-8,
+.card-grid-3.gap-8 {
+  gap: var(--space-8);
+}
+
+/* Responsive: Stack on mobile */
+@media (max-width: 768px) {
+  .card-grid-2,
+  .card-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Tablet: 2 columns for 3-col grid */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .card-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

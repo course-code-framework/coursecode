@@ -1,0 +1,165 @@
+/* ============================================================================
+   Course Theme Token Overrides — Safe to Customize
+   ============================================================================
+
+   Override any global design tokens for this course by redefining variables
+   inside the :root selector below. Only include the tokens you want to change;
+   all other values continue to use the defaults from framework/css/design-tokens.css.
+
+   ============================================================================ */
+
+
+    /* stylelint-disable block-no-empty */
+    :root {
+
+    /* =========================================================================
+       QUICK START: Override palette colors for instant branding
+       =========================================================================
+
+       The entire color system derives from 9 palette values via color-mix().
+       Override any of these to rebrand the course — all other colors,
+       light/dark variants, and alpha values are calculated automatically.
+    */
+
+    /* Core palette (change these to rebrand) */
+    /* --palette-white: #ffffff; */
+    /* --palette-black: #000000; */
+    /* --palette-gray: #808080; */
+    /* --palette-charcoal: #23272e; */  /* → Premium neutral ink (optional) */
+    /* --palette-blue: #14213d; */        /* → Primary brand color */
+    /* --palette-blue-light: #4a6fa5; */  /* → Info color */
+    /* --palette-green: #1d7648; */       /* → Success color */
+    /* --palette-yellow: #f7b801; */      /* → Accent color */
+    /* --palette-amber: #f18701; */       /* → Secondary / Warning color */
+    /* --palette-orange: #f35b04; */      /* → Brand vibrant color */
+    /* --palette-red: #c7322b; */         /* → Semantic danger/error red */
+
+
+    /* =========================================================================
+       SEMANTIC UI TOKENS - Direct control over specific UI areas
+       =========================================================================
+
+       Override these for fine-grained control. Each comment shows which
+       palette color it derives from so you can see the effect of changes.  */
+
+    /* Slide / content background                       ← palette-gray (via gray-50) */
+    /* --bg-page: var(--color-gray-50); */
+
+    /* Text colors                                      ← palette-gray + charcoal roles */
+    /* --text-ink: var(--palette-charcoal); */          /* Brand ink (headings/logos/high emphasis) */
+    /* --text-primary: var(--color-gray-900); */        /* Default text hierarchy (system) */
+    /* --text-body: var(--color-gray-900); */           /* Paragraph text */
+    /* --text-muted: var(--color-gray-600); */          /* Secondary/helper text */
+    /* --color-on-warning: var(--palette-charcoal); */  /* Text on warning fills */
+    /* --color-on-danger: var(--palette-charcoal); */   /* Text on danger fills */
+
+    /* Header appearance                                ← palette-blue */
+    /* --header-bg: var(--gradient-header); */          /* Gradient: palette-blue → gray-700 */
+    /* --header-text: #ffffff; */                       /* Header text */
+    /* --header-border: var(--color-secondary); */      /* Bottom border ← palette-amber */
+    /* --header-border-width: 3px; */                   /* Border thickness */
+    /* --header-title-size: var(--font-size-lg); */     /* Title font size (18px) */
+    /* --header-title-weight: 700; */                   /* Title font weight */
+    /* --header-title-letter-spacing: -0.01em; */       /* Title letter spacing */
+
+    /* Sidebar appearance                               ← palette-white (surface) */
+    /* --sidebar-bg: var(--bg-surface); */              /* Background */
+    /* --sidebar-text: var(--color-gray-700); */        /* Text ← palette-gray */
+    /* --sidebar-active-bg: var(--color-primary-alpha-10); */  /* Active bg ← palette-blue */
+    /* --sidebar-active-text: var(--color-primary); */  /* Active text ← palette-blue */
+    /* --sidebar-width: 280px; */                       /* Width */
+
+    /* Footer appearance                                ← palette-white (surface) */
+    /* --footer-bg: var(--bg-surface); */               /* Background */
+    /* --footer-border: var(--border-default); */       /* Top border ← palette-gray */
+
+
+
+    /* =========================================================================
+       TYPOGRAPHY - Fonts, sizes, and text appearance
+       =========================================================================
+
+       Override fonts and sizes for your brand. Load custom fonts with
+       @import or @font-face at the top of this file before :root.
+
+       Example:
+       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+       Then set: --font-family-sans: 'Inter', sans-serif;
+    */
+
+    /* Font families */
+    /* --font-family-sans: system-ui, sans-serif; */   /* UI, body, navigation */
+    /* --font-family-display: var(--font-family-sans); */ /* Headings and titles */
+    /* --font-family-mono: ui-monospace, monospace; */ /* Code/technical text */
+
+    /* Font sizes (adjust the scale to match your brand) */
+    /* --font-size-base: 1rem; */                   /* Body text (16px default) */
+    /* --font-size-lg: 1.125rem; */                 /* Emphasized text (18px) */
+    /* --font-size-xl: 1.25rem; */                  /* Subheadings (20px) */
+    /* --font-size-2xl: 1.5rem; */                  /* Section headings (24px) */
+    /* --font-size-3xl: 1.875rem; */                /* Large headings (30px) */
+    /* --font-size-4xl: 2.25rem; */                 /* Main headings (36px) */
+    /* --font-size-sm: 0.875rem; */                 /* Secondary text (14px) */
+
+
+    /* =========================================================================
+       LAYOUT SIZING - Header, sidebar, and footer dimensions
+       =========================================================================
+
+       Adjust height, padding, and width of structural UI areas.
+    */
+
+    /* Header sizing */
+    /* --header-height: 72px; */                    /* Header bar height */
+    /* --header-padding-x: 1.5rem; */              /* Header horizontal padding */
+    /* --header-padding-y: 0.75rem; */             /* Header vertical padding */
+
+    /* Footer sizing */
+    /* --footer-padding-x: 1.5rem; */              /* Footer horizontal padding */
+    /* --footer-padding-y: 0.75rem; */             /* Footer vertical padding */
+
+
+    /* =========================================================================
+       COMPONENT STYLE VARIANTS
+       =========================================================================
+
+       Set global default styles for UI components. The framework reads these
+       tokens and applies them site-wide. Individual components can still
+       override by setting data-*-style attributes in HTML.
+
+       Available values:
+
+       --tab-style:       default | pills | buttons | minimal | boxed
+       --accordion-style: default | flush | separated | minimal | boxed
+       --button-shape:    default | square | pill
+       --card-style:      default | outlined | elevated | flat | gradient | accent-top
+       --callout-style:   default | outlined | filled | minimal | banner | card
+       --header-style:    gradient | solid | minimal | dark | transparent
+       --sidebar-style:   default | dark | primary | minimal
+       --footer-style:    default | centered | minimal | floating
+    */
+
+    /* --tab-style: pills; */
+    /* --accordion-style: separated; */
+    /* --button-shape: pill; */
+    /* --card-style: elevated; */
+    /* --callout-style: filled; */
+    /* --header-style: solid; */
+    /* --sidebar-style: minimal; */
+    /* --footer-style: centered; */
+    
+    }
+    /* stylelint-enable block-no-empty */
+
+/* ============================================================================
+   Custom Course Styles
+   ============================================================================ */
+
+/*
+  Add any course-specific custom styles below. For example:
+
+  .my-custom-class {
+    font-family: 'Comic Sans MS', cursive;
+    color: pink;
+  }
+*/

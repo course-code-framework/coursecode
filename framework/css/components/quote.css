@@ -1,0 +1,150 @@
+/* ========================================
+   UI COMPONENT: Quote/Testimonial
+   Use for: Customer quotes, testimonials, citations
+   Variants: card, accent, featured
+   ======================================== */
+[data-component="quote"] {
+  max-width: 800px;
+  margin-inline: auto;
+  padding: var(--space-8);
+  position: relative;
+  text-align: center;
+}
+
+/* Decorative quotation marks */
+[data-component="quote"]::before {
+  content: '"';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8rem;
+  font-family: Georgia, serif;
+  color: var(--color-primary-alpha-10);
+  line-height: 1;
+  pointer-events: none;
+}
+
+[data-component="quote"] .quote-text {
+  font-size: var(--font-size-2xl);
+  font-style: italic;
+  color: var(--text-primary);
+  line-height: 1.6;
+  margin-bottom: var(--space-6);
+  position: relative;
+  z-index: 1;
+}
+
+[data-component="quote"] .quote-attribution {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+[data-component="quote"] .quote-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--color-primary);
+}
+
+[data-component="quote"] .quote-author {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  font-size: var(--font-size-lg);
+}
+
+[data-component="quote"] .quote-role {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+/* Card variant - Quote in a styled container */
+[data-component="quote"].quote-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-gray-200);
+  box-shadow: var(--shadow-md);
+}
+
+[data-component="quote"].quote-card::before {
+  top: var(--space-4);
+}
+
+/* Accent border variant */
+[data-component="quote"].quote-accent {
+  border-left: 4px solid var(--color-primary);
+  text-align: left;
+  padding-left: var(--space-8);
+}
+
+[data-component="quote"].quote-accent::before {
+  left: var(--space-2);
+  transform: none;
+  font-size: 4rem;
+}
+
+[data-component="quote"].quote-accent .quote-attribution {
+  flex-direction: row;
+  justify-content: flex-start;
+}
+
+/* Large/featured quote variant */
+[data-component="quote"].quote-featured {
+  padding: var(--space-12);
+  background: var(--gradient-header, var(--color-primary));
+  border-radius: var(--radius-xl);
+}
+
+[data-component="quote"].quote-featured::before {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+[data-component="quote"].quote-featured .quote-text {
+  color: var(--color-white);
+  font-size: var(--font-size-3xl);
+}
+
+[data-component="quote"].quote-featured .quote-author {
+  color: var(--color-white);
+}
+
+[data-component="quote"].quote-featured .quote-role {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Multiple quotes in a grid */
+[data-component="quotes-grid"] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-6);
+}
+
+[data-component="quotes-grid"] [data-component="quote"] {
+  margin: 0;
+  padding: var(--space-6);
+}
+
+[data-component="quotes-grid"] [data-component="quote"] .quote-text {
+  font-size: var(--font-size-lg);
+}
+
+@media (max-width: 640px) {
+  [data-component="quote"] {
+    padding: var(--space-6);
+  }
+
+  [data-component="quote"]::before {
+    font-size: 5rem;
+  }
+
+  [data-component="quote"] .quote-text {
+    font-size: var(--font-size-lg);
+  }
+
+  [data-component="quote"].quote-featured .quote-text {
+    font-size: var(--font-size-xl);
+  }
+}

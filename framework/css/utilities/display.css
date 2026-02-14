@@ -1,0 +1,257 @@
+/* ============================================================================
+   DISPLAY UTILITIES - Display, visibility, overflow, position, width/height
+   ============================================================================
+   
+   PURPOSE: Utility classes for controlling element display and positioning
+   
+   INCLUDES:
+   - Display utilities (block, inline, flex, grid, none)
+   - Visibility utilities (visible, invisible)
+   - Overflow utilities (auto, hidden, scroll)
+   - Position utilities (relative, absolute, fixed, sticky)
+   - Width & height utilities (full, auto)
+   - Responsive visibility utilities (hide/show per breakpoint)
+   
+   DEPENDENCIES:
+   - Responsive utilities require breakpoint classes on <html> element
+   - Breakpoint classes are added by JavaScript
+   
+   USAGE: Apply classes directly to elements for layout control
+   
+   BREAKPOINTS:
+   - Mobile: bp-max-mobile-landscape (<=767px)
+   - Tablet: bp-max-tablet-portrait (<=1023px)
+   - Desktop: bp-min-large-desktop (>=1440px)
+   
+   ============================================================================ */
+
+/* Display Utilities */
+.block { display: block; }
+.inline { display: inline; }
+.inline-block { display: inline-block; }
+.hidden { display: none; }
+
+/* Visibility */
+.visible { visibility: visible; }
+.invisible { visibility: hidden; }
+
+/* Overflow */
+.overflow-auto { overflow: auto; }
+.overflow-hidden { overflow: hidden; }
+.overflow-scroll { overflow: scroll; }
+.overflow-x-auto { overflow-x: auto; }
+.overflow-y-auto { overflow-y: auto; }
+
+/* Position */
+.relative { position: relative; }
+.absolute { position: absolute; }
+
+/* NOTE: position:fixed and position:sticky are NOT available in SCORM iframes */
+/* Reason: These can escape iframe boundaries and break parent window UI */
+/* Alternative: Use position:absolute within positioned parent container */
+
+/* Width & Height */
+.w-full { width: 100%; }
+.w-auto { width: auto; }
+.h-full { height: 100%; }
+.h-auto { height: auto; }
+
+/* Min-Height Utilities */
+.min-h-sm { min-height: 150px; }
+.min-h-md { min-height: 250px; }
+.min-h-lg { min-height: 400px; }
+.min-h-xl { min-height: 600px; }
+
+/* Cursor Utilities */
+.cursor-auto { cursor: auto; }
+.cursor-default { cursor: default; }
+.cursor-pointer { cursor: pointer; }
+.cursor-not-allowed { cursor: not-allowed; }
+.cursor-text { cursor: text; }
+.cursor-move { cursor: move; }
+.cursor-grab { cursor: grab; }
+
+/* Pointer Events Utilities */
+.pointer-events-none { pointer-events: none; }
+.pointer-events-auto { pointer-events: auto; }
+
+/* User Select Utilities */
+.select-none { user-select: none; }
+.select-text { user-select: text; }
+.select-all { user-select: all; }
+.select-auto { user-select: auto; }
+
+/* Opacity */
+.opacity-0 { opacity: 0; }
+.opacity-25 { opacity: 0.25; }
+.opacity-50 { opacity: 0.5; }
+.opacity-75 { opacity: 0.75; }
+.opacity-100 { opacity: 1; }
+
+
+/* ============================================================================
+   RESPONSIVE VISIBILITY UTILITIES
+   Hide/show elements based on breakpoint classes
+   ============================================================================ */
+
+/* ----------------------------------------
+   Hide on specific device types
+   ---------------------------------------- */
+
+/* Hide on mobile (<=767px) */
+html.bp-max-mobile-landscape .hide-mobile {
+  display: none !important;
+}
+
+/* Hide on tablet (768px - 1023px) */
+html.bp-max-tablet-portrait:not(.bp-max-mobile-landscape) .hide-tablet {
+  display: none !important;
+}
+
+/* Hide on desktop (>=1024px) - when NOT on tablet or mobile */
+html:not(.bp-max-tablet-portrait) .hide-desktop {
+  display: none !important;
+}
+
+
+/* ----------------------------------------
+   Show ONLY on specific device types
+   ---------------------------------------- */
+
+/* Show only on mobile - hidden by default, shown on mobile */
+.show-mobile-only {
+  display: none !important;
+}
+
+html.bp-max-mobile-landscape .show-mobile-only {
+  display: block !important;
+}
+
+html.bp-max-mobile-landscape .show-mobile-only.flex,
+html.bp-max-mobile-landscape span.show-mobile-only,
+html.bp-max-mobile-landscape a.show-mobile-only {
+  display: flex !important;
+}
+
+html.bp-max-mobile-landscape span.show-mobile-only,
+html.bp-max-mobile-landscape a.show-mobile-only {
+  display: inline !important;
+}
+
+/* Show only on tablet - hidden by default, shown on tablet */
+.show-tablet-only {
+  display: none !important;
+}
+
+html.bp-max-tablet-portrait:not(.bp-max-mobile-landscape) .show-tablet-only {
+  display: block !important;
+}
+
+html.bp-max-tablet-portrait:not(.bp-max-mobile-landscape) .show-tablet-only.flex {
+  display: flex !important;
+}
+
+/* Show only on desktop - hidden by default, shown on desktop */
+.show-desktop-only {
+  display: none !important;
+}
+
+html:not(.bp-max-tablet-portrait) .show-desktop-only {
+  display: block !important;
+}
+
+html:not(.bp-max-tablet-portrait) .show-desktop-only.flex {
+  display: flex !important;
+}
+
+
+/* ----------------------------------------
+   Responsive alignment utilities
+   ---------------------------------------- */
+
+/* Center text on mobile, left-aligned on larger screens */
+html.bp-max-mobile-landscape .text-center-mobile {
+  text-align: center !important;
+}
+
+/* Left align on mobile */
+html.bp-max-mobile-landscape .text-left-mobile {
+  text-align: left !important;
+}
+
+/* Right align on mobile */
+html.bp-max-mobile-landscape .text-right-mobile {
+  text-align: right !important;
+}
+
+
+/* ----------------------------------------
+   Responsive stacking utilities
+   ---------------------------------------- */
+
+/* Stack flex items vertically on mobile */
+html.bp-max-mobile-landscape .stack-mobile {
+  flex-direction: column !important;
+}
+
+/* Stack flex items vertically on tablet and below */
+html.bp-max-tablet-portrait .stack-tablet {
+  flex-direction: column !important;
+}
+
+/* Reverse stack order on mobile */
+html.bp-max-mobile-landscape .stack-mobile-reverse {
+  flex-direction: column-reverse !important;
+}
+
+
+/* ----------------------------------------
+   CSS Media Query Fallbacks
+   In case JavaScript breakpoint classes fail to load
+   ---------------------------------------- */
+
+@media (max-width: 767px) {
+  /* Fallback for hide-mobile */
+  .hide-mobile-fallback {
+    display: none !important;
+  }
+  
+  /* Fallback for show-mobile-only */
+  .show-mobile-only-fallback {
+    display: block !important;
+  }
+  
+  /* Fallback text alignment */
+  .text-center-mobile-fallback {
+    text-align: center !important;
+  }
+  
+  /* Fallback stacking */
+  .stack-mobile-fallback {
+    flex-direction: column !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* Fallback for hide-tablet */
+  .hide-tablet-fallback {
+    display: none !important;
+  }
+  
+  /* Fallback for show-tablet-only */
+  .show-tablet-only-fallback {
+    display: block !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* Fallback for hide-desktop */
+  .hide-desktop-fallback {
+    display: none !important;
+  }
+  
+  /* Fallback for show-desktop-only */
+  .show-desktop-only-fallback {
+    display: block !important;
+  }
+}

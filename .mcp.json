@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "coursecode": {
+      "command": "coursecode",
+      "args": ["mcp"]
+    }
+  }
+}

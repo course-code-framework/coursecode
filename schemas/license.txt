@@ -1,0 +1,17 @@
+Creative Commons Attribution-ShareAlike 1.0 Generic (CC BY-SA 1.0)
+
+This file is provided to satisfy the "see the file license.txt" reference
+embedded in the IEEE LOM/SCORM schema files in this directory.
+
+License deed:
+https://creativecommons.org/licenses/by-sa/1.0/
+
+Full legal code:
+https://creativecommons.org/licenses/by-sa/1.0/legalcode
+
+Summary of key terms:
+- Attribution required.
+- ShareAlike required for adaptations.
+- No additional restrictions beyond the license terms.
+
+For authoritative terms, refer to the legal code URL above.

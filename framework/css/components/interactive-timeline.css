@@ -1,0 +1,274 @@
+/**
+ * Interactive Timeline Component
+ * Click-to-expand timeline events with engagement tracking
+ */
+
+/* ===== Container ===== */
+.interactive-timeline {
+    position: relative;
+    padding: var(--space-4) 0;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Vertical connecting line - starts at first marker, ends at last */
+.interactive-timeline::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    /* Start at first marker center: padding-top + marker offset */
+    top: calc(var(--space-4) + var(--space-5) + 12px);
+    /* End at last marker center: full height minus bottom padding minus marker offset */
+    bottom: calc(var(--space-5) + 12px);
+    width: 3px;
+    background: var(--bg-inset);
+    border-radius: var(--radius-full);
+}
+
+/* ===== Timeline Event ===== */
+.interactive-timeline .timeline-event {
+    position: relative;
+    padding: var(--space-4) var(--space-4) var(--space-4) 56px;
+    margin-bottom: var(--space-4);
+    background: var(--bg-surface);
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: var(--transition-normal);
+}
+
+.interactive-timeline .timeline-event:last-child {
+    margin-bottom: 0;
+}
+
+.interactive-timeline .timeline-event:hover {
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-sm);
+}
+
+.interactive-timeline .timeline-event:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-alpha-20);
+}
+
+/* Viewed state */
+.interactive-timeline .timeline-event.viewed {
+    background: var(--bg-subtle);
+}
+
+.interactive-timeline .timeline-event.viewed .timeline-marker {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+}
+
+.interactive-timeline .timeline-event.viewed .timeline-marker::after {
+    content: '✓';
+    color: var(--color-white);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
+}
+
+/* Locked state (sequential mode) */
+.interactive-timeline .timeline-event.locked {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.interactive-timeline .timeline-event.locked:hover {
+    border-color: var(--color-gray-200);
+    box-shadow: none;
+}
+
+/* Expanded state */
+.interactive-timeline .timeline-event.expanded {
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-md);
+}
+
+/* ===== Timeline Marker ===== */
+.interactive-timeline .timeline-marker {
+    position: absolute;
+    left: 10px;
+    top: var(--space-5);
+    width: 24px;
+    height: 24px;
+    background: var(--bg-surface);
+    border: 3px solid var(--color-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    transition: var(--transition-fast);
+}
+
+.interactive-timeline .timeline-event:hover .timeline-marker {
+    transform: scale(1.1);
+}
+
+.interactive-timeline .timeline-event.expanded .timeline-marker {
+    background: var(--color-primary);
+    transform: scale(1.2);
+}
+
+/* ===== Timeline Date ===== */
+.interactive-timeline .timeline-date {
+    display: inline-block;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-primary);
+    background: var(--color-primary-alpha-10);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    margin-bottom: var(--space-1);
+}
+
+/* ===== Timeline Summary ===== */
+.interactive-timeline .timeline-summary {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.interactive-timeline .timeline-summary h4,
+.interactive-timeline .timeline-summary h3 {
+    margin: 0;
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+}
+
+.interactive-timeline .timeline-summary p {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+/* Expand indicator - matches accordion chevron */
+.interactive-timeline .timeline-event::after {
+    content: '';
+    position: absolute;
+    right: var(--space-5);
+    top: 50%;
+    width: 10px;
+    height: 10px;
+    border-right: 2px solid var(--color-gray-400);
+    border-bottom: 2px solid var(--color-gray-400);
+    transform: translateY(-50%) rotate(45deg);
+    margin-top: -2px;
+    transition: transform var(--transition-normal), border-color var(--transition-fast);
+}
+
+.interactive-timeline .timeline-event:hover::after {
+    border-color: var(--color-primary);
+}
+
+.interactive-timeline .timeline-event.expanded::after {
+    transform: translateY(-50%) rotate(-135deg);
+    margin-top: 2px;
+    border-color: var(--color-primary);
+}
+
+/* ===== Timeline Details (Expandable Content) ===== */
+.interactive-timeline .timeline-details {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s ease-out, margin-top 0.3s ease-out;
+    margin-top: 0;
+}
+
+.interactive-timeline .timeline-details>* {
+    overflow: hidden;
+}
+
+.interactive-timeline .timeline-event.expanded .timeline-details {
+    grid-template-rows: 1fr;
+    margin-top: var(--space-4);
+}
+
+.interactive-timeline .timeline-details p {
+    margin: 0;
+    padding-top: 0;
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+}
+
+/* Show border and padding only when expanded */
+.interactive-timeline .timeline-event.expanded .timeline-details p {
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--color-gray-100);
+}
+
+/* ===== Progress Indicator ===== */
+.interactive-timeline .timeline-progress {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary);
+    background: var(--bg-subtle);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-full);
+    margin-bottom: var(--space-4);
+}
+
+.interactive-timeline .timeline-progress::before {
+    content: '📍';
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 640px) {
+    .interactive-timeline .timeline-event {
+        padding-left: 48px;
+    }
+
+    .interactive-timeline::before {
+        left: 16px;
+    }
+
+    .interactive-timeline .timeline-marker {
+        left: 6px;
+        width: 20px;
+        height: 20px;
+    }
+}
+
+/* ===== Dark Mode ===== */
+[data-theme="dark"] .interactive-timeline .timeline-event {
+    background: var(--bg-surface);
+    border-color: var(--border-default);
+}
+
+[data-theme="dark"] .interactive-timeline .timeline-event:hover {
+    border-color: var(--color-primary);
+}
+
+[data-theme="dark"] .interactive-timeline .timeline-event.viewed {
+    background: var(--bg-muted);
+}
+
+[data-theme="dark"] .interactive-timeline .timeline-event.expanded .timeline-details p {
+    border-top-color: var(--border-default);
+}
+
+[data-theme="dark"] .interactive-timeline .timeline-marker {
+    background: var(--bg-surface);
+}
+
+[data-theme="dark"] .interactive-timeline .timeline-event.expanded .timeline-marker {
+    background: var(--color-primary);
+}
+
+/* ===== Reduced Motion ===== */
+@media (prefers-reduced-motion: reduce) {
+
+    .interactive-timeline .timeline-event,
+    .interactive-timeline .timeline-marker,
+    .interactive-timeline .timeline-event::after,
+    .interactive-timeline .timeline-details {
+        transition: none;
+    }
+}

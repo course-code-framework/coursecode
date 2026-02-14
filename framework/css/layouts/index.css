@@ -1,0 +1,29 @@
+/* ============================================================================
+   LAYOUTS INDEX - Master import file for all layout styles
+   ============================================================================
+   
+   PURPOSE: Central import point for the CourseCode layout system.
+   Layouts control the overall visual structure of the course (header, sidebar,
+   footer, content area positioning).
+   
+   LAYOUTS:
+   - sidebar (default): Traditional LMS layout with slide-out navigation menu
+   - article: Modern web-page feel with minimal chrome and inline progress
+   - focused: Immersive layout with hidden navigation and floating controls
+   - presentation: Full-screen slideshow with edge navigation arrows
+   - canvas: Zero framework CSS — all styles reverted to browser defaults, author BYOs via theme.css
+   
+   USAGE: Set `layout` in course-config.js:
+   export const courseConfig = {
+       layout: 'article',  // 'sidebar' | 'article' | 'focused' | 'presentation' | 'canvas'
+       // ...
+   };
+   
+   ============================================================================ */
+
+@import './base.css';
+@import './traditional.css';
+@import './article.css';
+@import './focused.css';
+@import './presentation.css';
+@import './canvas.css';

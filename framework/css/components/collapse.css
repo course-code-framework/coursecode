@@ -1,0 +1,96 @@
+/* ============================================================================
+   COLLAPSE COMPONENT - Show More / Hide Content
+   ============================================================================
+   
+   PURPOSE: Toggleable content panels for expandable sections
+   
+   INCLUDES:
+   - Collapse panel container with max-height animation
+   - Toggle trigger button
+   - Show/Hide text switching
+   - Expanded state management
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   
+   USED BY:
+   - Content expansion/collapse interactions
+   - Additional information disclosure
+   - Space-saving content organization
+   
+   AI DEBUGGING TIPS:
+   - Content not expanding? Check max-height value (may be too small)
+   - Animation janky? Verify transition: max-height timing
+   - Show text not toggling? Check .expanded .collapse-text-* classes
+   - Mobile height issues? Content might exceed max-height on small screens
+   
+   STRUCTURE:
+   1. Collapse panel container (40-55)
+   2. Toggle trigger button (60-75)
+   3. Text switching (80-95)
+   4. Responsive (100-110)
+   
+   ============================================================================ */
+
+/* ============================================================================
+   COLLAPSE PANEL (Show More / Less)
+   ============================================================================ */
+
+.collapse-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease-in-out;
+}
+
+.collapse-trigger {
+  background: none !important;
+  border: none !important;
+  color: var(--color-primary) !important;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: var(--space-1) 0 !important;
+  font-weight: var(--font-weight-semibold);
+  box-shadow: none !important;
+}
+
+.collapse-trigger:hover {
+  color: var(--color-primary-hover, var(--color-primary));
+}
+
+/* Hide the "Hide" text by default */
+.collapse-text-hide {
+  display: none;
+}
+
+/* When expanded, show the "Hide" text and hide the "Show" text */
+.expanded .collapse-text-show {
+  display: none;
+}
+
+.expanded .collapse-text-hide {
+  display: inline;
+}
+
+/* ============================================================================
+   EXPANDED PANEL STATE
+   ============================================================================ */
+
+.expanded .collapse-panel {
+  max-height: 150rem;
+  /* Approx 2400px - increased to accommodate complex content */
+  transition: max-height 0.5s ease-in;
+}
+
+/* ============================================================================
+   REDUCED MOTION SUPPORT
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .collapse-panel {
+    transition: none;
+  }
+
+  .expanded .collapse-panel {
+    max-height: none;
+  }
+}

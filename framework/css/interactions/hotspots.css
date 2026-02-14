@@ -1,0 +1,69 @@
+/* ============================================================================
+   HOTSPOTS - Image hotspot interaction styles
+   ============================================================================
+   
+   PURPOSE: Styles for hotspot/click-region interactions on images
+   
+   INCLUDES:
+   - Hotspot container positioning
+   - Hotspot area styling
+   - Hover and focus states
+   - Selected state styling
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   - Requires: base.css (for .interaction container)
+   
+   USED BY:
+   - Image-based hotspot activities
+   - Anatomy diagrams with clickable regions
+   - Interactive image mapping
+   
+   AI DEBUGGING TIPS:
+   - Hotspots not appearing? Verify .hotspot-container has position: relative
+   - Hotspot areas not clickable? Check if positioned with top/left/right/bottom
+   - Hotspot circles too small? Increase min-width/min-height from btn-min-height
+   - Selection state not showing? Ensure .selected class applied to .hotspot-area
+   - Positioning off on mobile? Hotspots use absolute positioning - test responsive behavior
+   
+   COMMON CLASSES:
+   .hotspot-container   - Container for the image and hotspot areas
+   .hotspot-area        - Individual clickable hotspot region
+   .selected            - Hotspot has been selected/clicked
+   
+   LAST UPDATED: 2024-11-18
+   ============================================================================ */
+
+.hotspot-container {
+  position: relative;
+  display: inline-block;
+  margin: var(--space-3) 0;
+}
+
+.hotspot-area {
+  position: absolute;
+  background: var(--color-danger-alpha-30, rgba(243, 91, 4, 0.3));
+  border: var(--border-width-md) solid var(--color-danger);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
+  min-width: var(--btn-min-height);
+  min-height: var(--btn-min-height);
+}
+
+.hotspot-area:hover {
+  background: var(--color-danger-alpha-50, rgba(243, 91, 4, 0.5));
+  transform: scale(1.1);
+  box-shadow: var(--shadow-md);
+}
+
+.hotspot-area:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.hotspot-area.selected {
+  border-width: var(--border-width-thick);
+  background: var(--color-success-alpha-30);
+  border-color: var(--color-success);
+}

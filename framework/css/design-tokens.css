@@ -1,0 +1,707 @@
+/* ============================================================================
+   SCORM Framework — Global Design Tokens
+   ============================================================================
+
+   These are the default design tokens used across the framework. Override any
+   of these values in `../course/theme.css` to brand an individual
+   course without modifying framework files.
+
+   ========================================================================= */
+
+:root {
+
+  /* ========================================================================
+     PALETTE - Core Brand Colors
+     ========================================================================
+
+     These 5 colors form the foundation of the entire color system.
+     Change these to rebrand the framework. All other colors derive from these.
+
+     ======================================================================== */
+
+  --palette-white: #ffffff;          /* White */
+  --palette-black: #000000;          /* Black */
+  --palette-gray: #808080;           /* Gray */
+  --palette-charcoal: #23272e;       /* Charcoal (premium neutral ink) */
+  --palette-blue: #14213d;           /* Prussian Blue */
+  --palette-blue-light: #4a6fa5;     /* Light blue (info) */
+  --palette-green: #1d7648;          /* Pine Green */
+  --palette-yellow: #f7b801;         /* Yellow (accent) */
+  --palette-amber: #f18701;          /* Tiger Orange */
+  --palette-orange: #f35b04;         /* Cayenne (brand vibrant) */
+  --palette-red: #c7322b;            /* Red (danger) */
+
+  /* ========================================================================
+     BRAND COLORS - Derived from Palette via color-mix()
+     ========================================================================
+
+     These semantic brand tokens derive from palette colors automatically.
+     Light variants mix with white, dark variants mix with black.
+
+     ======================================================================== */
+
+  --color-primary: var(--palette-blue);
+  --color-primary-light: color-mix(in srgb, var(--palette-blue) 8%, var(--palette-white));
+  --color-primary-dark: color-mix(in srgb, var(--palette-blue) 70%, var(--palette-black));
+  --color-primary-hover: var(--color-primary-dark);
+  
+  --color-secondary: var(--palette-orange);
+  --color-secondary-light: color-mix(in srgb, var(--palette-orange) 6%, var(--palette-white));
+  --color-secondary-dark: color-mix(in srgb, var(--palette-orange) 80%, var(--palette-black));
+  --color-secondary-hover: var(--color-secondary-dark);
+  --color-secondary-text: var(--color-gray-900);  /* Dark text for contrast on orange */
+  
+  --color-accent: var(--palette-yellow);
+  --color-accent-light: color-mix(in srgb, var(--palette-yellow) 5%, var(--palette-white));
+  --color-accent-dark: color-mix(in srgb, var(--palette-yellow) 80%, var(--palette-black));
+  --color-accent-hover: var(--color-accent-dark);
+  --color-accent-text: var(--color-gray-900);     /* Dark text for contrast on amber */
+
+  /* Vibrant variant for special emphasis */
+  --color-secondary-vibrant: var(--palette-amber);
+
+  /* ========================================================================
+     NEUTRAL COLORS - Grey Scale Derived from Palette
+     ========================================================================
+
+     Built by mixing --palette-gray with white (lighter) or black (darker).
+     Gray-500 is the midpoint, anchored to --palette-gray.
+
+     ======================================================================== */
+
+  --color-white: var(--palette-white);
+  --color-gray-50: color-mix(in srgb, var(--palette-gray) 3%, var(--palette-white));
+  --color-gray-100: color-mix(in srgb, var(--palette-gray) 6%, var(--palette-white));
+  --color-gray-200: color-mix(in srgb, var(--palette-gray) 12%, var(--palette-white));
+  --color-gray-300: color-mix(in srgb, var(--palette-gray) 25%, var(--palette-white));
+  --color-gray-400: color-mix(in srgb, var(--palette-gray) 60%, var(--palette-white));
+  --color-gray-500: var(--palette-gray);  /* Midpoint - secondary text */
+  --color-gray-600: color-mix(in srgb, var(--palette-gray) 75%, var(--palette-black));
+  --color-gray-700: color-mix(in srgb, var(--palette-gray) 50%, var(--palette-black));
+  --color-gray-800: color-mix(in srgb, var(--palette-gray) 38%, var(--palette-black));
+  --color-gray-900: color-mix(in srgb, var(--palette-gray) 20%, var(--palette-black));
+
+  /* Text Colors
+     - Gray scale handles system/body hierarchy
+     - Charcoal is reserved for brand "ink" emphasis
+  */
+  --text-ink: var(--palette-charcoal);
+  --text-primary: var(--color-gray-900);
+  --text-body: var(--color-gray-900);
+  --text-muted: var(--color-gray-600);
+  --text-secondary: var(--color-gray-600);
+
+  /* ========================================================================
+     SEMANTIC BACKGROUNDS
+     ========================================================================
+     
+     Use these tokens instead of raw gray values for backgrounds.
+     This enables easy theming and proper dark mode support.
+     
+     --bg-page:      Main page/body background
+     --bg-surface:   Cards, modals, elevated elements (typically white)
+     --bg-subtle:    Very light emphasis areas
+     --bg-muted:     Subtle emphasis areas (slightly stronger than subtle)
+     --bg-inset:     Recessed/inset areas like inputs, wells, code blocks
+     --bg-elevated:  Elevated surfaces (same as surface, but semantically distinct)
+     --bg-overlay:   Modal/dialog overlays
+     
+     ======================================================================== */
+  
+  --bg-page: var(--color-gray-50);
+  --bg-surface: var(--color-white);
+  --bg-surface-hover: var(--color-gray-50);
+  --bg-surface-active: var(--color-gray-100);
+  --bg-subtle: var(--color-gray-50);
+  --bg-muted: var(--color-gray-100);
+  --bg-inset: var(--color-gray-200);
+  --bg-elevated: var(--color-white);
+  --bg-overlay: rgba(0, 0, 0, 0.5);
+
+  /* Semantic borders */
+  --border-default: var(--color-gray-200);
+  --border-subtle: var(--color-gray-100);
+  --border-strong: var(--color-gray-300);
+
+  /* ========================================================================
+     SEMANTIC COLORS - Derived from Palette via color-mix()
+     ========================================================================
+
+     Status and feedback colors mapped to the brand palette.
+     Light/hover/text variants all derive automatically from palette colors.
+
+     ======================================================================== */
+
+  --color-danger: var(--palette-red);
+  --color-danger-light: color-mix(in srgb, var(--palette-red) 4%, var(--palette-white));
+  --color-danger-hover: color-mix(in srgb, var(--palette-red) 90%, var(--palette-black));
+  --color-danger-text: color-mix(in srgb, var(--palette-red) 80%, var(--palette-black));
+  --color-on-danger: #ffffff; /* Text/icon color on danger-filled backgrounds */
+
+  --color-warning: var(--palette-amber);
+  --color-warning-light: color-mix(in srgb, var(--palette-amber) 6%, var(--palette-white));
+  --color-warning-hover: var(--color-secondary-dark);
+  --color-warning-text: color-mix(in srgb, var(--palette-amber) 70%, var(--palette-black));
+  --color-on-warning: var(--palette-charcoal); /* Text/icon color on warning-filled backgrounds */
+
+  --color-info: var(--palette-blue-light);
+  --color-info-light: color-mix(in srgb, var(--palette-blue-light) 6%, var(--palette-white));
+  --color-info-hover: color-mix(in srgb, var(--palette-blue-light) 80%, var(--palette-black));
+  --color-info-text: color-mix(in srgb, var(--palette-blue-light) 75%, var(--palette-black));
+
+  --color-success: var(--palette-green);
+  --color-success-light: color-mix(in srgb, var(--palette-green) 4%, var(--palette-white));
+  --color-success-hover: color-mix(in srgb, var(--palette-green) 80%, var(--palette-black));
+  --color-success-text: color-mix(in srgb, var(--palette-green) 85%, var(--palette-black));
+
+  --color-partial: var(--palette-amber);  /* Partial credit feedback */
+
+  /* ========================================================================
+     LINKS & INTERACTIVE STATES
+     ======================================================================== */
+
+  --color-link: var(--color-primary);
+  --color-link-hover: var(--color-primary-dark);
+  --color-link-visited: var(--color-gray-700);
+  --color-link-active: var(--color-primary-dark);
+
+  --color-disabled-bg: var(--color-gray-100);
+  --color-disabled-text: var(--color-gray-500);
+  --color-disabled-border: var(--color-gray-300);
+
+  --focus-ring-color: var(--color-primary);
+  --focus-ring-width: 3px;
+  --focus-ring-offset: 2px;
+
+  /* ========================================================================
+     ALPHA VARIATIONS - Derived via color-mix() with transparent
+     ======================================================================== */
+
+  /* Primary */
+  --color-primary-alpha-10: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  --color-primary-alpha-20: color-mix(in srgb, var(--color-primary) 20%, transparent);
+  --color-primary-alpha-30: color-mix(in srgb, var(--color-primary) 30%, transparent);
+
+  /* Secondary */
+  --color-secondary-alpha-05: color-mix(in srgb, var(--color-secondary) 5%, transparent);
+  --color-secondary-alpha-10: color-mix(in srgb, var(--color-secondary) 10%, transparent);
+  --color-secondary-alpha-15: color-mix(in srgb, var(--color-secondary) 15%, transparent);
+  --color-secondary-alpha-20: color-mix(in srgb, var(--color-secondary) 20%, transparent);
+  --color-secondary-alpha-30: color-mix(in srgb, var(--color-secondary) 30%, transparent);
+
+  /* Accent */
+  --color-accent-alpha-10: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  --color-accent-alpha-30: color-mix(in srgb, var(--color-accent) 30%, transparent);
+
+  /* Success */
+  --color-success-alpha-10: color-mix(in srgb, var(--color-success) 10%, transparent);
+  --color-success-alpha-20: color-mix(in srgb, var(--color-success) 20%, transparent);
+  --color-success-alpha-30: color-mix(in srgb, var(--color-success) 30%, transparent);
+
+  /* Info */
+  --color-info-alpha-10: color-mix(in srgb, var(--color-info) 10%, transparent);
+  --color-info-alpha-20: color-mix(in srgb, var(--color-info) 20%, transparent);
+  --color-info-alpha-30: color-mix(in srgb, var(--color-info) 30%, transparent);
+
+  /* Error */
+  --color-danger-alpha-10: color-mix(in srgb, var(--color-danger) 10%, transparent);
+  --color-danger-alpha-20: color-mix(in srgb, var(--color-danger) 20%, transparent);
+  --color-danger-alpha-30: color-mix(in srgb, var(--color-danger) 30%, transparent);
+  --color-danger-alpha-50: color-mix(in srgb, var(--color-danger) 50%, transparent);
+
+  /* White */
+  --color-white-alpha-15: color-mix(in srgb, var(--color-white) 15%, transparent);
+  --color-white-alpha-25: color-mix(in srgb, var(--color-white) 25%, transparent);
+  --color-white-alpha-30: color-mix(in srgb, var(--color-white) 30%, transparent);
+  --color-white-alpha-35: color-mix(in srgb, var(--color-white) 35%, transparent);
+  --color-white-alpha-50: color-mix(in srgb, var(--color-white) 50%, transparent);
+  --color-white-alpha-80: color-mix(in srgb, var(--color-white) 80%, transparent);
+  --color-white-alpha-95: color-mix(in srgb, var(--color-white) 95%, transparent);
+
+  /* ========================================================================
+     SPACING SCALE - 4px System
+     ========================================================================
+
+     ✅ Safe to adjust for tighter/looser layouts
+
+     Uses a 4px base unit for perfect pixel alignment.
+     Adjust these if you need more/less whitespace throughout the course.
+
+     Common uses:
+     - space-2/3: Small gaps between related items
+     - space-4/6: Standard spacing for most elements
+     - space-8/10: Large spacing between sections
+
+     ======================================================================== */
+
+  /* Base spacing (immutable source of truth) */
+  --space-1-base: 0.25rem;   /* 4px  - Tiny gaps */
+  --space-2-base: 0.5rem;    /* 8px  - Small gaps */
+  --space-3-base: 0.75rem;   /* 12px - Medium-small gaps */
+  --space-4-base: 1rem;      /* 16px - Standard gaps (most common) */
+  --space-5-base: 1.25rem;   /* 20px - Medium gaps */
+  --space-6-base: 1.5rem;    /* 24px - Large gaps */
+  --space-8-base: 2rem;      /* 32px - Extra large gaps */
+  --space-10-base: 2.5rem;   /* 40px - Section spacing */
+  --space-12-base: 3rem;     /* 48px - Major section spacing */
+  --space-16-base: 4rem;     /* 64px - Very large spacing */
+  --space-20-base: 5rem;     /* 80px - Huge spacing */
+  --space-24-base: 6rem;     /* 96px - Maximum spacing */
+
+  /* Normal mode: Spacing references base (updated when base changes) */
+  --space-1: var(--space-1-base);
+  --space-2: var(--space-2-base);
+  --space-3: var(--space-3-base);
+  --space-4: var(--space-4-base);
+  --space-5: var(--space-5-base);
+  --space-6: var(--space-6-base);
+  --space-8: var(--space-8-base);
+  --space-10: var(--space-10-base);
+  --space-12: var(--space-12-base);
+  --space-16: var(--space-16-base);
+  --space-20: var(--space-20-base);
+  --space-24: var(--space-24-base);
+
+  /* ========================================================================
+     FONT FAMILIES
+     ========================================================================
+
+     ⭐ CUSTOMIZE THESE FOR YOUR BRAND
+
+     Override these tokens in theme.css to use custom fonts.
+     
+     Tips:
+     - Load custom fonts via @import or @font-face in theme.css
+     - Always include fallback system fonts
+     - Use --font-family-display for hero/impact text
+     - Use --font-family-mono for code/technical content
+
+     Example in theme.css:
+     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+     :root {
+       --font-family-sans: 'Inter', sans-serif;
+       --font-family-display: 'Inter', sans-serif;
+     }
+
+     ======================================================================== */
+
+  /* Canonical font-family tokens */
+  --font-family-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  --font-family-display: var(--font-family-sans); /* Defaults to sans for minimal visual drift */
+  --font-family-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* ========================================================================
+     TYPOGRAPHY SCALE
+     ========================================================================
+
+     ✅ Adjust these to match your brand's typography
+
+     Font sizes use a modular scale for visual hierarchy.
+     Adjust these if your brand requires larger/smaller text.
+
+     Common uses:
+     - font-size-base: Body text (default 16px)
+     - font-size-lg: Emphasized text
+     - font-size-2xl: Section headings
+     - font-size-4xl: Main page headings
+
+     ⚠️  Maintain accessibility: Don't go below 14px for body text
+
+     ======================================================================== */
+
+  /* Display/Hero font sizes - for impact text */
+  --font-size-6xl: 3.75rem;  /* 60px - Display/hero text */
+  --font-size-7xl: 4.5rem;   /* 72px - Large display text */
+
+  /* Base font sizes (immutable source of truth) */
+  --font-size-xs-base: 0.75rem;    /* 12px - Small labels, captions */
+  --font-size-sm-base: 0.875rem;   /* 14px - Secondary text */
+  --font-size-base-base: 1rem;     /* 16px - Body text (default) */
+  --font-size-lg-base: 1.125rem;   /* 18px - Emphasized text */
+  --font-size-xl-base: 1.25rem;    /* 20px - Subheadings */
+  --font-size-2xl-base: 1.5rem;    /* 24px - Section headings */
+  --font-size-3xl-base: 1.875rem;  /* 30px - Large headings */
+  --font-size-4xl-base: 2.25rem;   /* 36px - Main headings */
+  --font-size-5xl-base: 3rem;      /* 48px - Hero text */
+
+  /* Normal mode: Font sizes reference base (updated when base changes) */
+  --font-size-xs: var(--font-size-xs-base);
+  --font-size-sm: var(--font-size-sm-base);
+  --font-size-base: var(--font-size-base-base);
+  --font-size-lg: var(--font-size-lg-base);
+  --font-size-xl: var(--font-size-xl-base);
+  --font-size-2xl: var(--font-size-2xl-base);
+  --font-size-3xl: var(--font-size-3xl-base);
+  --font-size-4xl: var(--font-size-4xl-base);
+  --font-size-5xl: var(--font-size-5xl-base);
+
+  /* Line Heights - Optimized for Readability */
+  --line-height-tight: 1.25;      /* Headings */
+  --line-height-snug: 1.375;      /* Subheadings */
+  --line-height-normal: 1.5;      /* Body text (default) */
+  --line-height-relaxed: 1.625;   /* Comfortable reading */
+  --line-height-loose: 2;         /* Very spacious */
+
+  /* Font Weights */
+  --font-weight-normal: 400;      /* Regular text */
+  --font-weight-medium: 500;      /* Slightly emphasized */
+  --font-weight-semibold: 600;    /* Headings, buttons */
+  --font-weight-bold: 700;        /* Strong emphasis */
+
+  /* Large Font Mode Multipliers - Accessibility Feature */
+  --font-scale-multiplier: 1.25;          /* Scale for small text */
+  --font-scale-body: 1.25;                /* Scale for body text */
+  --font-scale-heading: 1.25;             /* Scale for headings */
+  --spacing-scale-multiplier: 1.1;        /* Scale for spacing */
+  --touch-target-scale-multiplier: 1.15;  /* Scale for touch targets */
+
+  /* Border Radius Scale */
+  --radius-sm: 0.25rem;   /* 4px */
+  --radius-md: 0.375rem;  /* 6px */
+  --radius-lg: 0.5rem;    /* 8px */
+  --radius-xl: 0.75rem;   /* 12px */
+  --radius-2xl: 1rem;     /* 16px */
+  --radius-full: 9999px;  /* Fully rounded */
+
+  /* Border Width System - Frequently used values */
+  --border-width-thin: 1px;      /* Subtle borders */
+  --border-width-sm: 1.5px;      /* In-between outlines (buttons, chips) */
+  --border-width-md: 2px;        /* Standard borders, input focus */
+  --border-width-thick: 3px;     /* Accents, header bottom */
+  --border-width-accent: 4px;    /* Strong accents, callout left border */
+
+  /* Size Tokens - Touch targets and component dimensions */
+  --size-touch-target: 44px;     /* Minimum touch/click target size (accessibility) */
+  --size-icon-button: 48px;      /* Icon-only button size */
+  --size-card-min-height: 280px; /* Flip card and similar component heights */
+  --size-carousel-height: 400px; /* Carousel minimum height */
+  --size-modal-default: 600px;   /* Standard modal width */
+  --size-modal-large: 800px;     /* Large modal width */
+  --size-dropdown-max-height: 200px;  /* Dropdown menu max height */
+  --size-collapse-max-height: 150rem; /* Accordion/collapse max height for overflow */
+
+  /* Shadows - Subtle and Professional */
+  --shadow-xs: 0 1px 2px rgba(17, 24, 39, 0.04), 0 2px 6px rgba(17, 24, 39, 0.03);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+   /* Gradients - Reusable gradient patterns */
+   --gradient-subtle: linear-gradient(135deg, var(--color-gray-50) 0%, var(--color-gray-100) 100%);
+   --gradient-header: linear-gradient(135deg, var(--color-primary) 0%, var(--color-gray-700) 100%);
+   --gradient-primary: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-secondary-vibrant) 100%);
+   --gradient-success: linear-gradient(135deg, var(--color-success) 0%, var(--color-success-hover) 100%);
+  --gradient-progress: linear-gradient(90deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  --gradient-shimmer: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
+  --gradient-celebration: linear-gradient(135deg, var(--color-accent-alpha-10), var(--color-accent-alpha-30));
+
+  /* ========================================================================
+     SEMANTIC UI TOKENS - Header, Sidebar, Footer
+     ========================================================================
+
+     ⭐ CUSTOMIZE THESE FOR QUICK UI THEMING
+
+     These high-level tokens control specific UI areas. Override these in
+     theme.css to customize the header, sidebar, or footer appearance
+     without understanding the entire color inheritance chain.
+
+     ======================================================================== */
+
+  /* Header Tokens */
+  --header-bg: var(--gradient-header);           /* Header background (gradient or solid color) */
+  --header-text: var(--color-white);             /* Header text color */
+  --header-border: var(--color-secondary);       /* Header bottom border color */
+  --header-border-width: 3px;                    /* Header bottom border width */
+  --header-shadow: var(--shadow-md);             /* Header shadow */
+  --header-title-size: var(--font-size-lg);      /* Header course title font size */
+  --header-title-weight: var(--font-weight-bold); /* Header course title font weight */
+  --header-title-letter-spacing: -0.01em;        /* Header course title letter spacing */
+  --header-control-bg: color-mix(in srgb, var(--header-text) 10%, transparent); /* Header icon button bg */
+  --header-control-bg-hover: color-mix(in srgb, var(--header-text) 16%, transparent); /* Header icon hover bg */
+  --header-control-bg-active: color-mix(in srgb, var(--header-text) 24%, transparent); /* Header icon active bg */
+  --header-control-text: var(--header-text); /* Header icon button text/icon color */
+  --header-control-focus: var(--header-text); /* Header icon button focus ring */
+  --header-progress-track: color-mix(in srgb, var(--header-text) 25%, transparent); /* Header progress track */
+  --header-progress-fill: var(--header-text); /* Header progress fill */
+  --header-dark-bg: linear-gradient(135deg, var(--color-gray-800) 0%, var(--color-gray-900) 100%); /* Dark header variant background */
+  --header-dark-text: var(--color-gray-50); /* Dark header variant text */
+  --header-dark-border: var(--color-gray-700); /* Dark header variant border */
+
+  /* Sidebar Tokens */
+  --sidebar-bg: var(--bg-surface);                       /* Sidebar background */
+  --sidebar-text: var(--color-gray-700);                 /* Sidebar text color */
+  --sidebar-border: var(--border-default);               /* Sidebar border color */
+  --sidebar-active-bg: var(--color-primary-alpha-10);    /* Active nav item background */
+  --sidebar-active-text: var(--color-primary);           /* Active nav item text color */
+  --sidebar-hover-bg: var(--color-primary-alpha-10);     /* Hover nav item background */
+  --sidebar-hover-text: var(--color-primary);            /* Hover nav item text color */
+  --sidebar-muted-text: var(--text-muted);               /* Disabled/muted sidebar text */
+  --sidebar-scrollbar-thumb: var(--color-gray-300);      /* Sidebar scrollbar thumb */
+  --sidebar-scrollbar-thumb-hover: var(--color-gray-400); /* Sidebar scrollbar thumb (hover) */
+  --sidebar-backdrop: var(--bg-overlay);                 /* Sidebar overlay backdrop color */
+
+  /* Footer Tokens */
+  --footer-bg: var(--bg-surface);                        /* Footer background */
+  --footer-text: var(--text-primary);                    /* Footer text color */
+  --footer-border: var(--border-default);                /* Footer top border color */
+  --footer-floating-bg: var(--bg-surface);               /* Floating footer background */
+  --footer-floating-border: var(--border-default);       /* Floating footer border */
+  --footer-floating-shadow: var(--shadow-lg);            /* Floating footer shadow */
+  --nav-btn-bg: var(--bg-surface);                       /* Footer nav button background */
+  --nav-btn-text: var(--text-ink);                       /* Footer nav button text/icon */
+  --nav-btn-border: var(--border-strong);                /* Footer nav button border */
+  --nav-btn-hover-bg: var(--bg-subtle);                  /* Footer nav button hover background */
+  --nav-btn-hover-text: var(--text-ink);                 /* Footer nav button hover text/icon */
+  --nav-btn-hover-border: color-mix(in srgb, var(--color-secondary) 35%, var(--bg-surface)); /* Footer nav hover border */
+  --nav-btn-disabled-bg: color-mix(in srgb, var(--bg-muted) 78%, var(--bg-surface)); /* Footer nav button disabled background */
+  --nav-btn-disabled-text: color-mix(in srgb, var(--text-muted) 90%, var(--bg-surface)); /* Footer nav button disabled text/icon */
+  --nav-btn-disabled-border: color-mix(in srgb, var(--border-strong) 70%, var(--bg-surface)); /* Footer nav button disabled border */
+  --nav-btn-edge-opacity: 0.62;                          /* Presentation edge nav idle opacity */
+  --nav-btn-edge-opacity-disabled: 0.24;                 /* Presentation edge nav disabled opacity */
+
+  /* Transitions - Unified premium interaction profile */
+  --transition-fast: 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-normal: 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-slow: 340ms cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-interactive: 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-lift-sm: -1px;
+  --motion-lift-md: -2px;
+  --motion-press-scale: 0.985;
+
+  /* Animation Tokens - Configurable animation timing */
+  --animation-duration-fast: 200ms;
+  --animation-duration-normal: 400ms;
+  --animation-duration-slow: 600ms;
+  --animation-easing-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --animation-easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --animation-easing-elastic: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  /* Button System - Unified styling */
+  --btn-padding-y: var(--space-3);
+  --btn-padding-x: var(--space-5);
+  --btn-min-height: 44px;
+  --btn-border-radius: var(--radius-lg);
+  --btn-font-size: var(--font-size-base);
+  --btn-font-weight: var(--font-weight-medium);
+  --btn-transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-interactive), transform var(--transition-interactive), opacity var(--transition-fast), filter var(--transition-fast);
+  --btn-hover-translate-y: var(--motion-lift-sm); /* Shared hover lift for button variants */
+
+   /* Layout spacing defaults - overridden by responsive breakpoint classes */
+   --content-padding: var(--space-10);
+   --section-padding: var(--space-8);
+   --header-padding-x: var(--space-6);
+   --header-padding-y: var(--space-3);
+   --header-height: 72px;
+   --footer-padding-x: var(--space-6);
+   --footer-padding-y: var(--space-3);
+   --nav-padding-x: var(--space-6);
+   --nav-padding-y: var(--space-2);
+
+  /* Input System - Unified styling */
+  --input-padding-y: var(--space-3);
+  --input-padding-x: var(--space-4);
+  --input-border-width: 2px;
+  --input-border-color: var(--color-gray-300);
+  --input-border-radius: var(--radius-lg);
+  --input-font-size: var(--font-size-base);
+  --input-min-height: 44px;
+  --input-focus-color: var(--color-primary);
+  --input-focus-shadow: 0 0 0 3px var(--color-primary-alpha-10);
+
+  /* Feedback System - Unified styling */
+  --feedback-padding: var(--space-2) var(--space-5);
+  --feedback-border-radius: var(--radius-md);
+  --feedback-font-size: var(--font-size-sm);
+  --feedback-font-weight: var(--font-weight-medium);
+
+  /* Navigation/FAB controls (presentation + focused) */
+  --nav-edge-control-size: 56px;
+  --nav-edge-icon-size: 28px;
+  --nav-edge-bg: color-mix(in srgb, var(--bg-surface) 94%, transparent);
+  --nav-edge-bg-hover: var(--bg-surface-hover);
+  --nav-edge-border: color-mix(in srgb, var(--text-primary) 14%, transparent);
+  --nav-edge-shadow: var(--shadow-md);
+  --nav-edge-shadow-hover: var(--shadow-lg);
+  --nav-edge-hover-scale: 1.04;
+  --nav-edge-active-scale: 0.98;
+
+  /* Carousel controls */
+  --carousel-control-size: var(--size-icon-button);
+  --carousel-control-offset: var(--space-4);
+  --carousel-control-bg: var(--color-white-alpha-95);
+  --carousel-control-bg-hover: var(--color-white);
+  --carousel-control-border: color-mix(in srgb, var(--palette-black) 10%, transparent);
+  --carousel-control-text: var(--text-primary);
+  --carousel-control-text-hover: var(--color-primary);
+  --carousel-control-focus: var(--focus-ring-color);
+  --carousel-dots-bottom: var(--space-5);
+  --carousel-dots-gap: var(--space-2);
+  --carousel-dots-padding-y: var(--space-2);
+  --carousel-dots-padding-x: var(--space-3);
+  --carousel-dots-bg: color-mix(in srgb, var(--palette-black) 30%, transparent);
+  --carousel-dot-size: 10px;
+  --carousel-dot-active-width: 24px;
+  --carousel-dot-bg: var(--color-white-alpha-50);
+  --carousel-dot-bg-hover: var(--color-white-alpha-80);
+  --carousel-dot-bg-active: var(--color-white);
+  --carousel-dot-focus: var(--color-white);
+  --carousel-caption-padding-top: 60px;
+  --carousel-caption-padding-x: 20px;
+  --carousel-caption-padding-bottom: 20px;
+  --carousel-caption-overlay: linear-gradient(to top, color-mix(in srgb, var(--palette-black) 80%, transparent), transparent);
+
+  /* Z-Index Scale */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-overlay: 1035;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+
+   /* Breakpoints (reference values for JS/utilities) */
+   --bp-desktop-xl: 1440px;
+   --bp-desktop: 1200px;
+   --bp-tablet-landscape: 1024px;
+   --bp-tablet-portrait: 768px;
+   --bp-mobile-landscape: 480px;
+   --bp-mobile-portrait: 320px;
+
+  /* Additional spacing aliases for consistency */
+  --space-sm: var(--space-2);
+  --space-md: var(--space-4);
+  --space-lg: var(--space-6);
+
+  /* Color text aliases for consistency */
+  --color-text: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+
+  /* Font weight alias */
+  --font-weight-light: 300;
+}
+
+/* ============================================================================
+   DARK MODE THEME OVERRIDES
+   ============================================================================
+   
+   When [data-theme="dark"] is set on :root, these CSS variables override
+   the light mode defaults. Components automatically adapt because they use
+   CSS variables. No individual selectors needed - just swap the tokens!
+   
+   ========================================================================= */
+
+[data-theme="dark"] {
+  /* ========================================================================
+     DARK PALETTE - Override palette for dark mode
+     ========================================================================
+     
+     These brighter versions of palette colors work on dark backgrounds.
+     All other tokens derive from these automatically via color-mix().
+     
+     ======================================================================== */
+
+  --palette-white: #0f172a;        /* Inverted: deep dark becomes "white" */
+  --palette-black: #f9fafb;        /* Inverted: near-white becomes "black" */
+  --palette-gray: #6b7280;         /* Shifted gray midpoint for dark mode */
+  --palette-charcoal: #d1d5db;     /* Charcoal (dark-mode counterpart) */
+  --palette-blue: #6b8ec4;        /* Lightened Prussian Blue — visible on dark surfaces */
+  --palette-blue-light: #7da2d4;   /* Lightened info blue */
+  --palette-green: #4ca67a;        /* Lightened Pine Green */
+  --palette-yellow: #f7b801;       /* Yellow (accent) — already bright, unchanged */
+  --palette-amber: #f18701;        /* Tiger Orange — already bright, unchanged */
+  --palette-orange: #f35b04;       /* Cayenne — already bright, unchanged */
+  --palette-red: #e05550;          /* Brightened Red — visible on dark surfaces */
+
+  /* Keep semantic on-color tokens legible while preserving derived model.
+     In dark mode, UI still derives from palette values, but "white" for
+     foreground use should resolve to the light endpoint. */
+  --color-white: var(--palette-black);
+  --color-black: var(--palette-white);
+
+  /* Text Colors - derived from inverted gray scale */
+  --text-primary: var(--color-gray-900);
+  --text-body: var(--color-gray-900);
+  --text-muted: var(--color-gray-400);
+  --text-secondary: var(--color-gray-600);
+
+  /* Semantic Backgrounds - Dark Mode surfaces */
+  --bg-page: #0f172a;
+  --bg-surface: #1e293b;
+  --bg-surface-hover: #334155;
+  --bg-surface-active: #475569;
+  --bg-subtle: #1e293b;
+  --bg-muted: #334155;
+  --bg-inset: #0f172a;
+  --bg-elevated: #334155;
+  --bg-overlay: color-mix(in srgb, var(--palette-black) 30%, transparent);
+
+  /* Links - derived from primary */
+  --color-link: var(--color-primary);
+  --color-link-hover: var(--color-primary-dark);
+  --color-link-visited: color-mix(in srgb, var(--color-primary) 80%, var(--palette-black));
+  --color-link-active: var(--color-primary-dark);
+
+  /* Focus states */
+  --focus-ring-color: var(--color-primary);
+
+  /* Shadows - Dark Mode (deeper for contrast) */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+
+  /* Gradients - Dark Mode (derive from semantic colors) */
+  --gradient-subtle: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-page) 100%);
+  --gradient-header: linear-gradient(135deg, var(--color-primary) 0%, var(--color-gray-500) 100%);
+
+  /* Semantic UI Tokens - Dark Mode (derive from semantic tokens) */
+  --header-text: var(--text-primary);
+  --header-control-text: var(--header-text);
+  --header-control-focus: var(--header-text);
+  --header-control-bg: color-mix(in srgb, var(--header-text) 14%, transparent);
+  --header-control-bg-hover: color-mix(in srgb, var(--header-text) 22%, transparent);
+  --header-control-bg-active: color-mix(in srgb, var(--header-text) 30%, transparent);
+  --header-progress-track: color-mix(in srgb, var(--header-text) 32%, transparent);
+  --header-progress-fill: var(--header-text);
+  --header-dark-bg: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-page) 100%);
+  --header-dark-text: var(--color-gray-100);
+  --header-dark-border: var(--border-strong);
+  --color-on-warning: #111827;
+  --color-on-danger: #ffffff;
+  --sidebar-bg: var(--bg-surface);
+  --sidebar-text: var(--text-body);
+  --sidebar-border: var(--border-default);
+  --sidebar-muted-text: var(--text-muted);
+  --sidebar-scrollbar-thumb: var(--color-gray-500);
+  --sidebar-scrollbar-thumb-hover: var(--color-gray-400);
+  --sidebar-backdrop: color-mix(in srgb, var(--palette-black) 38%, transparent);
+  --footer-bg: var(--bg-surface);
+  --footer-text: var(--text-primary);
+  --footer-border: var(--border-default);
+  --footer-floating-bg: var(--bg-elevated);
+  --footer-floating-border: var(--border-strong);
+  --footer-floating-shadow: var(--shadow-xl);
+  --nav-btn-bg: var(--bg-surface);
+  --nav-btn-text: var(--text-primary);
+  --nav-btn-border: var(--border-strong);
+  --nav-btn-hover-bg: var(--bg-surface-hover);
+  --nav-btn-hover-text: var(--text-primary);
+  --nav-btn-hover-border: color-mix(in srgb, var(--color-secondary) 45%, var(--bg-surface));
+  --nav-btn-disabled-bg: color-mix(in srgb, var(--bg-surface-active) 74%, var(--bg-surface));
+  --nav-btn-disabled-text: color-mix(in srgb, var(--text-muted) 86%, var(--bg-surface));
+  --nav-btn-disabled-border: color-mix(in srgb, var(--border-strong) 72%, var(--bg-surface));
+  --nav-edge-bg: color-mix(in srgb, var(--bg-surface) 88%, transparent);
+  --nav-edge-bg-hover: var(--bg-surface-hover);
+  --nav-edge-border: color-mix(in srgb, var(--text-primary) 26%, transparent);
+  --nav-edge-shadow: var(--shadow-lg);
+  --nav-edge-shadow-hover: var(--shadow-xl);
+  --nav-btn-edge-opacity: 0.6;
+  --nav-btn-edge-opacity-disabled: 0.24;
+}
+
+/* ============================================================================
+   END GLOBAL DESIGN TOKENS
+   ============================================================================ */

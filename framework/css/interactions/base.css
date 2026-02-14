@@ -1,0 +1,92 @@
+/* ============================================================================
+   BASE INTERACTION STYLES - Container and common properties
+   ============================================================================
+   
+   PURPOSE: Shared base styles for all interaction types
+   
+   INCLUDES:
+   - Base interaction container
+   - Question prompt styling
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   
+   USED BY:
+   - All interaction types (fill-in, drag-drop, matching, true/false, etc.)
+   
+   AI DEBUGGING TIPS:
+   - Interaction not responsive? Check .interaction container has position: relative
+   - Question prompt not showing? Verify .question-prompt wrapper exists
+   - Styling not applying? Ensure parent .interaction class is present
+   
+   LAST UPDATED: 2024-11-18
+   ============================================================================ */
+
+.interaction {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: var(--space-4) 0;
+  margin: 0;
+  position: relative;
+  max-width: 100%;
+}
+
+/* Interaction type marker classes — applied by JS for semantic targeting.
+   Course authors can use these for type-specific overrides:
+   .interaction.multiple-choice { ... }
+   NOTE: Must have a real declaration (not just a comment) or browsers drop
+   the rule from CSSOM, causing the runtime linter to flag these as undefined. */
+.interaction.multiple-choice,
+.interaction.true-false,
+.interaction.fill-in,
+.interaction.numeric,
+.interaction.hotspot,
+.interaction.likert,
+.interaction.sequencing { --_: 1; }
+
+.interaction .question-prompt h3 {
+  color: var(--text-heading);
+  margin: 0;
+}
+
+/* ============================================================================
+   FEEDBACK STATES
+   ============================================================================ */
+
+.feedback {
+  padding: var(--feedback-padding);
+  border-radius: var(--feedback-border-radius);
+  font-size: var(--feedback-font-size);
+  font-weight: var(--feedback-font-weight);
+  text-align: center;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  align-self: center;
+}
+
+.feedback:empty {
+  display: none;
+}
+
+.feedback.correct {
+  background: var(--color-success-alpha-10);
+  color: var(--color-success);
+  border: 1px solid var(--color-success-alpha-30);
+}
+
+.feedback.incorrect {
+  background: var(--color-danger-alpha-10);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger-alpha-30);
+}
+
+.feedback.info {
+  background: var(--color-info-alpha-10);
+  color: var(--color-info);
+  border: 1px solid var(--color-info-alpha-30);
+}

@@ -1,0 +1,63 @@
+{
+  "version": "0.1.0",
+  "name": "SCORM 2004 4th Edition Framework",
+  "description": "Production-ready SCORM framework with modular architecture and advanced features",
+  "released": "2025-11-07",
+  "scorm_version": "SCORM 2004 4th Edition",
+  "compatibility": {
+    "minimum_course_version": "0.1.0",
+    "breaking_changes": [
+      "StateManager now owns all SCORM persistence; PersistenceManager removed"
+    ]
+  },
+  "components": {
+    "core": [
+      "pipwerks.js",
+      "runtime.js",
+      "event-bus.js",
+      "course-app.js",
+      "accessibility-enhancements.js"
+    ],
+    "managers": [
+      "state-manager.js",
+      "navigation-manager.js",
+      "objective-manager.js",
+      "interaction-manager.js",
+      "accessibility-manager.js",
+      "assessment-manager.js"
+    ],
+    "utilities": [
+      "utilities.js",
+      "feedback-system.js"
+    ],
+    "components": [
+      "ui-components/index.js",
+      "ui-components/modal.js",
+      "ui-components/dropdown.js",
+      "ui-components/notifications.js",
+      "ui-components/tabs.js",
+      "interactions/"
+    ]
+  },
+  "features": [
+    "SCORM 2004 4th Edition compliant",
+    "Sequential assessment navigator",
+    "Interactive question types (multiple-choice, fill-in, numeric, hotspot, drag-drop, true-false)",
+    "SCORM-based state persistence",
+    "Accessibility features (WCAG 2.1 AA)",
+    "Adaptive feedback system",
+    "Course gating and navigation rules",
+    "Time tracking and analytics",
+    "Offline mode support",
+    "Assessment security features"
+  ],
+  "upgrade": {
+    "instructions": "See UPGRADE_GUIDE.md for detailed upgrade instructions",
+    "backup_recommended": true,
+    "test_before_deployment": true
+  },
+  "support": {
+    "documentation": "https://github.com/svincent/scorm-template",
+    "issues": "https://github.com/svincent/scorm-template/issues"
+  }
+}

@@ -1,0 +1,258 @@
+/* ============================================================================
+   ARTICLE LAYOUT - Modern web-page feel
+   ============================================================================
+   
+   PURPOSE: Documentation-style layout with:
+   - Minimal header (branding only, sidebar toggle optional)
+   - OPTIONAL sidebar (controlled by navigation.sidebar.enabled)
+   - Content-focused, scrollable main area
+   - Floating footer with compact navigation
+   
+   BEST FOR: Modern "readable" courses, documentation-style content
+   
+   ============================================================================ */
+
+/* Sidebar visibility controlled by data attribute (JS sets from config) */
+/* Hide sidebar toggle when sidebar is disabled */
+[data-layout="article"]:not([data-sidebar-enabled="true"]) #sidebar-toggle {
+    display: none;
+}
+
+/* Show sidebar toggle when enabled - style as part of header */
+[data-layout="article"][data-sidebar-enabled="true"] #sidebar-toggle {
+    display: flex;
+    color: var(--header-control-text);
+}
+
+[data-layout="article"][data-sidebar-enabled="true"] #sidebar-toggle:hover {
+    background: var(--header-control-bg-hover);
+}
+
+/* Show accessibility button as the unified menu (when sidebar is disabled) */
+[data-layout="article"]:not([data-sidebar-enabled="true"]) #accessibility-button {
+    display: flex;
+    color: var(--header-control-text);
+}
+
+[data-layout="article"]:not([data-sidebar-enabled="true"]) #accessibility-button:hover {
+    background: var(--header-control-bg-hover);
+}
+
+/* When sidebar is enabled, hide the standalone accessibility button (settings in sidebar) */
+[data-layout="article"][data-sidebar-enabled="true"] #accessibility-button {
+    display: none;
+}
+
+/* Hide sidebar when disabled */
+[data-layout="article"]:not([data-sidebar-enabled="true"]) .sidebar {
+    display: none !important;
+}
+
+[data-layout="article"]:not([data-sidebar-enabled="true"]) #sidebar-backdrop {
+    display: none !important;
+}
+
+/* Minimal header styling */
+[data-layout="article"] .course-header {
+    background: var(--header-bg);
+    border-bottom: 1px solid var(--header-border);
+    box-shadow: var(--shadow-sm);
+    --header-text: var(--color-primary);
+    --header-bg: var(--bg-surface);
+    --header-border: var(--border-default);
+    --header-control-bg: transparent;
+    --header-control-bg-hover: var(--color-primary-alpha-10);
+    --header-control-bg-active: var(--color-primary-alpha-20);
+    --header-control-text: var(--header-text);
+    --header-control-focus: var(--header-text);
+}
+
+/* Use brand color for logo, title, and icon */
+[data-layout="article"] .course-header h1,
+[data-layout="article"] .course-header .brand-title,
+[data-layout="article"] .course-header #brand,
+[data-layout="article"] .course-header #brand span.logo {
+    color: var(--header-text);
+}
+
+[data-layout="article"] .course-header #brand svg,
+[data-layout="article"] .course-header #brand img {
+    filter: none;
+    /* Don't invert logo on light background */
+}
+
+/* Content area - centered, article-width */
+[data-layout="article"] main#content {
+    max-width: 100%;
+    padding: var(--space-8) var(--space-6);
+}
+
+[data-layout="article"] main#content>section {
+    /* Width controlled by slideDefaults.contentWidth config via auto-wrapping */
+    border: none;
+    box-shadow: none;
+    background: transparent;
+    padding: 0;
+}
+
+/* Slide container inherits article width */
+[data-layout="article"] #slide-container {
+    /* Width controlled by slideDefaults.contentWidth config via auto-wrapping */
+    margin: 0 auto;
+}
+
+/* Footer styling moved to components/footer.css - DATA-LAYOUT VARIANTS section */
+
+/* Audio player styling moved to components/audio-player.css - DATA-LAYOUT VARIANTS section */
+
+/* Button styling moved to components/buttons.css - DATA-LAYOUT VARIANTS section */
+/* Engagement/gating styling moved to components/engagement.css - DATA-LAYOUT VARIANTS section */
+
+/* Breadcrumbs visibility now controlled by navigation.breadcrumbs.enabled config */
+
+/* Article layout sidebar - add left padding so nav item accent isn't flush with edge */
+[data-layout="article"] .sidebar nav#menu {
+    padding-left: var(--space-2);
+}
+
+/* ============================================================================
+   ARTICLE LAYOUT SIDEBAR FOOTER - Horizontal status bar
+   ============================================================================ */
+
+/* Show sidebar footer in article layout when sidebar is enabled */
+[data-layout="article"][data-sidebar-enabled="true"] .nav-sidebar-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+    padding: var(--space-3) var(--space-4);
+    border-top: 1px solid var(--sidebar-border);
+    background: var(--sidebar-bg);
+}
+
+/* Exit link - subtle text link style */
+[data-layout="article"] .sidebar-exit-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-2);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-xs);
+    color: var(--sidebar-text);
+    opacity: 0.72;
+    cursor: pointer;
+    transition: opacity var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
+}
+
+[data-layout="article"] .sidebar-exit-link:hover {
+    opacity: 1;
+    color: var(--color-danger);
+    background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+}
+
+[data-layout="article"] .sidebar-exit-link:focus-visible {
+    opacity: 1;
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+}
+
+[data-layout="article"] .sidebar-exit-link svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Settings icon buttons - compact row */
+[data-layout="article"] .sidebar-settings-icons {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+[data-layout="article"] .sidebar-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    background: color-mix(in srgb, var(--sidebar-text) 6%, transparent);
+    border: 1px solid color-mix(in srgb, var(--sidebar-text) 16%, transparent);
+    border-radius: var(--radius-md);
+    color: var(--sidebar-text);
+    opacity: 0.78;
+    cursor: pointer;
+    transition: opacity var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-interactive);
+}
+
+[data-layout="article"] .sidebar-icon-btn:hover {
+    opacity: 1;
+    background: var(--sidebar-hover-bg);
+    border-color: color-mix(in srgb, var(--sidebar-active-text) 32%, transparent);
+    transform: translateY(var(--motion-lift-sm));
+}
+
+[data-layout="article"] .sidebar-icon-btn:active {
+    transform: scale(var(--motion-press-scale));
+}
+
+[data-layout="article"] .sidebar-icon-btn:focus-visible {
+    opacity: 1;
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+    border-color: color-mix(in srgb, var(--sidebar-active-text) 36%, transparent);
+}
+
+[data-layout="article"] .sidebar-icon-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+[data-layout="article"] .sidebar-icon-btn .icon-text {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
+}
+
+/* ============================================================================
+   MOBILE RESPONSIVE - Compact unified footer
+   ============================================================================
+   On mobile, use a single full-width compact footer bar at bottom.
+   Audio left, nav right in one unified bar. Shorter header.
+   Structure: footer > nav-controls > [nav-nav-buttons, audio-player, nav-exit-button]
+   ============================================================================ */
+
+/* Mobile breakpoint - 767px and below */
+
+/* Compact header - reduce height */
+html.bp-max-mobile-landscape[data-layout="article"] .course-header {
+    padding: var(--space-2) var(--space-3);
+}
+
+html.bp-max-mobile-landscape[data-layout="article"] .course-header #brand img.logo {
+    height: 28px;
+}
+
+html.bp-max-mobile-landscape[data-layout="article"] .course-header .brand-title {
+    font-size: var(--font-size-sm);
+}
+
+/* Sidebar should end above the fixed footer */
+html.bp-max-mobile-landscape[data-layout="article"] .sidebar {
+    height: calc(100% - 52px);
+}
+
+/* Mobile footer styling moved to components/footer.css - DATA-LAYOUT VARIANTS section */
+
+/* Mobile audio player order moved to components/audio-player.css - DATA-LAYOUT VARIANTS section */
+
+
+
+/* Mobile button styling moved to components/buttons.css - DATA-LAYOUT VARIANTS section */
+
+
+
+/* Add bottom padding to content */
+html.bp-max-mobile-landscape[data-layout="article"] main#content {
+    padding-bottom: calc(var(--space-8) + 68px + env(safe-area-inset-bottom, 0px));
+}

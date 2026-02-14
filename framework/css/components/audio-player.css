@@ -1,0 +1,571 @@
+/* ============================================================================
+   AUDIO PLAYER - Narration controls in navigation footer
+   ============================================================================
+   
+   PURPOSE: Minimal, accessible audio controls for course narration
+   
+   INCLUDES:
+   - Player container and layout
+   - Play/pause, restart, mute buttons
+   - Progress bar with seek functionality
+   - Time display
+   - Responsive design
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   
+   USED BY: Navigation footer when audio narration is active
+   
+   AI DEBUGGING TIPS:
+   - Player not showing? Check hidden attribute and audio:loaded event
+   - Progress bar not updating? Verify audio:progress event subscription
+   - Buttons not responding? Check data-action handlers in audio-player.js
+   - Layout broken? Verify flexbox alignment and gap values
+   
+   ============================================================================ */
+
+/* Handle visibility and loading state */
+#audio-player {
+    display: flex;
+    align-items: center;
+    transition: opacity var(--transition-normal);
+}
+
+#audio-player[hidden] {
+    display: none;
+}
+
+/* Loading skeleton state - shows placeholder while audio loads */
+#audio-player.audio-player-loading .audio-btn,
+#audio-player.audio-player-loading .audio-progress-container,
+#audio-player.audio-player-loading .audio-time {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+#audio-player.audio-player-loading .audio-btn:disabled,
+#audio-player.audio-player-loading .audio-progress-container[aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: wait;
+}
+
+/* Icon buttons - ensure clean appearance in loading state */
+#audio-player.audio-player-loading .audio-btn-restart,
+#audio-player.audio-player-loading .audio-btn-mute,
+#audio-player.audio-player-loading .audio-btn-restart:hover,
+#audio-player.audio-player-loading .audio-btn-mute:hover,
+#audio-player.audio-player-loading .audio-btn-restart:focus-visible,
+#audio-player.audio-player-loading .audio-btn-mute:focus-visible,
+#audio-player.audio-player-loading .audio-btn-restart:active,
+#audio-player.audio-player-loading .audio-btn-mute:active {
+    background: transparent;
+    border: none;
+    outline: none;
+}
+
+/* Subtle loading animation for progress bar during load */
+#audio-player.audio-player-loading .audio-progress-track {
+    background: linear-gradient(90deg,
+            var(--bg-subtle),
+            var(--color-primary-alpha-10),
+            var(--bg-subtle));
+    background-size: 200% 100%;
+    animation: audio-skeleton-load 1.5s ease-in-out infinite;
+}
+
+@keyframes audio-skeleton-load {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #audio-player.audio-player-loading .audio-progress-track {
+        animation: none;
+        background: var(--bg-subtle);
+    }
+}
+
+/* Controls wrapper */
+.audio-player-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    background: var(--bg-elevated);
+    border-radius: var(--radius-md);
+    border: var(--border-width-md) solid var(--border-default);
+}
+
+/* Base button styles */
+.audio-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+    font-size: var(--font-size-md);
+}
+
+.audio-btn:hover {
+    background: var(--bg-surface-hover);
+}
+
+.audio-btn:focus-visible {
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: 2px;
+}
+
+.audio-btn:active {
+    background: var(--bg-surface-active);
+}
+
+/* Icon buttons - override all styling to be plain */
+.audio-btn-restart,
+.audio-btn-mute {
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    transition: opacity var(--transition-fast) !important;
+}
+
+.audio-btn-restart:hover,
+.audio-btn-mute:hover {
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+}
+
+.audio-btn-restart:focus-visible,
+.audio-btn-mute:focus-visible {
+    outline: none !important;
+    outline-offset: 0 !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+.audio-btn-restart:active,
+.audio-btn-mute:active {
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+}
+
+/* Play/Pause button - primary action with border */
+.audio-btn-play {
+    width: 32px;
+    height: 32px;
+    background: var(--color-primary);
+    color: var(--color-white);
+    border-radius: 50%;
+    border: var(--border-width-md) solid var(--color-gray-300);
+}
+
+.audio-btn-play:hover {
+    background: var(--color-primary-hover);
+    border-color: var(--color-primary);
+}
+
+.audio-btn-play.playing {
+    background: var(--color-primary);
+    border-color: var(--color-gray-300);
+}
+
+/* Mute button muted state */
+.audio-btn-mute.muted {
+    color: var(--text-muted);
+}
+
+/* Icon visibility controlled by JS */
+.audio-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+/* Progress bar container */
+.audio-progress-container {
+    position: relative;
+    width: 120px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: var(--space-1) 0;
+}
+
+.audio-progress-container:focus-visible {
+    outline: 2px solid var(--focus-ring-color);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
+
+/* Track (background) */
+.audio-progress-track {
+    position: relative;
+    width: 100%;
+    height: 4px;
+    background: var(--color-gray-400);
+    border-radius: 2px;
+    overflow: visible;
+}
+
+/* Fill (progress) */
+.audio-progress-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0%;
+    background: var(--color-primary);
+    border-radius: 2px;
+    transition: width 0.1s linear;
+}
+
+/* Handle (draggable) */
+.audio-progress-handle {
+    position: absolute;
+    top: 50%;
+    left: 0%;
+    width: 12px;
+    height: 12px;
+    background: var(--color-primary);
+    border: 2px solid var(--bg-surface);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    box-shadow: var(--shadow-sm);
+}
+
+.audio-progress-container:hover .audio-progress-handle,
+.audio-progress-container.dragging .audio-progress-handle {
+    transform: translate(-50%, -50%) scale(1.2);
+    box-shadow: var(--shadow-md);
+}
+
+.audio-progress-container.dragging .audio-progress-fill {
+    transition: none;
+}
+
+/* Time display */
+.audio-time {
+    font-size: var(--font-size-xs);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+    white-space: nowrap;
+    min-width: 70px;
+    text-align: center;
+}
+
+.audio-time-separator {
+    margin: 0 2px;
+    opacity: 0.6;
+}
+
+/* ============================================================================
+   COMPACT AUDIO PLAYER - Minimal controls variant
+   ============================================================================
+   
+   PURPOSE: Minimal audio controls (no progress bar or time display)
+   Used for inline audio players where space is limited.
+   
+   DIFFERENCES FROM FULL PLAYER:
+   - Hides progress bar and time display
+   - Maintains play/pause, restart, mute buttons
+   - Uses same elevated background as full player
+   - Optimized for space constraints
+   
+   ============================================================================ */
+
+.audio-player-compact {
+    /* Smaller gap for more compact layout while keeping full styling */
+    gap: var(--space-1);
+    background: var(--bg-elevated);
+    border: var(--border-width-md) solid var(--border-default);
+}
+
+.audio-player-compact .audio-progress-container,
+.audio-player-compact .audio-time {
+    display: none;
+}
+
+/* Modal variant - uses darker surface background to blend with modal footer */
+.audio-player-modal {
+    background: var(--bg-surface);
+}
+
+/* ============================================================================
+   TAB AUDIO PLAYER - In-panel audio controls
+   ============================================================================
+   
+   PURPOSE: Audio controls injected into tab panels with audio narration.
+   Displays at the top of the tab content with appropriate spacing.
+   
+   ============================================================================ */
+
+.tab-audio-player {
+    margin-bottom: var(--space-4);
+}
+
+.tab-audio-player .audio-player-controls {
+    display: inline-flex;
+    background: var(--bg-surface);
+    border: var(--border-width-md) solid var(--border-default);
+}
+
+/* ============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================ */
+
+/* Tablet and below */
+@media (max-width: 768px) {
+    .audio-progress-container {
+        width: 80px;
+    }
+
+    .audio-time {
+        min-width: 60px;
+        font-size: var(--font-size-xs);
+    }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    .audio-player-controls {
+        gap: var(--space-1);
+        padding: var(--space-1);
+    }
+
+    .audio-btn {
+        width: 28px;
+        height: 28px;
+    }
+
+    .audio-btn-play {
+        width: 28px;
+        height: 28px;
+    }
+
+    .audio-progress-container {
+        width: 60px;
+    }
+
+    /* Hide time display on very small screens */
+    .audio-time {
+        display: none;
+    }
+}
+
+/* ============================================================================
+   ACCESSIBILITY - Reduced Motion
+   ============================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    .audio-progress-fill {
+        transition: none;
+    }
+
+    .audio-progress-handle {
+        transition: none;
+    }
+
+    .audio-btn {
+        transition: none;
+    }
+}
+
+/* ============================================================================
+   DARK MODE
+   ============================================================================ */
+
+/* Dark mode handled automatically via semantic CSS variables */
+/* No explicit dark mode overrides needed - uses:
+   --bg-elevated, --bg-surface-hover, --bg-surface-active
+   --text-primary, --text-muted
+   --border-default
+   --color-primary, --color-primary-hover
+*/
+
+/* ============================================================================
+   DATA-LAYOUT VARIANTS
+   ============================================================================
+   Audio player styling controlled by data-layout attribute on <html>.
+   These styles are used by the layout system (framework/css/layouts/).
+   ============================================================================ */
+
+/* -----------------------------------------------------------------------------
+   Article & Focused: Floating pill in bottom-left
+   ----------------------------------------------------------------------------- */
+
+[data-layout="article"] #audio-player,
+[data-layout="focused"] #audio-player {
+    position: fixed;
+    bottom: var(--space-4);
+    left: var(--space-4);
+    right: auto;
+    margin: 0;
+    z-index: var(--z-fixed);
+}
+
+[data-layout="article"] #audio-player .audio-player-controls,
+[data-layout="focused"] #audio-player .audio-player-controls {
+    background: var(--layout-floating-nav-bg);
+    border: var(--layout-floating-nav-border);
+    border-radius: var(--layout-floating-nav-radius);
+    box-shadow: var(--layout-floating-nav-shadow);
+    padding: var(--layout-floating-nav-padding);
+}
+
+/* Compact progress bar for floating audio */
+[data-layout="article"] #audio-player .audio-progress-container,
+[data-layout="focused"] #audio-player .audio-progress-container {
+    width: 60px;
+    margin-left: var(--space-2);
+    margin-right: calc(-1 * var(--space-1));
+}
+
+/* Hide time display and restart button in floating audio (save space) */
+html[data-layout="article"] #audio-player .audio-time,
+html[data-layout="article"] #audio-player .audio-btn-restart,
+html[data-layout="focused"] #audio-player .audio-time,
+html[data-layout="focused"] #audio-player .audio-btn-restart {
+    display: none;
+}
+
+/* Audio buttons match nav buttons - 40px squares (article layout) */
+[data-layout="article"] #audio-player .audio-btn {
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    background: var(--bg-inset);
+    border: 1px solid var(--border-default);
+    color: var(--text-primary);
+}
+
+[data-layout="article"] #audio-player .audio-btn-play {
+    background: var(--bg-surface);
+    border: var(--border-width-md) solid var(--color-gray-300);
+    border-radius: var(--radius-md);
+    color: var(--color-gray-700);
+}
+
+[data-layout="article"] #audio-player .audio-btn-play:hover {
+    background: var(--bg-subtle);
+    border-color: var(--color-secondary);
+    color: var(--color-secondary);
+}
+
+[data-layout="article"] #audio-player .audio-btn:hover {
+    background: var(--bg-subtle);
+    border-color: var(--color-secondary);
+    color: var(--color-secondary);
+    transform: none;
+}
+
+[data-layout="article"] #audio-player .audio-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* -----------------------------------------------------------------------------
+   Presentation: Floating pill in bottom-center with opacity fade
+   ----------------------------------------------------------------------------- */
+
+[data-layout="presentation"] #audio-player {
+    position: fixed;
+    bottom: var(--space-4);
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    margin: 0;
+    z-index: var(--z-fixed);
+    pointer-events: auto;
+    opacity: 0.35;
+    transition: opacity var(--transition-normal);
+}
+
+[data-layout="presentation"] #audio-player:hover {
+    opacity: 1;
+}
+
+[data-layout="presentation"] #audio-player .audio-player-controls {
+    background: var(--layout-floating-nav-bg);
+    border: var(--layout-floating-nav-border);
+    border-radius: var(--layout-floating-nav-radius);
+    box-shadow: var(--layout-floating-nav-shadow);
+    padding: var(--space-2);
+}
+
+[data-layout="presentation"] #audio-player .audio-progress-container {
+    width: 60px;
+    margin-left: var(--space-2);
+    margin-right: calc(-1 * var(--space-1));
+}
+
+[data-layout="presentation"] #audio-player .audio-time,
+[data-layout="presentation"] #audio-player .audio-btn-restart {
+    display: none;
+}
+
+/* -----------------------------------------------------------------------------
+   Article Mobile: Audio player in unified footer bar
+   ----------------------------------------------------------------------------- */
+
+html.bp-max-mobile-landscape[data-layout="article"] #audio-player {
+    order: 1;
+    position: static;
+    width: auto;
+    margin: 0;
+    margin-left: var(--space-1);
+}
+
+html.bp-max-mobile-landscape[data-layout="article"] #audio-player .audio-player-controls {
+    width: auto;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+}
+
+html.bp-max-mobile-landscape[data-layout="article"] #audio-player .audio-btn {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+    touch-action: manipulation;
+}
+
+html.bp-max-mobile-landscape[data-layout="article"] #audio-player .audio-progress-container {
+    display: none;
+}
+
+/* -----------------------------------------------------------------------------
+   Traditional Mobile: Audio player in center grid column
+   ----------------------------------------------------------------------------- */
+
+html.bp-max-mobile-landscape[data-layout="traditional"] #audio-player .audio-player-controls {
+    width: 100%;
+    justify-content: center;
+}
+
+/* Tablet: compact audio player (hide progress and time) */
+html.bp-max-tablet-portrait[data-layout="traditional"] #audio-player .audio-progress-container,
+html.bp-max-tablet-portrait[data-layout="traditional"] #audio-player .audio-time {
+    display: none;
+}

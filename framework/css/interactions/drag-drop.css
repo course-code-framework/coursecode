@@ -1,0 +1,295 @@
+/* ============================================================================
+   DRAG AND DROP - Drag-drop interaction styles
+   ============================================================================
+   
+   PURPOSE: Styles for drag-and-drop learning activities
+   
+   INCLUDES:
+   - Container layout (source items + drop zones)
+   - Drag item styling
+   - Drop zone styling
+   - Drag-over states
+   - Dropped item states
+   - Remove button styling
+   - Keyboard selection support
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   - Requires: base.css (for .interaction container)
+   
+   USED BY:
+   - Drag-drop categorization activities
+   - Matching via drag-drop
+   - Sort and organize activities
+   - Practice activities
+   
+   AI DEBUGGING TIPS:
+   - Drag items not draggable? Verify draggable="true" attribute on elements
+   - Drop zones not visible? Check .drag-drop-container has 2-column grid
+   - Dropped items not showing remove button? Ensure .dropped class applied and .remove-item button exists
+   - Drag-over state not showing? Verify event listeners for dragover/dragleave
+   - Scale transforms causing layout shift? Use .zone-content .drag-item.dropped:hover to override
+   
+   COMMON CLASSES:
+   .drag-drop-container   - Main 2-column container
+   .drag-items            - Left column with draggable items
+   .drop-zones            - Right column with drop targets
+   .drag-item             - Individual draggable item
+   .drop-zone             - Individual drop target area
+   .zone-label            - Label for drop zone
+   .zone-content          - Container for dropped items
+   .remove-item           - Button to remove dropped item
+   .dropped               - Item that has been dropped
+   .drag-over             - Drop zone being dragged over
+   .keyboard-selected     - Item selected via keyboard
+   
+   LAST UPDATED: 2024-11-18
+   ============================================================================ */
+
+.drag-drop-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  margin: var(--space-4) 0;
+}
+
+.drag-items,
+.drop-zones {
+  padding: var(--space-4);
+  border: var(--border-width-md) dashed var(--color-primary-alpha-30);
+  border-radius: var(--radius-lg);
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.drag-items h4,
+.drop-zones h4 {
+  margin: 0 0 var(--space-3);
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-base);
+}
+
+.drag-item {
+  background: var(--color-secondary);
+  color: var(--color-gray-900);
+  padding: var(--space-2) var(--space-4);
+  margin: var(--space-2) 0;
+  border-radius: var(--radius-2xl);
+  cursor: grab;
+  user-select: none;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
+  text-align: center;
+  font-weight: var(--font-weight-medium);
+  border: var(--border-width-md) solid transparent;
+  min-height: var(--size-touch-target);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.drag-item:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-md);
+}
+
+.drag-item:active {
+  cursor: grabbing;
+  transform: scale(0.95);
+}
+
+/* Prevent scale transform on dropped items to keep remove button aligned */
+.zone-content .drag-item.dropped:hover {
+  transform: none;
+  box-shadow: var(--shadow-md);
+}
+
+.zone-content .drag-item.dropped:active {
+  transform: none;
+}
+
+.drag-item.keyboard-selected {
+  outline: 3px solid var(--color-info);
+  outline-offset: 2px;
+  border-color: var(--color-info);
+}
+
+.drop-zone {
+  border: 2px solid var(--color-primary-alpha-30);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3);
+  margin: var(--space-2) 0;
+  min-height: 60px;
+  background: var(--color-primary-alpha-10);
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast), opacity var(--transition-fast);
+}
+
+.drop-zone.drag-over {
+  border-color: var(--color-primary);
+  background: var(--color-primary-alpha-20);
+  transform: scale(1.02);
+  box-shadow: var(--shadow-md);
+}
+
+/* Visual feedback when dragging over a full drop zone */
+.drop-zone.drag-over.zone-full {
+  border-color: var(--color-danger);
+  background: var(--color-danger-alpha-10);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.drop-zone.drag-over.zone-full .zone-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.drop-zone.drag-over.zone-full .zone-label::after {
+  content: 'Full';
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.zone-label {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.zone-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 40px;
+}
+
+.zone-content .drag-item.dropped {
+  cursor: grab;
+  opacity: 0.9;
+  position: relative;
+  padding-right: 40px; /* Extra space for remove button */
+  margin: 0; /* Override default margin since we're using gap */
+}
+
+.zone-content .drag-item.dropped:active {
+  cursor: grabbing;
+}
+
+.drag-item .remove-item {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  background: transparent;
+  color: var(--color-gray-900);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  font-size: 22px;
+  font-weight: var(--font-weight-bold);
+  line-height: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  padding: 0;
+  padding-bottom: 2px; /* Compensate for × character baseline */
+  z-index: 10;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.drag-item .remove-item:hover {
+  color: var(--color-danger);
+  background: rgba(255, 255, 255, 0.2);
+  width: 26px;
+  height: 26px;
+}
+
+.drag-item .remove-item:active {
+  background: rgba(255, 255, 255, 0.3);
+  width: 26px;
+  height: 26px;
+}
+
+.drag-item .remove-item:focus {
+  outline: 2px solid var(--color-danger);
+  outline-offset: 2px;
+}
+
+.drag-items.drag-over {
+  background: var(--color-success-alpha-10);
+  border: 2px dashed var(--color-success);
+  border-radius: var(--radius-lg);
+}
+
+@media (max-width: 767px) {
+  .drag-drop-container {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+  }
+
+  .drag-items,
+  .drop-zones {
+    padding: var(--space-4);
+  }
+
+  .drag-item {
+    padding: var(--space-3) var(--space-5);
+    font-size: var(--font-size-sm);
+    /* Disable native dragging on touch devices - we use touch events */
+    -webkit-user-drag: none;
+    touch-action: none;
+  }
+
+  .drop-zone {
+    padding: var(--space-4);
+  }
+
+  /* Touch drag visual feedback */
+  .drag-item.touch-dragging {
+    opacity: 0.4;
+  }
+}
+
+/* Touch drag clone styles (appended to body during drag) */
+.touch-drag-clone {
+  pointer-events: none !important;
+  -webkit-user-drag: none;
+  user-select: none;
+  margin: 0 !important;
+}
+
+/* Ensure touch targets are large enough on touch devices */
+@media (pointer: coarse) {
+  .drag-item {
+    min-height: 48px;
+    padding: var(--space-3) var(--space-5);
+  }
+
+  .drag-item .remove-item {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 24px;
+  }
+
+  .drop-zone {
+    min-height: 80px;
+  }
+
+  .zone-content {
+    min-height: 60px;
+  }
+}

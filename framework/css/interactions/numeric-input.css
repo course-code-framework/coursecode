@@ -1,0 +1,78 @@
+/* ============================================================================
+   NUMERIC INPUT - Number input interaction styles
+   ============================================================================
+   
+   PURPOSE: Styles for numeric input questions (calculations, measurements)
+   
+   INCLUDES:
+   - Number input field styling
+   - Container layout with units
+   - Focus and error states
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for CSS variables)
+   - Requires: base.css (for .interaction container)
+   
+   USED BY:
+   - Math problems requiring numeric answers
+   - Measurement questions
+   - Calculation exercises
+   
+   AI DEBUGGING TIPS:
+   - Input spinner buttons (arrows) showing? Use input[type="number"] styling or -webkit prefixes to hide
+   - Width too narrow for answers? Adjust width: 140px or use width: 100% on mobile
+   - Label and units not aligning? Check .numeric-input-container uses display: flex with align-items: center
+   - Focus state not showing? Verify input[type="number"]:focus styles applied
+   
+   COMMON CLASSES:
+   .numeric-input-container   - Flex container for label, input, units
+   .units                     - Text label for units (e.g., "cm", "kg")
+   
+   LAST UPDATED: 2024-11-18
+   ============================================================================ */
+
+.numeric-input-container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+
+.numeric-input-container label {
+  font-weight: var(--font-weight-medium);
+  color: var(--text-body);
+  font-size: var(--font-size-base);
+}
+
+.numeric-input-container input[type="number"] {
+  padding: var(--input-padding-y) var(--input-padding-x);
+  border: var(--input-border-width) solid var(--color-secondary-alpha-30);
+  border-radius: var(--input-border-radius);
+  font-size: var(--font-size-lg);
+  width: 140px;
+  text-align: center;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.numeric-input-container input[type="number"]:focus {
+  outline: none;
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 3px var(--color-secondary-alpha-10);
+}
+
+.units {
+  font-weight: var(--font-weight-medium);
+  color: var(--text-muted);
+  font-size: var(--font-size-base);
+}
+
+@media (max-width: 767px) {
+  .numeric-input-container {
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .numeric-input-container input[type="number"] {
+    width: 100%;
+  }
+}

@@ -1,0 +1,36 @@
+/* ========================================
+   UI COMPONENT: Content + Image
+   Use for: Text with diagram/screenshot
+   ======================================== */
+[data-component="content-image"] {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  align-items: center;
+}
+
+[data-component="content-image"].reverse {
+  direction: rtl;
+}
+
+[data-component="content-image"].reverse>* {
+  direction: ltr;
+}
+
+[data-component="content-image"] img {
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+@media (max-width: 768px) {
+  [data-component="content-image"] {
+    grid-template-columns: 1fr;
+    direction: ltr;
+  }
+
+  [data-component="content-image"].reverse {
+    direction: ltr;
+  }
+}

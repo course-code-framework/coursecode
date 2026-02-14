@@ -1,0 +1,46 @@
+/* ============================================================================
+   CONTAINER UTILITIES - Content width constraints
+   ============================================================================
+   
+   PURPOSE: Utility classes for constraining content width and centering
+   
+   INCLUDES:
+   - .container (constrained width, centered)
+   - .container-fluid (full width with padding)
+   
+   DEPENDENCIES:
+   - Requires: design-tokens.css (for --container-* and --space-* variables)
+   
+   USAGE:
+   <div class="container">...</div>
+   <div class="container-fluid">...</div>
+   
+   AI DEBUGGING TIPS:
+   - Content too narrow? Check max-width variable in design-tokens.css
+   - Not centered? Ensure margin: auto is present (automatic from container class)
+   - Padding not visible? Check --container-padding-x variable
+   
+   ============================================================================ */
+
+/* -------------------------------------------------------------------------- */
+/*  Container - Constrained Width & Centered
+/*
+    - Constrains content width for readability.
+    - Centers content on the page.
+    - Adds consistent horizontal padding.
+/* -------------------------------------------------------------------------- */
+
+.container {
+    width: 100%;
+    max-width: var(--container-max-width, 1200px);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: var(--container-padding-x, var(--space-4));
+    padding-right: var(--container-padding-x, var(--space-4));
+}
+
+.container-fluid {
+    width: 100%;
+    padding-left: var(--container-padding-x, var(--space-4));
+    padding-right: var(--container-padding-x, var(--space-4));
+}

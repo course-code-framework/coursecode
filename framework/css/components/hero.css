@@ -1,0 +1,243 @@
+/* ========================================
+   UI COMPONENT: Hero
+   Use for: Full-width impactful intro slides
+   Variants: overlay, dark, gradient, split
+   ======================================== */
+[data-component="hero"] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 60vh;
+  padding: var(--space-12) var(--space-6);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Background image support */
+[data-component="hero"][data-bg-image] {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Dark overlay for text readability on images */
+[data-component="hero"].hero-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--palette-black) 40%, transparent) 0%, color-mix(in srgb, var(--palette-black) 60%, transparent) 100%);
+  z-index: 1;
+}
+
+[data-component="hero"].hero-overlay>* {
+  position: relative;
+  z-index: 2;
+}
+
+/* Light overlay variant */
+[data-component="hero"].hero-overlay-light::before {
+  background: linear-gradient(180deg, var(--color-white-alpha-80) 0%, var(--color-white-alpha-95) 100%);
+}
+
+/* Hero content container */
+[data-component="hero"] .hero-content {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 2;
+}
+
+/* Hero title - Large, impactful */
+[data-component="hero"] .hero-title {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.1;
+  margin-bottom: var(--space-4);
+  color: var(--color-primary);
+}
+
+/* Hero title on dark/overlay backgrounds */
+[data-component="hero"].hero-overlay .hero-title,
+[data-component="hero"].hero-dark .hero-title {
+  color: var(--color-white);
+}
+
+/* Hero subtitle */
+[data-component="hero"] .hero-subtitle {
+  font-size: clamp(1.125rem, 2vw, 1.5rem);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-8);
+  line-height: 1.5;
+}
+
+[data-component="hero"].hero-overlay .hero-subtitle,
+[data-component="hero"].hero-dark .hero-subtitle {
+  color: var(--color-white-alpha-95);
+}
+
+/* Hero CTA button container */
+[data-component="hero"] .hero-cta {
+  display: flex;
+  gap: var(--space-4);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Hero badges/tags */
+.hero-badge,
+[data-component="hero"] .hero-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-4);
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--bg-surface));
+  color: var(--text-ink);
+  border: var(--border-width-thin) solid color-mix(in srgb, var(--color-primary) 24%, var(--bg-surface));
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.01em;
+  margin-bottom: var(--space-4);
+}
+
+.hero-badge.hero-badge-borderless,
+[data-component="hero"] .hero-badge.hero-badge-borderless {
+  border-color: transparent;
+}
+
+/* Hero badge color variants - solid backgrounds */
+.hero-badge.hero-badge-primary,
+[data-component="hero"] .hero-badge.hero-badge-primary {
+  background: var(--color-primary);
+  color: var(--color-white);
+  border-color: transparent;
+}
+
+.hero-badge.hero-badge-secondary,
+[data-component="hero"] .hero-badge.hero-badge-secondary {
+  background: var(--color-secondary);
+  color: var(--color-gray-900);
+  border-color: transparent;
+}
+
+.hero-badge.hero-badge-accent,
+[data-component="hero"] .hero-badge.hero-badge-accent {
+  background: var(--color-accent);
+  color: var(--color-gray-900);
+  border-color: transparent;
+}
+
+[data-component="hero"].hero-overlay .hero-badge,
+[data-component="hero"].hero-dark .hero-badge {
+  background: var(--color-white-alpha-25);
+  color: var(--color-white);
+  border-color: var(--color-white-alpha-35);
+}
+
+/* Dark background variant (no image) */
+[data-component="hero"].hero-dark {
+  background: var(--gradient-header, var(--color-primary));
+}
+
+/* Gradient background variant - colors and angle configurable via CSS custom properties */
+[data-component="hero"].hero-gradient {
+  --hero-start: var(--color-primary);
+  --hero-end: var(--color-secondary);
+  --hero-angle: 135deg;
+  background: linear-gradient(var(--hero-angle), var(--hero-start) 0%, var(--hero-end) 100%);
+}
+
+[data-component="hero"].hero-gradient .hero-title,
+[data-component="hero"].hero-gradient .hero-subtitle {
+  color: var(--color-white);
+}
+
+[data-component="hero"].hero-gradient .hero-subtitle {
+  color: var(--color-white-alpha-95);
+}
+
+/* Full bleed - breaks out of container to span full viewport width */
+[data-component="hero"].hero-full-bleed {
+  width: auto;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  border-radius: 0;
+}
+
+/* Flush top - hero sits directly against the header.
+   Padding removal is handled by main#content:has() in 02-layout.css.
+   This class is retained as the semantic marker that triggers the :has() rule. */
+[data-component="hero"].hero-flush-top {
+  margin-top: 0;
+}
+
+/* Split hero - Image on one side, content on other */
+[data-component="hero"].hero-split {
+  flex-direction: row;
+  text-align: left;
+  padding: 0;
+  min-height: 70vh;
+}
+
+[data-component="hero"].hero-split .hero-content {
+  flex: 1;
+  padding: var(--space-12);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+[data-component="hero"].hero-split .hero-image {
+  flex: 1;
+  min-height: 100%;
+}
+
+[data-component="hero"].hero-split .hero-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+[data-component="hero"].hero-split .hero-cta {
+  justify-content: flex-start;
+}
+
+/* Reverse split (image on left) */
+[data-component="hero"].hero-split.hero-reverse {
+  flex-direction: row-reverse;
+}
+
+@media (max-width: 768px) {
+  [data-component="hero"] {
+    min-height: 50vh;
+    padding: var(--space-8) var(--space-4);
+  }
+
+  [data-component="hero"].hero-split {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  [data-component="hero"].hero-split.hero-reverse {
+    flex-direction: column;
+  }
+
+  [data-component="hero"].hero-split .hero-content {
+    padding: var(--space-8) var(--space-4);
+    order: 2;
+  }
+
+  [data-component="hero"].hero-split .hero-image {
+    min-height: 40vh;
+    order: 1;
+  }
+
+  [data-component="hero"].hero-split .hero-cta {
+    justify-content: center;
+  }
+}

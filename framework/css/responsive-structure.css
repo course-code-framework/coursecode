@@ -1,0 +1,210 @@
+/* ============================================================================
+   RESPONSIVE STRUCTURE - App shell, header chrome, footer/nav/audio chrome
+   ============================================================================
+
+   PURPOSE:
+   - Holds responsive behavior for framework chrome and shell structure.
+   - Keeps `responsive.css` focused on shared content/component responsiveness.
+
+   IMPORTANT:
+   - If a layout (article/focused/presentation/traditional) owns a responsive
+     behavior in layout/component DATA-LAYOUT rules, generic structure selectors
+     here must exclude that layout to avoid cascade conflicts.
+   ============================================================================ */
+
+/* ============================================================================
+   LARGE DESKTOP (>= 1440px)
+   ============================================================================ */
+
+html.bp-min-large-desktop #app {
+  max-width: 1440px;
+  height: 100%;
+  margin: 0 auto;
+}
+
+/* ============================================================================
+   DESKTOP (<= 1439px)
+   ============================================================================ */
+
+html.bp-max-desktop #app {
+  margin: 0;
+  max-width: none;
+  height: 100%;
+}
+
+/* ============================================================================
+   TABLET PORTRAIT (<= 1023px)
+   ============================================================================ */
+
+html.bp-max-tablet-portrait #app {
+  margin: 0;
+  border-radius: 0;
+  height: 100%;
+}
+
+/* Header at tablet portrait: tighter spacing but keep row layout */
+html.bp-max-tablet-portrait header {
+  gap: var(--space-2);
+}
+
+html.bp-max-tablet-portrait #app > header h1 {
+  font-size: var(--font-size-lg);
+}
+
+html.bp-max-tablet-portrait #accessibility-menu {
+  right: var(--space-4);
+}
+
+/* Footer at tablet portrait: tighter gaps but keep row layout
+   Exclude article/focused - these layouts own footer behavior. */
+html.bp-max-tablet-portrait:not([data-layout="article"]):not([data-layout="focused"]) .nav-controls {
+  gap: var(--space-2);
+}
+
+/* ============================================================================
+   MOBILE LANDSCAPE (<= 767px)
+   ============================================================================ */
+
+html.bp-max-mobile-landscape #app {
+  margin: 0;
+  border-radius: 0;
+  height: 100%;
+}
+
+/* Mobile header: compact single-row layout */
+html.bp-max-mobile-landscape header {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: var(--space-2);
+}
+
+html.bp-max-mobile-landscape #brand {
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+html.bp-max-mobile-landscape #brand img.logo {
+  height: 36px;
+  padding: var(--space-1);
+  padding-left: 0;
+}
+
+html.bp-max-mobile-landscape #brand .brand-title {
+  font-size: var(--font-size-base);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html.bp-max-mobile-landscape #app > header h1 {
+  font-size: var(--font-size-base);
+}
+
+/* Hide header progress and breadcrumbs on mobile to save space */
+html.bp-max-mobile-landscape .header-progress {
+  display: none !important;
+}
+
+html.bp-max-mobile-landscape .breadcrumbs {
+  display: none !important;
+}
+
+/* Generic mobile footer/nav/audio structure (traditional/default-like layouts).
+   Exclude article/focused - they define mobile footer/nav/audio in DATA-LAYOUT rules. */
+html.bp-max-mobile-landscape:not([data-layout="article"]):not([data-layout="focused"]) .nav-controls {
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: var(--space-2);
+}
+
+/* Mobile footer: Previous/Next fill the row, Exit hidden (moved to sidebar) */
+html.bp-max-mobile-landscape:not([data-layout="article"]):not([data-layout="focused"]) .nav-nav-buttons {
+  display: flex;
+  gap: var(--space-2);
+  flex: 1;
+  width: auto;
+}
+
+html.bp-max-mobile-landscape:not([data-layout="article"]):not([data-layout="focused"]) .nav-nav-buttons button {
+  flex: 1;
+  width: auto;
+  padding: var(--space-2) var(--space-3);
+}
+
+html.bp-max-mobile-landscape:not([data-layout="article"]):not([data-layout="focused"]) .nav-exit-button {
+  display: none;
+}
+
+html.bp-max-mobile-landscape:not([data-layout="article"]):not([data-layout="focused"]) .app-footer button {
+  width: auto;
+}
+
+/* Mobile footer: stacked layout with audio on top */
+html.bp-max-mobile-landscape:not([data-layout="article"]):not([data-layout="focused"]) .app-footer {
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+html.bp-max-mobile-landscape:not([data-layout="article"]):not([data-layout="focused"]) .nav-controls {
+  width: 100%;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Audio player: full width, above nav buttons, compact variant */
+html.bp-max-mobile-landscape:not([data-layout="article"]):not([data-layout="focused"]) #audio-player {
+  width: 100%;
+  order: -1;
+  margin-left: 0;
+}
+
+html.bp-max-mobile-landscape:not([data-layout="article"]):not([data-layout="focused"]) .audio-player-controls {
+  width: 100%;
+  justify-content: center;
+  gap: var(--space-1);
+  background: var(--bg-surface);
+  border: var(--border-width-md) solid var(--border-default);
+}
+
+/* Hide progress bar and time on mobile (compact variant) */
+html.bp-max-mobile-landscape:not([data-layout="article"]):not([data-layout="focused"]) .audio-progress-container,
+html.bp-max-mobile-landscape:not([data-layout="article"]):not([data-layout="focused"]) .audio-time {
+  display: none;
+}
+
+/* Nav buttons: row layout filling width */
+html.bp-max-mobile-landscape:not([data-layout="article"]):not([data-layout="focused"]) .nav-nav-buttons {
+  width: 100%;
+  justify-content: center;
+}
+
+/* ============================================================================
+   MOBILE PORTRAIT (<= 479px)
+   ============================================================================ */
+
+html.bp-max-mobile-portrait #app {
+  margin: 0;
+  border-radius: 0;
+  height: 100%;
+}
+
+/* Mobile portrait: even tighter header */
+html.bp-max-mobile-portrait #brand img.logo {
+  height: 32px;
+  padding-left: 0;
+}
+
+html.bp-max-mobile-portrait #brand .brand-title {
+  font-size: var(--font-size-sm);
+}
+
+html.bp-max-mobile-portrait #app > header h1 {
+  font-size: var(--font-size-sm);
+}
+
+/* Exclude article/focused - layout-specific button sizing takes precedence */
+html.bp-max-mobile-portrait:not([data-layout="article"]):not([data-layout="focused"]) .app-footer button {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-sm);
+}

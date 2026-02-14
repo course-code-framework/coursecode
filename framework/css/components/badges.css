@@ -1,0 +1,80 @@
+/* ============================================================================
+   BADGES
+   Small status indicators and labels
+   ============================================================================
+   
+   Usage:
+     <span class="badge badge-primary">New</span>
+     <span class="badge badge-success">Complete</span>
+     <span class="badge badge-warning">In Progress</span>
+   
+   Variants:
+     .badge-primary    - Primary color
+     .badge-secondary  - Gray
+     .badge-accent     - Accent color
+     .badge-success    - Green
+     .badge-warning    - Yellow/orange
+     .badge-danger      - Red
+     .badge-info       - Blue
+   
+   ============================================================================ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+  border: var(--border-width-thin) solid color-mix(in srgb, currentColor 16%, transparent);
+}
+
+.badge-primary {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.badge-secondary {
+  background: var(--bg-muted);
+  color: var(--color-gray-700);
+}
+
+.badge-accent {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+}
+
+.badge-success {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.badge-warning {
+  background: var(--color-warning-light);
+  color: var(--color-warning-text);
+}
+
+.badge-danger {
+  background: var(--color-danger-light);
+  color: var(--color-danger-text);
+}
+
+.badge-info {
+  background: var(--color-info-light);
+  color: var(--color-info);
+}
+
+/* Variant: outline treatment */
+.badge-outline {
+  background: transparent;
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+/* Variant: explicitly borderless */
+.badge-borderless {
+  border-color: transparent;
+}

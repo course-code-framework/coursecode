@@ -1,0 +1,128 @@
+        /* Edit Mode (live preview only) */
+        #stub-player-edit-mode-btn {
+            display: none;
+        }
+
+        #stub-player-edit-mode-btn.visible {
+            display: inline-flex;
+        }
+
+        #stub-player-edit-mode-btn.active {
+            background: transparent !important;
+            border-color: var(--color-warning) !important;
+            color: var(--color-warning) !important;
+            box-shadow: none;
+        }
+
+        #stub-player-edit-mode-btn.active:hover {
+            background: color-mix(in srgb, var(--color-warning) 12%, transparent) !important;
+            border-color: var(--color-warning-bright) !important;
+            color: var(--color-warning-bright) !important;
+        }
+
+        .edit-mode-active [data-edit-path]:not(:has([data-edit-path])) {
+            outline: 2px dashed transparent;
+            outline-offset: 2px;
+            transition: outline-color 0.15s;
+            cursor: text;
+        }
+
+        .edit-mode-active [data-edit-path]:not(:has([data-edit-path])):hover {
+            outline-color: var(--color-info);
+            background: rgba(74, 111, 165, 0.1);
+        }
+
+        .edit-mode-active [data-interaction-id] {
+            cursor: pointer;
+        }
+
+        .edit-mode-active [data-interaction-id]:hover {
+            outline: 2px dashed var(--color-warning);
+            outline-offset: 2px;
+            background: color-mix(in srgb, var(--color-warning) 8%, transparent);
+        }
+
+        /* Formatting toolbar (injected into iframe) */
+        .stub-player-format-toolbar {
+            position: absolute;
+            display: flex;
+            gap: 2px;
+            padding: 4px;
+            background: var(--color-primary);
+            border: 1px solid var(--color-primary-panel);
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            z-index: 999999;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .stub-player-format-toolbar button {
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: var(--color-primary-deep);
+            color: var(--color-gray-200);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+
+        .stub-player-format-toolbar button:hover {
+            background: var(--color-primary-panel);
+            color: var(--color-white);
+        }
+
+        .stub-player-format-toolbar button.active {
+            background: var(--color-info);
+            color: var(--color-white);
+        }
+
+        .stub-player-format-toolbar .separator {
+            width: 1px;
+            background: var(--color-primary-panel);
+            margin: 4px 2px;
+        }
+
+        /* Context menu (injected into iframe for element removal) */
+        .stub-player-context-menu {
+            position: fixed;
+            background: var(--color-primary);
+            border: 1px solid var(--color-primary-panel);
+            border-radius: 6px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+            z-index: 9999999;
+            min-width: 120px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 13px;
+            overflow: hidden;
+        }
+
+        .stub-player-context-menu button {
+            width: 100%;
+            padding: 8px 12px;
+            background: none;
+            border: none;
+            color: var(--color-gray-200);
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stub-player-context-menu button:hover {
+            background: var(--color-primary-panel);
+        }
+
+        .stub-player-context-menu button.danger {
+            color: var(--color-danger-soft);
+        }
+
+        .stub-player-context-menu button.danger:hover {
+            background: rgba(243, 91, 4, 0.2);
+        }

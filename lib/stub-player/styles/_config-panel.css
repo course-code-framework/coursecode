@@ -1,0 +1,636 @@
+        /* Config panel - Floating Window Style (matches Debug panel)
+         * To switch back to sidebar style, comment out the "Floating" block
+         * and uncomment the "Sidebar" block below.
+         */
+
+        /* === Floating Style (current) === */
+        #stub-player-config-panel {
+            position: fixed;
+            top: 48px;
+            right: 16px;
+            width: 420px;
+            max-width: 90vw;
+            max-height: calc(100vh - 64px);
+            background: var(--color-primary);
+            color: var(--color-gray-200);
+            border-radius: 8px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+            z-index: 999997;
+            display: none;
+            flex-direction: column;
+            font-size: 13px;
+        }
+
+        #stub-player-config-panel.visible {
+            display: flex;
+        }
+
+        /* === Sidebar Style (alternative) ===
+        #stub-player-config-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 400px;
+            max-width: 90vw;
+            height: 100%;
+            background: var(--color-primary);
+            color: var(--color-gray-200);
+            z-index: 999997;
+            display: none;
+            flex-direction: column;
+            font-size: 13px;
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.4);
+            border-left: 1px solid var(--color-primary-panel);
+        }
+
+        #stub-player-config-panel.visible {
+            display: flex;
+        }
+        */
+
+        #stub-player-config-panel-header {
+            padding: 12px 16px;
+            background: var(--color-primary-deep);
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--color-primary-panel);
+            flex-shrink: 0;
+        }
+
+        #stub-player-config-panel-header h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        #stub-player-config-panel-header button {
+            background: none;
+            border: none;
+            color: var(--color-gray-650);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0;
+        }
+
+        #stub-player-config-panel-header button:hover {
+            color: var(--color-white);
+        }
+
+        #stub-player-config-tabs {
+            display: flex;
+            background: var(--color-primary-deep);
+            border-bottom: 1px solid var(--color-primary-panel);
+            flex-shrink: 0;
+        }
+
+        #stub-player-config-tabs button {
+            flex: 1;
+            padding: 10px 12px;
+            background: none;
+            border: none;
+            color: var(--color-gray-650);
+            cursor: pointer;
+            font-size: 12px;
+            border-bottom: 2px solid transparent;
+            transition: all 0.15s;
+        }
+
+        #stub-player-config-tabs button:hover {
+            color: var(--color-gray-400);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        #stub-player-config-tabs button.active {
+            color: var(--color-warning);
+            border-bottom-color: var(--color-warning);
+            background: rgba(241, 135, 1, 0.08);
+        }
+
+        #stub-player-config-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            max-height: 500px;
+        }
+
+        .config-section {
+            margin-bottom: 16px;
+        }
+
+        .config-section-header {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--color-gray-700);
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--color-primary-panel);
+        }
+
+        .config-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--color-primary-panel);
+        }
+
+        .config-row:last-child {
+            border-bottom: none;
+        }
+
+        .config-label {
+            font-size: 12px;
+            color: var(--color-info-soft);
+        }
+
+        .config-value {
+            font-size: 12px;
+            color: var(--color-white);
+        }
+
+        .config-row select {
+            background: var(--color-primary-deep);
+            border: 1px solid var(--color-primary-panel);
+            color: var(--color-white);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .config-row select:focus {
+            outline: none;
+            border-color: var(--color-info);
+        }
+
+        .config-toggle {
+            position: relative;
+            width: 30px;
+            height: 16px;
+            background: var(--color-primary-panel);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .config-toggle.on {
+            background: var(--color-success);
+        }
+
+        .config-toggle::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 12px;
+            height: 12px;
+            background: var(--color-white);
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+
+        .config-toggle.on::after {
+            transform: translateX(14px);
+        }
+
+        .config-divider {
+            height: 1px;
+            background: linear-gradient(to right, transparent, var(--color-primary-panel), transparent);
+            margin: 8px 0;
+        }
+
+        .config-input {
+            flex: 1;
+            max-width: 180px;
+            background: var(--color-primary-deep);
+            border: 1px solid var(--color-primary-panel);
+            border-radius: 6px;
+            padding: 6px 10px;
+            color: var(--color-gray-200);
+            font-size: 12px;
+        }
+
+        .config-input:focus {
+            outline: none;
+            border-color: var(--color-info);
+        }
+
+        .config-input::placeholder {
+            color: var(--color-gray-750);
+        }
+
+        .config-loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--color-gray-750);
+        }
+
+        .config-error {
+            background: rgba(243, 91, 4, 0.1);
+            border: 1px solid var(--color-danger);
+            border-radius: 6px;
+            padding: 12px;
+            color: var(--color-danger-soft);
+            font-size: 12px;
+        }
+
+        .config-readonly {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            padding: 8px;
+            font-family: monospace;
+            font-size: 10px;
+            color: var(--color-gray-600);
+            overflow-x: auto;
+            max-height: 200px;
+        }
+
+        .config-slide-info {
+            background: rgba(74, 111, 165, 0.1);
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .config-slide-info .slide-title {
+            font-weight: 600;
+            color: var(--color-white);
+            margin-bottom: 4px;
+        }
+
+        .config-slide-info .slide-id {
+            font-size: 11px;
+            color: var(--color-gray-750);
+            font-family: monospace;
+        }
+
+        /* Slide tab specific styles */
+        .config-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .config-badge-slide {
+            background: rgba(74, 111, 165, 0.2);
+            color: var(--color-info-soft);
+        }
+
+        .config-badge-assessment {
+            background: rgba(139, 48, 32, 0.3);
+            color: var(--color-danger-soft);
+        }
+
+        .config-path {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 11px;
+            color: var(--color-gray-600);
+            background: rgba(0, 0, 0, 0.2);
+            padding: 2px 6px;
+            border-radius: 3px;
+            word-break: break-all;
+        }
+
+        .config-subsection {
+            margin-top: 12px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 6px;
+        }
+
+        .config-subsection-header {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--color-gray-700);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .config-requirements-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .config-requirement-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 6px 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+
+        .config-requirement-type {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--color-warning);
+        }
+
+        .config-requirement-details {
+            font-size: 10px;
+            color: var(--color-gray-600);
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        /* Objectives tab styles */
+        .config-objective-card {
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .config-objective-header {
+            margin-bottom: 8px;
+        }
+
+        .config-objective-id {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--color-warning);
+        }
+
+        .config-objective-description {
+            font-size: 13px;
+            color: var(--color-gray-200);
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        /* Theme color picker styles */
+        .config-hint {
+            font-size: 11px;
+            color: var(--color-gray-750);
+            margin-bottom: 12px;
+            font-style: italic;
+        }
+
+        .config-color-row {
+            gap: 8px;
+        }
+
+        .config-color-row .config-label {
+            min-width: 72px;
+            flex-shrink: 0;
+        }
+
+        .config-color-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .config-color-picker {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border: 2px solid var(--color-primary-panel);
+            border-radius: 6px;
+            cursor: pointer;
+            background: none;
+        }
+
+        .config-color-picker::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .config-color-picker::-webkit-color-swatch {
+            border: none;
+            border-radius: 4px;
+        }
+
+        .config-color-picker::-moz-color-swatch {
+            border: none;
+            border-radius: 4px;
+        }
+
+        .config-color-hex {
+            width: 80px;
+            background: var(--color-primary-deep);
+            border: 1px solid var(--color-primary-panel);
+            border-radius: 4px;
+            padding: 4px 8px;
+            color: var(--color-gray-200);
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 11px;
+        }
+
+        .config-color-hex:focus {
+            outline: none;
+            border-color: var(--color-info);
+        }
+
+        .config-color-hex::placeholder {
+            color: var(--color-gray-750);
+        }
+
+        .config-color-reset {
+            width: 24px;
+            height: 24px;
+            background: rgba(243, 91, 4, 0.15);
+            border: 1px solid rgba(243, 91, 4, 0.3);
+            border-radius: 4px;
+            color: var(--color-danger);
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+
+        .config-color-reset:hover {
+            background: rgba(243, 91, 4, 0.25);
+            border-color: var(--color-danger);
+        }
+
+        .config-override-badge {
+            font-size: 9px;
+            text-transform: uppercase;
+            font-weight: 600;
+            background: rgba(29, 118, 72, 0.2);
+            color: var(--color-success-soft);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        .config-override-hint {
+            font-size: 9px;
+            text-transform: uppercase;
+            font-weight: 600;
+            background: color-mix(in srgb, var(--color-warning) 20%, transparent);
+            color: var(--color-warning);
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-left: 8px;
+            cursor: help;
+        }
+
+        .config-row select:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Engagement tab */
+        .config-description {
+            color: var(--color-gray-600);
+            font-size: 11px;
+            margin: 4px 0 12px;
+        }
+
+        .config-empty {
+            color: var(--color-gray-750);
+            font-size: 12px;
+            margin: 8px 0;
+        }
+
+        .engagement-slide-card {
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .engagement-slide-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--color-primary-panel);
+        }
+
+        .engagement-slide-title {
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--color-warning);
+        }
+
+        .engagement-slide-status {
+            font-size: 10px;
+            font-weight: 500;
+            text-transform: uppercase;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        .engagement-slide-status.active {
+            background: rgba(29, 118, 72, 0.2);
+            color: var(--color-success-soft);
+        }
+
+        .engagement-slide-status.inactive {
+            background: rgba(107, 114, 128, 0.2);
+            color: var(--color-gray-750);
+        }
+
+        .engagement-req-group {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--color-primary-panel);
+        }
+
+        .engagement-req-group:last-of-type {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .engagement-req-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .engagement-req-number {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--color-info-soft);
+        }
+
+        .engagement-req-remove {
+            background: none;
+            border: none;
+            color: var(--color-gray-750);
+            padding: 2px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.15s;
+        }
+
+        .engagement-req-remove:hover {
+            background: rgba(243, 91, 4, 0.15);
+            color: var(--color-danger);
+        }
+
+        .engagement-req-add {
+            background: var(--color-primary-panel);
+            border: none;
+            color: var(--color-info-soft);
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            margin-top: 8px;
+            transition: all 0.15s;
+        }
+
+        .engagement-req-add:hover {
+            background: var(--color-primary-panel);
+            color: var(--color-info-muted);
+        }
+
+        /* Slide tab: gating condition editor */
+        .gating-conditions-list {
+            margin-top: 8px;
+        }
+
+        .gating-condition-item {
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 6px;
+            padding: 8px;
+            margin-bottom: 6px;
+        }
+
+        .gating-condition-type-row {
+            margin-bottom: 6px;
+        }
+
+        .gating-condition-type-controls {
+            margin-left: auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .gating-condition-type {
+            min-width: 168px;
+        }
+
+        .gating-remove-btn {
+            background: color-mix(in srgb, var(--color-danger) 60%, var(--color-black));
+            border: none;
+            color: var(--color-white);
+            padding: 2px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            line-height: 1.2;
+            transition: background 0.15s;
+        }
+
+        .gating-remove-btn:hover {
+            background: var(--color-danger);
+        }
