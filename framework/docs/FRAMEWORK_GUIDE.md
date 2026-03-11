@@ -123,7 +123,7 @@ The browser only downloads the one chunk matching the meta tag. Unused driver ch
 | `coursecode build` | `dist/` | Universal build + format manifest + meta tag stamped |
 | `coursecode build` (with `PACKAGE=true`) | `dist/` + ZIP | Same + format-specific ZIP for LMS upload |
 | `coursecode preview --export` | `course-preview/` | Copy of `dist/` wrapped in stub player (for Netlify/GitHub Pages) |
-| `coursecode deploy` | Uploads `dist/` | Cloud hosts universal build, assembles format ZIPs on demand |
+| `coursecode deploy` | Uploads `dist/` | Cloud hosts universal build, assembles format ZIPs on demand. Flags: `--promote` (force live), `--stage` (force staged), `--preview` (preview-only: production untouched, preview always moved), `--repair-binding` (clear stale local cloud binding first if the remote course was deleted). `--promote`/`--stage` are mutually exclusive; `--preview` stacks with either. **GitHub-linked courses**: production deploy blocked; only `--preview` allowed (see GitHub Source Guard below). |
 
 The ZIP never includes preview/stub player assets. Preview is a separate concern (see below).
 
@@ -525,12 +525,12 @@ When cloud meta tags are present, they **always win** — even if `course-config
 | Utility | Config Key | Meta Tag | Transport | Events |
 |---------|-----------|----------|-----------|--------|
 | `error-reporter.js` | `environment.errorReporting` | `cc-error-endpoint` | POST per error (60s dedup) | `*:error` (14 event types) |
-| `data-reporter.js` | `environment.dataReporting` | `cc-data-endpoint` | Batched POST + `sendBeacon` on unload | `assessment:submitted`, `objective:updated`, `interaction:recorded` |
+| `data-reporter.js` | `environment.dataReporting` | `cc-data-endpoint` | Batched POST + `sendBeacon` on unload | `assessment:submitted`, `objective:updated`, `interaction:recorded`, `course:statusChanged`, `channel:message` |
 | `course-channel.js` | `environment.channel` | `cc-channel-endpoint` + `cc-channel-id` | POST to send, SSE to receive | `channel:message`, `channel:connected`, `channel:disconnected` |
 
 **Error Reporter** — Subscribes to all `*:error` events, deduplicates by domain+operation+message (60s window), POSTs to endpoint. Optional `enableUserReports: true` adds "Report Issue" to settings menu. `submitUserReport()` for programmatic user reports.
 
-**Data Reporter** — Queues assessment/objective/interaction records, flushes on batch size (default 10) or timer (default 30s). `sendBeacon` fallback on page unload.
+**Data Reporter** — Queues assessment/objective/interaction/session/channel records, flushes on batch size (default 10) or timer (default 30s). `sendBeacon` fallback on page unload. Also listens to `course:statusChanged` (queues a `session` record on completion) and `channel:message` (queues a `channel` record). Exposes `CourseCode.reportData(type, data)` for course authors to send custom event types.
 
 **Course Channel** — Generic pub/sub pipe. `sendChannelMessage(data)` POSTs any JSON to `endpoint/channelId`. SSE listener on same URL bridges incoming messages to EventBus. Exponential backoff reconnect (1s → 30s cap). Content-agnostic — the relay is a dumb fan-out router.
 
@@ -609,6 +609,20 @@ User: coursecode build → uploads dist/
 **Cloud dependencies:** The cloud app imports `stampFormat` and `generateManifest` directly from the `coursecode` npm package. These are pure functions — no filesystem, no Vite, no dynamic imports of user code, no `eval`. All inputs (title, version, file list) come from scanning the uploaded `dist/` or the cloud's own database.
 
 **Security boundary:** The cloud never executes `course-config.js` or any user-authored JavaScript. The meta tag and manifest are the only format-specific artifacts, and both are generated from trusted framework source code.
+
+#### GitHub Source Guard
+
+Courses linked to GitHub for production deploys are protected from accidental CLI overwrites via two layers:
+
+| Layer | Mechanism | Key |
+|-------|-----------|-----|
+| **CLI (local)** | `deploy()` reads `sourceType` from `.coursecoderc.json` | Fast fail before build — no wasted time |
+| **Server (safety net)** | Deploy endpoint rejects non-preview uploads for `source_type = 'github'` | Can't bypass via old CLI or `curl` |
+
+- **`--preview` always allowed** — useful for testing without touching production pointer
+- **`.coursecoderc.json`** carries `sourceType` and `githubRepo` (committed to repo by cloud's GitHub integration), so anyone cloning gets the guard automatically
+- **Self-healing on unlink:** If the cloud course is unlinked from GitHub, both `status()` and `deploy()` reconcile — they detect the server no longer reports `source_type: 'github'` and clear the local `sourceType`/`githubRepo` from `.coursecoderc.json`. No manual cleanup or repo commit needed.
+- CLI error code: `github_source_blocked` (structured JSON for Desktop/CI consumers)
 
 ---
 
@@ -1122,7 +1136,7 @@ Exposed globally via `CourseCode.breakpointManager`.
 
 ## Adding New Interaction Types
 
-> **Course Authors:** See `course/interactions/PLUGIN_GUIDE.md`. Steps below are for framework developers.
+> **Course Authors:** See "Extending with Plugins" in `framework/docs/USER_GUIDE.md`. Steps below are for framework developers.
 
 1. Create file in `framework/js/components/interactions/`
 2. Export `create(container, config)`, `metadata`, and `schema`

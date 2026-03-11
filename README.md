@@ -191,6 +191,12 @@ When ready, deploy:
 coursecode deploy
 ```
 
+If the cloud course was deleted but the project still has the old local binding, redeploy with:
+
+```bash
+coursecode deploy --repair-binding
+```
+
 **Without Cloud**: Build a ZIP package and upload it to your LMS manually:
 
 ```bash

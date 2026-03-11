@@ -441,6 +441,11 @@
   --sidebar-scrollbar-thumb-hover: var(--color-gray-400); /* Sidebar scrollbar thumb (hover) */
   --sidebar-backdrop: var(--bg-overlay);                 /* Sidebar overlay backdrop color */
 
+  /* Scrollbar Tokens (global, content area) */
+  --scrollbar-thumb: var(--color-gray-300);              /* Scrollbar thumb */
+  --scrollbar-thumb-hover: var(--color-gray-400);        /* Scrollbar thumb (hover) */
+  --scrollbar-track: transparent;                        /* Scrollbar track background */
+
   /* Footer Tokens */
   --footer-bg: var(--bg-surface);                        /* Footer background */
   --footer-text: var(--text-primary);                    /* Footer text color */
@@ -678,6 +683,9 @@
   --sidebar-scrollbar-thumb: var(--color-gray-500);
   --sidebar-scrollbar-thumb-hover: var(--color-gray-400);
   --sidebar-backdrop: color-mix(in srgb, var(--palette-black) 38%, transparent);
+  --scrollbar-thumb: var(--color-gray-500);
+  --scrollbar-thumb-hover: var(--color-gray-400);
+  --scrollbar-track: transparent;
   --footer-bg: var(--bg-surface);
   --footer-text: var(--text-primary);
   --footer-border: var(--border-default);

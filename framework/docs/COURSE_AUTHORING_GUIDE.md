@@ -660,7 +660,7 @@ createLikertQuestion({
 
 ### Custom Interactions
 
-Add a `.js` file to `course/interactions/`. File `rating-scale.js` → factory `CourseCode.createRatingScaleQuestion()`. See `course/interactions/PLUGIN_GUIDE.md`.
+Add a `.js` file to `course/interactions/`. File `rating-scale.js` → factory `CourseCode.createRatingScaleQuestion()`. See "Extending with Plugins" in `framework/docs/USER_GUIDE.md`.
 
 ### Interaction Methods
 

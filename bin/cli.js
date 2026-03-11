@@ -20,6 +20,34 @@ import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
 
+// =============================================================================
+// CORPORATE NETWORK: System CA cert injection
+//
+// On corporate machines with SSL-inspecting proxies (e.g. Zscaler), the proxy
+// presents its own CA certificate. Node.js ships its own CA bundle and ignores
+// the OS trust store, so TLS verification fails.
+//
+// Windows: win-ca injects certs directly into Node's TLS context (in-process,
+//          no subprocess, no re-exec). Works regardless of PowerShell policy.
+// macOS/Linux: exports OS certs to a temp PEM file and re-execs with
+//              NODE_EXTRA_CA_CERTS. The guard prevents an infinite loop.
+// =============================================================================
+
+if (!process.env.NODE_EXTRA_CA_CERTS) {
+  const { injectSystemCerts } = await import('../lib/cloud-certs.js');
+  const certPath = await injectSystemCerts();
+  if (certPath) {
+    // macOS/Linux: re-exec with NODE_EXTRA_CA_CERTS pointing to PEM file
+    const { execFileSync } = await import('child_process');
+    execFileSync(process.execPath, process.argv.slice(1), {
+      env: { ...process.env, NODE_EXTRA_CA_CERTS: certPath },
+      stdio: 'inherit',
+    });
+    process.exit(0);
+  }
+  // Windows: win-ca already injected certs in-process — continue normally
+}
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
 
@@ -138,12 +166,13 @@ program
 // Convert command
 program
   .command('convert [source]')
-  .description('Convert docx, pptx, and pdf files to markdown for course authoring')
+  .description('Convert docx, pptx, and pdf files to markdown for course authoring (PDF JSON sidecars optional)')
   .option('-o, --output <dir>', 'Output directory for converted files', './course/references/converted')
   .option('-f, --format <type>', 'Limit to format: docx, pptx, pdf, or all', 'all')
   .option('--dry-run', 'Show what would be converted without writing files')
   .option('--overwrite', 'Overwrite existing markdown files')
   .option('--flatten', 'Output all files to single directory (no subdirs)')
+  .option('--pdf-json', 'Also write PDF structure JSON sidecars (.json) next to converted markdown')
   .action(async (source = './course/references', options) => {
     const { convert } = await import('../lib/convert.js');
     await convert(source, options);
@@ -200,7 +229,6 @@ program
   .description('Send a test error to verify error reporting is configured correctly')
   .option('-t, --type <type>', 'Type of test: error or report', 'error')
   .option('-m, --message <message>', 'Custom message to include in the test')
-  .option('--insecure', 'Skip TLS certificate verification (for corporate proxies)')
   .action(async (options) => {
     const { testErrorReporting } = await import('../lib/test-error-reporting.js');
     await testErrorReporting(options);
@@ -212,7 +240,6 @@ program
   .description('Send a test data record to verify data reporting is configured correctly')
   .option('-t, --type <type>', 'Type of record: assessment, objective, or interaction', 'assessment')
   .option('-m, --message <message>', 'Custom message to include in the test')
-  .option('--insecure', 'Skip TLS certificate verification (for corporate proxies)')
   .action(async (options) => {
     const { testDataReporting } = await import('../lib/test-data-reporting.js');
     await testDataReporting(options);
@@ -280,20 +307,22 @@ program
   .command('login')
   .description('Log in to CourseCode Cloud')
   .option('--local', 'Use local Cloud instance (http://localhost:3000)')
+  .option('--json', 'Emit machine-readable JSON (for GUI/desktop integration)')
   .action(async (options) => {
     const { login, setLocalMode } = await import('../lib/cloud.js');
     if (options.local) setLocalMode();
-    await login();
+    await login({ json: options.json });
   });
 
 program
   .command('logout')
   .description('Log out of CourseCode Cloud')
   .option('--local', 'Use local Cloud instance (http://localhost:3000)')
+  .option('--json', 'Emit machine-readable JSON')
   .action(async (options) => {
     const { logout, setLocalMode } = await import('../lib/cloud.js');
     if (options.local) setLocalMode();
-    await logout();
+    await logout({ json: options.json });
   });
 
 program
@@ -311,19 +340,24 @@ program
   .command('courses')
   .description('List courses on CourseCode Cloud')
   .option('--local', 'Use local Cloud instance (http://localhost:3000)')
+  .option('--json', 'Output raw JSON array')
   .action(async (options) => {
     const { listCourses, setLocalMode } = await import('../lib/cloud.js');
     if (options.local) setLocalMode();
-    await listCourses();
+    await listCourses({ json: options.json });
   });
 
 program
   .command('deploy')
   .description('Build and deploy course to CourseCode Cloud')
-  .option('--preview', 'Deploy as preview (expires in 7 days)')
-  .option('--password', 'Password-protect preview (interactive prompt)')
+  .option('--preview', 'Deploy as preview-only (production untouched, preview pointer always moved). Combine with --promote or --stage for a full deploy that also moves the preview pointer.')
+  .option('--promote', 'Force-promote: always move production pointer regardless of deploy_mode setting. Mutually exclusive with --stage.')
+  .option('--stage', 'Force-stage: never move production pointer regardless of deploy_mode setting. Mutually exclusive with --promote.')
+  .option('--repair-binding', 'Clear a stale local Cloud binding if the remote course was deleted, then continue')
+  .option('--password', 'Password-protect preview (interactive prompt, requires --preview)')
   .option('-m, --message <message>', 'Deploy reason (e.g. "Fixed accessibility issues")')
   .option('--local', 'Use local Cloud instance (http://localhost:3000)')
+  .option('--json', 'Emit machine-readable JSON result')
   .action(async (options) => {
     const { deploy, setLocalMode } = await import('../lib/cloud.js');
     if (options.local) setLocalMode();
@@ -331,13 +365,64 @@ program
   });
 
 program
+  .command('promote')
+  .description('Promote a deployment to production or preview pointer')
+  .option('--production', 'Promote to the production pointer')
+  .option('--preview', 'Promote to the preview pointer')
+  .option('--deployment <id>', 'Deployment ID to promote (skip interactive prompt)')
+  .option('--repair-binding', 'Clear a stale local Cloud binding if the remote course was deleted')
+  .option('-m, --message <message>', 'Reason for promotion')
+  .option('--local', 'Use local Cloud instance (http://localhost:3000)')
+  .option('--json', 'Emit machine-readable JSON result')
+  .action(async (options) => {
+    const { promote, setLocalMode } = await import('../lib/cloud.js');
+    if (options.local) setLocalMode();
+    await promote(options);
+  });
+
+
+program
   .command('status')
   .description('Show deployment status for current course')
+  .option('--repair-binding', 'Clear a stale local Cloud binding if the remote course was deleted')
   .option('--local', 'Use local Cloud instance (http://localhost:3000)')
+  .option('--json', 'Output raw JSON')
   .action(async (options) => {
     const { status, setLocalMode } = await import('../lib/cloud.js');
     if (options.local) setLocalMode();
-    await status();
+    await status({ json: options.json, repairBinding: options.repairBinding });
+  });
+
+program
+  .command('preview-link')
+  .description('Show or update the Cloud preview link for the current course')
+  .option('--enable', 'Enable the preview link. Creates one if missing.')
+  .option('--disable', 'Disable the preview link')
+  .option('--password [password]', 'Set or update the preview password. Prompts if no value is provided.')
+  .option('--remove-password', 'Remove the preview password')
+  .option('--format <format>', 'Preview format: cmi5, scorm2004, scorm1.2')
+  .option('--expires-at <iso>', 'Set preview expiry timestamp (ISO 8601)')
+  .option('--expires-in-days <days>', 'Set preview expiry relative to now')
+  .option('--repair-binding', 'Clear a stale local Cloud binding if the remote course was deleted')
+  .option('--local', 'Use local Cloud instance (http://localhost:3000)')
+  .option('--json', 'Output raw JSON')
+  .action(async (options) => {
+    const { previewLink, setLocalMode } = await import('../lib/cloud.js');
+    if (options.local) setLocalMode();
+    await previewLink(options);
+  });
+
+program
+  .command('delete')
+  .description('Remove course from CourseCode Cloud (does not delete local files)')
+  .option('--force', 'Skip confirmation prompt')
+  .option('--repair-binding', 'Clear a stale local Cloud binding if the remote course was already deleted')
+  .option('--local', 'Use local Cloud instance (http://localhost:3000)')
+  .option('--json', 'Emit machine-readable JSON result')
+  .action(async (options) => {
+    const { deleteCourse, setLocalMode } = await import('../lib/cloud.js');
+    if (options.local) setLocalMode();
+    await deleteCourse({ force: options.force, json: options.json, repairBinding: options.repairBinding });
   });
 
 program.parse();

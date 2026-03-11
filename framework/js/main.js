@@ -48,7 +48,7 @@ import { logger } from './utilities/logger.js';
 import { iconManager } from './utilities/icons.js';
 import { breakpointManager } from './utilities/breakpoint-manager.js';
 import { initErrorReporter } from './utilities/error-reporter.js';
-import { initDataReporter } from './utilities/data-reporter.js';
+import { initDataReporter, reportData } from './utilities/data-reporter.js';
 import { initCourseChannel } from './utilities/course-channel.js';
 import { canvasSlide } from './utilities/canvas-slide.js';
 
@@ -98,7 +98,10 @@ window.CourseCode = {
 
     // Core
     eventBus,
-    courseConfig
+    courseConfig,
+
+    // Data reporting public API
+    reportData,
 };
 
 // --- Conditional Automation Module Loading ---

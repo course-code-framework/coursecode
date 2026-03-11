@@ -68,7 +68,11 @@ export class Cmi5Driver extends HttpDriverBase {
 
         // Check for cmi5 dev API (stub player or standalone preview)
         // Search current window and parent frame (stub player injects on parent)
-        const devApi = typeof window !== 'undefined' && (window.cmi5 || (window.parent !== window && window.parent.cmi5));
+        // Try/catch guards against DOMException in cross-origin iframes
+        let devApi = typeof window !== 'undefined' && window.cmi5;
+        if (!devApi && typeof window !== 'undefined' && window.parent !== window) {
+            try { devApi = window.parent.cmi5; } catch (_e) { /* cross-origin parent */ }
+        }
         if (devApi) {
             logger.info('[Cmi5Driver] Using cmi5 development API');
             this._mock = true;
@@ -82,12 +86,15 @@ export class Cmi5Driver extends HttpDriverBase {
 
         // Check for cmi5 launch parameters
         if (!this._hasLaunchParameters()) {
-            logger.info('[Cmi5Driver] No cmi5 launch parameters. Using localStorage mock.');
-            this._mock = true;
-            this._loadMockState();
-            this._isConnected = true;
-            this._logMockStatement('initialized', { verb: 'initialized' });
-            return true;
+            if (import.meta.env.DEV) {
+                logger.info('[Cmi5Driver] No cmi5 launch parameters. Using localStorage mock.');
+                this._mock = true;
+                this._loadMockState();
+                this._isConnected = true;
+                this._logMockStatement('initialized', { verb: 'initialized' });
+                return true;
+            }
+            throw new Error('[Cmi5Driver] No cmi5 launch parameters detected. Expected fetch, endpoint, actor, registration, and activityId URL parameters.');
         }
 
         // Production mode: dynamically import @xapi/cmi5

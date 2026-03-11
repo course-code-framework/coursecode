@@ -43,7 +43,12 @@ A complete guide to creating interactive e-learning courses with AI assistance. 
    - [Learning Objectives](#learning-objectives)
    - [Course Completion Feedback](#course-completion-feedback)
    - [Updating Live Courses Safely](#updating-live-courses-safely)
-8. [Sharing and Deploying](#sharing-and-deploying)
+8. [Extending with Plugins](#extending-with-plugins)
+   - [Custom Interactions](#custom-interactions)
+   - [Custom UI Components](#custom-ui-components)
+   - [Custom Icons](#custom-icons)
+   - [Custom Styles](#custom-styles)
+9. [Sharing and Deploying](#sharing-and-deploying)
    - [Sharing Previews](#sharing-previews)
    - [Preview Export Options](#preview-export-options)
    - [Understanding LMS Formats](#understanding-lms-formats)
@@ -51,8 +56,8 @@ A complete guide to creating interactive e-learning courses with AI assistance. 
    - [CDN Deployment (Advanced)](#cdn-deployment-advanced)
    - [Cloud Deployment](#cloud-deployment)
    - [Exporting Content for Review](#exporting-content-for-review)
-9. [Generating Audio Narration](#generating-audio-narration)
-10. [Troubleshooting](#troubleshooting)
+10. [Generating Audio Narration](#generating-audio-narration)
+11. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -514,6 +519,93 @@ Best practice: set and increment `metadata.version` in `course/course-config.js`
 
 ---
 
+## Extending with Plugins
+
+CourseCode has a built-in plugin system. You can extend it with your own interaction types, UI components, icons, and styles — all auto-discovered from your `course/` folder without any framework changes.
+
+| Extension Point | Where to Put It | What It Adds |
+|-----------------|-----------------|-------------|
+| Custom interactions | `course/interactions/*.js` | New question/activity types |
+| Custom UI components | `course/components/*.js` | New reusable HTML components |
+| Custom icons | `course/icons.js` | New icons available everywhere |
+| Custom styles | `course/theme.css` | Global CSS for your plugins and brand |
+
+Plugins are just JavaScript files that follow a simple contract. Your AI assistant can write them — describe what you want and share `framework/docs/USER_GUIDE.md` (see "Extending with Plugins") as context.
+
+### Custom Interactions
+
+Create a new question or activity type by dropping a `.js` file in `course/interactions/`. It registers automatically.
+
+A minimal plugin exports one function:
+
+```javascript
+// course/interactions/rating-scale.js
+export function create(container, config) {
+  let response = null;
+  container.innerHTML = `<div data-interaction-id="${config.id}">...</div>`;
+  return {
+    getResponse: () => response,
+    setResponse: (val) => { response = val; },
+    checkAnswer: () => ({ correct: response === config.correctAnswer, score: 1 }),
+    reset: () => { response = null; }
+  };
+}
+```
+
+Then use it in a slide:
+
+```javascript
+const rating = CourseCode.createRatingScaleQuestion(container, {
+  id: 'my-rating',
+  prompt: 'How would you rate this?',
+  options: ['Poor', 'Fair', 'Good', 'Excellent']
+});
+```
+
+The factory name is derived from the filename: `rating-scale.js` → `createRatingScaleQuestion`.
+
+For a complete example with schema and metadata (which enable linting and AI tooling), see the "Extending with Plugins" section in `framework/docs/USER_GUIDE.md`.
+
+### Custom UI Components
+
+Add reusable HTML components (info boxes, custom cards, branded banners) by dropping a `.js` file in `course/components/`. Use them in slides via `data-component`:
+
+```html
+<div data-component="info-box" data-icon="warning">
+  Important note here
+</div>
+```
+
+See the "Extending with Plugins" section in `framework/docs/USER_GUIDE.md` for the component contract.
+
+### Custom Icons
+
+Add icons to `course/icons.js` and they're available throughout the course:
+
+```javascript
+// course/icons.js
+export const customIcons = {
+  'rocket': '<path d="M12 2L8 8H4l8 14 8-14h-4L12 2z" />'
+};
+```
+
+### Custom Styles
+
+`course/theme.css` is always loaded. It's the right place for plugin-specific CSS as well as brand colors and fonts:
+
+```css
+/* course/theme.css */
+:root {
+  --primary: #0066cc;
+}
+
+.info-box { border-left: 4px solid var(--primary); padding: 1rem; }
+```
+
+Use CSS variables from the design system (`--primary`, `--border`, `--radius`, etc.) so your plugins automatically respect the course theme.
+
+---
+
 ## Sharing and Deploying
 
 ### Sharing Previews
@@ -614,17 +706,47 @@ coursecode deploy    # Build + upload to cloud
 Cloud-served launches also auto-configure runtime error reporting, data reporting, and channel relay endpoints (zero-config cloud wiring).
 If you configured manual endpoints in `course-config.js` for self-hosted workflows, Cloud launches override them with cloud-injected runtime config.
 
-**What CourseCode Cloud helps with (plain English):**
-- Host your course online so learners/reviewers can access it without you manually hosting files
-- Generate the LMS package you need later (SCORM/cmi5) from the same upload
-- Share preview links for stakeholder review
-- Manage deployment updates without rebuilding separate packages for each LMS format
-- Provide cloud-managed runtime services (reporting/channel) without extra endpoint setup in your course files
+**Signing in (`coursecode login`):**
 
-**Typical Cloud workflow (CLI):**
-1. Run `coursecode login` once and sign in.
+Running `coursecode login` displays a URL and a short code in your terminal:
+
+```
+  ┌─────────────────────────────────────────────────────┐
+  │  Open this URL in your browser:                     │
+  │  https://coursecodecloud.com/activate               │
+  │                                                     │
+  │  Enter your code:  ABCD-1234                        │
+  │                                                     │
+  │  Expires in 15 minutes                              │
+  └─────────────────────────────────────────────────────┘
+```
+
+Open the URL in any browser, log in with your CourseCode account, and enter the code. The terminal confirms login automatically — no redirect back required. The code is valid for 15 minutes and works from any device or browser.
+
+**Deploy flags:**
+
+`coursecode deploy` accepts flags that control how the production and preview pointers are updated after upload:
+
+| Command | Production pointer | Preview pointer |
+|---|---|---|
+| `cc deploy` | Follows your deploy_mode setting | Follows your preview_deploy_mode setting |
+| `cc deploy --promote` | Always moved to new version | Follows your preview_deploy_mode setting |
+| `cc deploy --stage` | Never moved (stays on old version) | Follows your preview_deploy_mode setting |
+| `cc deploy --preview` | **Untouched** (preview-only upload) | Always moved to new version |
+| `cc deploy --promote --preview` | Always moved to new version | Always moved to new version |
+| `cc deploy --stage --preview` | Never moved | Always moved to new version |
+
+- **Production pointer** — the version learners see when they launch your course.
+- **Preview pointer** — the version served on the cloud preview link (for stakeholder review).
+- **deploy_mode** — a per-course or org setting in the Cloud dashboard. Default is auto-promote (new uploads immediately go live). Can be set to staged (new uploads require a manual promote step).
+- `--promote` and `--stage` are mutually exclusive.
+- **GitHub-linked courses:** If your course is connected to a GitHub repo in the Cloud dashboard, production deploys happen via `git push` — the CLI blocks direct production uploads. Use `coursecode deploy --preview` to push a preview build for stakeholder review.
+- If a cloud deployment was deleted outside the CLI and this project still has the old local binding, rerun with `coursecode deploy --repair-binding`. To clear the stale binding without deploying yet, run `coursecode status --repair-binding`.
+
+**Typical Cloud workflow:**
+1. Run `coursecode login` once, open the URL shown, and enter the code.
 2. Run `coursecode deploy` from your project folder.
-3. Open the CourseCode Cloud course page/dashboard link shown after deploy.
+3. Open the CourseCode Cloud dashboard link shown after deploy.
 4. Use Cloud preview links for review.
 5. Download the LMS format you need from Cloud when you're ready to deliver.
 

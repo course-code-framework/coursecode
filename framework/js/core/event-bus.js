@@ -1,10 +1,38 @@
 import { generateId } from '../utilities/utilities.js';
 import { logger } from '../utilities/logger.js';
 
+/**
+ * Safely serialize any value for logging. Handles circular references,
+ * Error instances, and oversized payloads without throwing.
+ */
+function safeStringify(data, maxLength = 4096) {
+  const seen = new WeakSet();
+  try {
+    const json = JSON.stringify(data, (key, value) => {
+      if (value instanceof Error) {
+        return { name: value.name, message: value.message, stack: value.stack };
+      }
+      if (typeof value === 'object' && value !== null) {
+        if (seen.has(value)) return '[Circular]';
+        seen.add(value);
+      }
+      return value;
+    }, 2);
+    if (json && json.length > maxLength) {
+      return json.slice(0, maxLength) + '...[truncated]';
+    }
+    return json;
+  } catch {
+    return `[Unserializable: ${typeof data}]`;
+  }
+}
+
 class EventBus {
   constructor() {
     // Event listeners registry
     this.events = {};
+    // Re-entrancy guard — prevents infinite :error → log → :error cascade
+    this._emittingError = false;
   }
 
   /**
@@ -86,31 +114,50 @@ class EventBus {
       return false;
     }
 
-    // Automatically log events that follow the ':error' naming convention
-    if (event.endsWith(':error')) {
-      logger.error(`[EventBus Error] ${event}:`, JSON.stringify(data, null, 2));
+    const isErrorEvent = event.endsWith(':error');
+
+    // Re-entrancy guard — if we're already inside an :error emit,
+    // suppress to prevent infinite cascade
+    if (isErrorEvent) {
+      if (this._emittingError) {
+        console.warn(`[EventBus] Suppressed recursive error event: ${event}`);
+        return false;
+      }
+      this._emittingError = true;
     }
 
-    // Create a copy of listeners to avoid issues if listeners modify the array
-    const listeners = [...this.events[event]];
-    const onceListeners = [];
-
-    listeners.forEach(listener => {
-      try {
-        listener.callback(data);
-
-        // Track once listeners for removal
-        if (listener.once) {
-          onceListeners.push(listener.id);
-        }
-      } catch (error) {
-        // Log the error but don't break other listeners
-        logger.error(`[EventBus] Error in listener for '${event}':`, error);
+    try {
+      // Automatically log events that follow the ':error' naming convention
+      if (isErrorEvent) {
+        logger.error(`[EventBus Error] ${event}:`, safeStringify(data));
       }
-    });
 
-    // Remove once listeners
-    onceListeners.forEach(id => this.off(event, id));
+      // Create a copy of listeners to avoid issues if listeners modify the array
+      const listeners = [...this.events[event]];
+      const onceListeners = [];
+
+      listeners.forEach(listener => {
+        try {
+          listener.callback(data);
+
+          // Track once listeners for removal
+          if (listener.once) {
+            onceListeners.push(listener.id);
+          }
+        } catch (error) {
+          // Log the error but don't break other listeners — use safeStringify
+          // to prevent a secondary cascade from unserializable error objects
+          logger.error(`[EventBus] Error in listener for '${event}':`, safeStringify(error));
+        }
+      });
+
+      // Remove once listeners
+      onceListeners.forEach(id => this.off(event, id));
+    } finally {
+      if (isErrorEvent) {
+        this._emittingError = false;
+      }
+    }
 
     return true;
   }

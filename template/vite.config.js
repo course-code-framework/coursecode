@@ -104,8 +104,9 @@ function validatePackage(format = 'scorm2004') {
     if (fs.existsSync(ltiPath)) {
       try {
         const toolConfig = JSON.parse(fs.readFileSync(ltiPath, 'utf-8'));
-        if (!toolConfig.title || !toolConfig.target_link_uri) {
-          errors.push('Generated lti-tool-config.json missing required fields (title, target_link_uri)');
+        const ltiSpec = toolConfig['https://purl.imsglobal.org/spec/lti-tool-configuration'];
+        if (!toolConfig.client_name || !ltiSpec?.target_link_uri) {
+          errors.push('Generated lti-tool-config.json missing required fields (client_name, target_link_uri)');
         }
       } catch {
         errors.push('Generated lti-tool-config.json is not valid JSON');

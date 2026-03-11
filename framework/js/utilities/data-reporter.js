@@ -1,8 +1,9 @@
 /**
  * Data Reporter - Optional external learning data reporting via webhook
  * 
- * Batches important learning records (assessments, objectives, interactions) and
- * sends them to a configured endpoint. Works across all LMS formats.
+ * Batches important learning records (assessments, objectives, interactions,
+ * session completion, channel messages, and custom events) and sends them
+ * to a configured endpoint. Works across all LMS formats.
  * 
  * Configuration in course-config.js:
  *   environment: {
@@ -13,6 +14,9 @@
  *           includeContext: true     // Include course metadata (default: true)
  *       }
  *   }
+ * 
+ * Public API:
+ *   CourseCode.reportData(type, data) — Queue a custom record for reporting
  */
 
 import { eventBus } from '../core/event-bus.js';
@@ -39,7 +43,7 @@ const DEFAULT_FLUSH_INTERVAL = 30000; // 30 seconds
 
 /**
  * Queue a record for batched sending
- * @param {string} type - Record type: 'assessment', 'objective', 'interaction', 'session'
+ * @param {string} type - Record type (assessment, objective, interaction, session, channel, or custom)
  * @param {Object} data - Record data
  */
 function queueRecord(type, data) {
@@ -231,6 +235,26 @@ function handleInteractionRecorded(interaction) {
 }
 
 /**
+ * Handle course completion / status change
+ * Only reports when the course reaches 'completed' status.
+ */
+function handleCourseStatusChanged({ completionStatus, successStatus }) {
+    if (completionStatus !== 'completed') return;
+
+    queueRecord('session', {
+        completionStatus,
+        successStatus: successStatus || 'unknown'
+    });
+}
+
+/**
+ * Handle incoming channel messages — log them as 'channel' records
+ */
+function handleChannelMessage(data) {
+    queueRecord('channel', data);
+}
+
+/**
  * Handle session termination - flush remaining records
  */
 function handleBeforeTerminate() {
@@ -282,10 +306,12 @@ export function initDataReporter(courseConfig) {
 
     logger.info('[DataReporter] Initialized with endpoint:', config.endpoint);
 
-    // Subscribe to important events
+    // Subscribe to learning events
     eventBus.on('assessment:submitted', handleAssessmentSubmitted);
     eventBus.on('objective:updated', handleObjectiveUpdated);
     eventBus.on('interaction:recorded', handleInteractionRecorded);
+    eventBus.on('course:statusChanged', handleCourseStatusChanged);
+    eventBus.on('channel:message', handleChannelMessage);
     eventBus.on('session:beforeTerminate', handleBeforeTerminate);
 
     // Emergency flush on page hide (catches tab close, navigation away)
@@ -293,4 +319,24 @@ export function initDataReporter(courseConfig) {
         window.addEventListener('pagehide', emergencyFlush);
         window.addEventListener('beforeunload', emergencyFlush);
     }
+}
+
+/**
+ * Public API: Queue a custom data record for reporting.
+ * Exposed on window.CourseCode.reportData so course authors can send
+ * arbitrary events to the configured data endpoint.
+ *
+ * @param {string} type - Record type name (e.g. 'custom-metric', 'survey-response')
+ * @param {Object} data - Record data payload
+ */
+export function reportData(type, data) {
+    if (!type || typeof type !== 'string') {
+        logger.warn('[DataReporter] reportData: type must be a non-empty string');
+        return;
+    }
+    if (!data || typeof data !== 'object') {
+        logger.warn('[DataReporter] reportData: data must be an object');
+        return;
+    }
+    queueRecord(type, data);
 }

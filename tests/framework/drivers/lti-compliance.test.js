@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { LtiDriver } from '../../../framework/js/drivers/lti-driver.js';
 
 // ─── LTI 1.3 Specification Compliance Tests ──────────────────────────
@@ -19,15 +19,15 @@ const LTI_SPEC = {
     // These claim URIs are defined by the IMS spec. Using wrong URIs
     // means the tool won't validate against conformant platforms.
     claims: {
-        messageType:    'https://purl.imsglobal.org/spec/lti/claim/message_type',
-        version:        'https://purl.imsglobal.org/spec/lti/claim/version',
-        deploymentId:   'https://purl.imsglobal.org/spec/lti/claim/deployment_id',
-        resourceLink:   'https://purl.imsglobal.org/spec/lti/claim/resource_link',
-        roles:          'https://purl.imsglobal.org/spec/lti/claim/roles',
-        context:        'https://purl.imsglobal.org/spec/lti/claim/context',
+        messageType: 'https://purl.imsglobal.org/spec/lti/claim/message_type',
+        version: 'https://purl.imsglobal.org/spec/lti/claim/version',
+        deploymentId: 'https://purl.imsglobal.org/spec/lti/claim/deployment_id',
+        resourceLink: 'https://purl.imsglobal.org/spec/lti/claim/resource_link',
+        roles: 'https://purl.imsglobal.org/spec/lti/claim/roles',
+        context: 'https://purl.imsglobal.org/spec/lti/claim/context',
         launchPresentation: 'https://purl.imsglobal.org/spec/lti/claim/launch_presentation',
-        targetLinkUri:  'https://purl.imsglobal.org/spec/lti/claim/target_link_uri',
-        ags:            'https://purl.imsglobal.org/spec/lti-ags/claim/endpoint'
+        targetLinkUri: 'https://purl.imsglobal.org/spec/lti/claim/target_link_uri',
+        ags: 'https://purl.imsglobal.org/spec/lti-ags/claim/endpoint'
     },
 
     // ── Required Message Type (Section 5.1.1) ──
@@ -66,7 +66,7 @@ const LTI_SPEC = {
     // ── LTI Roles (Section 5.3.7) ──
     // Common role URIs (subset of full spec)
     roleUris: {
-        learner:    'http://purl.imsglobal.org/vocab/lis/v2/membership#Learner',
+        learner: 'http://purl.imsglobal.org/vocab/lis/v2/membership#Learner',
         instructor: 'http://purl.imsglobal.org/vocab/lis/v2/membership#Instructor'
     }
 };
@@ -339,5 +339,104 @@ describe('LTI 1.3 Spec: AGS Score Payload', () => {
         await driver._postScore();
 
         expect(capturedRequests).toHaveLength(0);
+    });
+});
+
+// ═════════════════════════════════════════════════════════════════════
+// Tests: Cloud-Hosted LTI Detection
+// ═════════════════════════════════════════════════════════════════════
+
+describe('LTI Driver: Cloud-Hosted Detection', () => {
+    let driver;
+    let origDocument, origWindow;
+
+    beforeEach(() => {
+        driver = new LtiDriver();
+        origDocument = globalThis.document;
+        origWindow = globalThis.window;
+    });
+
+    afterEach(() => {
+        globalThis.document = origDocument;
+        globalThis.window = origWindow;
+    });
+
+    it('_hasLaunchParameters returns true when lms-format meta tag is "lti"', () => {
+        globalThis.window = { location: { search: '', hash: '' } };
+        globalThis.document = {
+            querySelector: (selector) => {
+                if (selector === 'meta[name="lms-format"]') {
+                    return { content: 'lti' };
+                }
+                return null;
+            }
+        };
+
+        expect(driver._hasLaunchParameters()).toBe(true);
+    });
+
+    it('_hasLaunchParameters returns false when no meta tag and no URL params', () => {
+        globalThis.window = { location: { search: '', hash: '' } };
+        globalThis.document = {
+            querySelector: () => null
+        };
+
+        expect(driver._hasLaunchParameters()).toBe(false);
+    });
+
+    it('_hasLaunchParameters returns true with id_token in URL', () => {
+        globalThis.window = { location: { search: '?id_token=eyJ0eXAi&state=abc', hash: '' } };
+        globalThis.document = {
+            querySelector: () => null
+        };
+
+        expect(driver._hasLaunchParameters()).toBe(true);
+    });
+
+    it('_resolveCloudClaims reads from meta tag', () => {
+        const claims = { sub: 'user-123', name: 'Cloud User' };
+        globalThis.document = {
+            querySelector: (selector) => {
+                if (selector === 'meta[name="cc-lti-claims"]') {
+                    return { content: JSON.stringify(claims) };
+                }
+                return null;
+            }
+        };
+        globalThis.window = {};
+
+        const result = driver._resolveCloudClaims();
+        expect(result.sub).toBe('user-123');
+        expect(result.name).toBe('Cloud User');
+    });
+
+    it('_resolveCloudClaims falls back to window.__LTI_CONFIG__', () => {
+        const claims = { sub: 'config-user' };
+        globalThis.document = { querySelector: () => null };
+        globalThis.window = { __LTI_CONFIG__: { claims } };
+
+        const result = driver._resolveCloudClaims();
+        expect(result.sub).toBe('config-user');
+    });
+
+    it('_resolveCloudAgsEndpoint reads from meta tag', () => {
+        globalThis.document = {
+            querySelector: (selector) => {
+                if (selector === 'meta[name="cc-lti-ags"]') {
+                    return { content: 'https://engine.example.com/ags/lineitem/1' };
+                }
+                return null;
+            }
+        };
+        globalThis.window = {};
+
+        expect(driver._resolveCloudAgsEndpoint()).toBe('https://engine.example.com/ags/lineitem/1');
+    });
+
+    it('_resolveCloudAgsEndpoint returns null when not configured', () => {
+        globalThis.document = { querySelector: () => null };
+        globalThis.window = {};
+
+        expect(driver._resolveCloudAgsEndpoint()).toBeNull();
     });
 });

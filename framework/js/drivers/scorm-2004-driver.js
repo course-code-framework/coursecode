@@ -561,13 +561,27 @@ export class Scorm2004Driver extends ScormDriverBase {
      * Populates the CMI cache at init time. Single LMS read pass.
      */
     _populateCache() {
-        // Read-only scalars
-        this._cmiCache.entry = this._getValue('cmi.entry') || '';
-        this._cmiCache.bookmark = this._getValue('cmi.location') || '';
-        this._cmiCache.completionStatus = this._getValue('cmi.completion_status') || 'unknown';
-        this._cmiCache.successStatus = this._getValue('cmi.success_status') || 'unknown';
-        this._cmiCache.learnerId = this._getValue('cmi.learner_id') || '';
-        this._cmiCache.learnerName = this._getValue('cmi.learner_name') || '';
+        // Helper: read a CMI value via strict _getValue, but tolerate error 403
+        // ("Data Model Element Value Not Initialized") which strict LMSes like
+        // SCORM Cloud return for unset elements on a fresh session.
+        // Any other SCORM error still throws through _getValue's normal path.
+        const getOrDefault = (key, fallback) => {
+            try {
+                return this._getValue(key) || fallback;
+            } catch (e) {
+                const code = this._scorm.debug.getCode();
+                if (code === 403) return fallback;
+                throw e;
+            }
+        };
+
+        // Read-only scalars (may be uninitialized on first launch)
+        this._cmiCache.entry = getOrDefault('cmi.entry', '');
+        this._cmiCache.bookmark = getOrDefault('cmi.location', '');
+        this._cmiCache.completionStatus = getOrDefault('cmi.completion_status', 'unknown');
+        this._cmiCache.successStatus = getOrDefault('cmi.success_status', 'unknown');
+        this._cmiCache.learnerId = getOrDefault('cmi.learner_id', '');
+        this._cmiCache.learnerName = getOrDefault('cmi.learner_name', '');
 
         // Skip array hydration for fresh sessions
         if (this._cmiCache.entry === 'ab-initio') {

@@ -70,7 +70,11 @@ export class LtiDriver extends HttpDriverBase {
 
         // Check for LTI dev API (stub player)
         // Search current window and parent frame (stub player injects on parent)
-        const devApi = typeof window !== 'undefined' && (window.lti || (window.parent !== window && window.parent.lti));
+        // Try/catch guards against DOMException in cross-origin iframes (LMS embeds)
+        let devApi = typeof window !== 'undefined' && window.lti;
+        if (!devApi && typeof window !== 'undefined' && window.parent !== window) {
+            try { devApi = window.parent.lti; } catch (_e) { /* cross-origin parent */ }
+        }
         if (devApi) {
             logger.info('[LtiDriver] Using LTI development API');
             this._mock = true;
@@ -84,12 +88,15 @@ export class LtiDriver extends HttpDriverBase {
 
         // Check for LTI launch parameters
         if (!this._hasLaunchParameters()) {
-            logger.info('[LtiDriver] No LTI launch parameters. Using localStorage mock.');
-            this._mock = true;
-            this._loadMockState();
-            this._isConnected = true;
-            this._logMockStatement('initialized', { verb: 'initialized' });
-            return true;
+            if (import.meta.env.DEV) {
+                logger.info('[LtiDriver] No LTI launch parameters. Using localStorage mock.');
+                this._mock = true;
+                this._loadMockState();
+                this._isConnected = true;
+                this._logMockStatement('initialized', { verb: 'initialized' });
+                return true;
+            }
+            throw new Error('[LtiDriver] No LTI launch context detected. Expected <meta name="lms-format" content="lti"> or id_token/state URL parameters.');
         }
 
         // Production mode: validate JWT and extract claims
@@ -248,6 +255,11 @@ export class LtiDriver extends HttpDriverBase {
     _hasLaunchParameters() {
         if (typeof window === 'undefined') return false;
 
+        // Cloud-hosted: engine handles OIDC server-side, signals via meta tag
+        const formatMeta = document.querySelector('meta[name="lms-format"]');
+        if (formatMeta?.content === 'lti') return true;
+
+        // Self-hosted: JWT params in URL from OIDC redirect
         const params = new URLSearchParams(window.location.search);
         return Boolean(
             params.get('id_token') ||
@@ -257,14 +269,26 @@ export class LtiDriver extends HttpDriverBase {
     }
 
     async _processLaunch() {
-        const { jwtVerify, createRemoteJWKSet } = await import('jose');
-
         const params = new URLSearchParams(window.location.search);
         const idToken = params.get('id_token');
 
+        // Cloud-hosted path: OIDC handled server-side, no JWT in URL
         if (!idToken) {
-            throw new Error('No id_token found in launch parameters');
+            this._claims = this._resolveCloudClaims();
+            this._stateEndpoint = this._resolveStateEndpoint();
+
+            const agsUrl = this._resolveCloudAgsEndpoint();
+            if (agsUrl) {
+                this._agsLineItemUrl = agsUrl;
+                logger.debug('[LtiDriver] Cloud AGS endpoint:', agsUrl);
+            }
+
+            logger.debug('[LtiDriver] Cloud-hosted launch. User:', this._claims?.sub || 'unknown');
+            return;
         }
+
+        // Self-hosted path: validate JWT from URL params
+        const { jwtVerify, createRemoteJWKSet } = await import('jose');
 
         const [headerB64] = idToken.split('.');
         const header = JSON.parse(atob(headerB64));
@@ -330,6 +354,37 @@ export class LtiDriver extends HttpDriverBase {
         if (window.__LTI_CONFIG__?.stateEndpoint) return window.__LTI_CONFIG__.stateEndpoint;
 
         return '/api/lti/state';
+    }
+
+    /**
+     * Resolves LTI claims from cloud-injected meta tags or config object.
+     * Used when OIDC is handled server-side (no JWT in URL).
+     */
+    _resolveCloudClaims() {
+        const meta = document.querySelector('meta[name="cc-lti-claims"]');
+        if (meta?.content) {
+            try {
+                return JSON.parse(meta.content);
+            } catch (e) {
+                logger.warn('[LtiDriver] Failed to parse cc-lti-claims meta tag:', e.message);
+            }
+        }
+
+        if (window.__LTI_CONFIG__?.claims) return window.__LTI_CONFIG__.claims;
+
+        throw new Error('[LtiDriver] Cloud LTI launch detected but no claims provided. Expected <meta name="cc-lti-claims"> or window.__LTI_CONFIG__.claims.');
+    }
+
+    /**
+     * Resolves AGS lineitem URL from cloud-injected meta tags or config object.
+     */
+    _resolveCloudAgsEndpoint() {
+        const meta = document.querySelector('meta[name="cc-lti-ags"]');
+        if (meta?.content) return meta.content;
+
+        if (window.__LTI_CONFIG__?.agsEndpoint) return window.__LTI_CONFIG__.agsEndpoint;
+
+        return null;
     }
 
     _getStateKey() {
