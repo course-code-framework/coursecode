@@ -1,22 +1,14 @@
 # CourseCode
 
-**Open-source, local-first course authoring with AI help — no coding required to start, full code control when you need it.**
+**Open-source, local-first course authoring built for AI tools like Claude Code, Codex, Cursor, and [CourseCode Desktop](https://coursecodedesktop.com) — no coding required to start, full code control when you need it.**
 
-CourseCode creates real project files you can inspect, version, and edit directly — with a predictable, file-based workflow instead of a black-box GUI.
+CourseCode creates real project files you can inspect, version, and edit directly — with a predictable, file-based workflow instead of a black-box GUI. Built-in MCP integration means your AI assistant connects directly to your course project.
 
 Bring your own PDFs, Word docs, or PowerPoints, use AI to accelerate authoring, and deploy to any LMS format without vendor lock-in or subscriptions.
 
-## Start Here
-
-Start with the workflow that fits you:
-
-- **Course authors (prefer buttons and guided setup):** Start with **[CourseCode Desktop](https://coursecodedesktop.com)** if you want the easiest path and do not want to deal with Node.js or terminal setup
-- **Course authors (prefer editing files and running commands):** Start with the **[User Guide](framework/docs/USER_GUIDE.md)** in this repo for the framework workflow
-- **AI assistants:** Use the AI-focused docs in `framework/docs/` (for example `COURSE_AUTHORING_GUIDE.md` and `FRAMEWORK_GUIDE.md`)
-
 ## Features
 
-- **MCP integration**: AI connects directly to your course — previews, screenshots, linting, and testing without manual file sharing
+- **MCP integration**: Works with Claude Code, Codex, Cursor, CourseCode Desktop, and any MCP-capable AI tool — previews, screenshots, linting, and testing without manual file sharing
 - **No coding required to start**: Describe what you want and let AI help build slides, interactions, and structure
 - **Full LMS integration**: SCORM 1.2, SCORM 2004, cmi5, and LTI with complete tracking records
 - **AI-assisted authoring workflow**: Structured guides and MCP tools for faster course development
@@ -35,9 +27,7 @@ Start with the workflow that fits you:
 
 ## Installation
 
-This section is for the **CourseCode Framework CLI** (file-based workflow using Node.js and terminal commands).
-
-If you want the easiest setup with buttons and guided steps, use **[CourseCode Desktop](https://coursecodedesktop.com)** instead.
+> **Prefer a GUI?** Use [CourseCode Desktop](https://coursecodedesktop.com) instead.
 
 ### Required
 
@@ -71,7 +61,7 @@ Open `http://localhost:4173` to view and edit your course.
 
 The example course included with every new project is a complete guide to using CourseCode.
 
-**New to CourseCode?** If you want the easiest setup, start with **[CourseCode Desktop](https://coursecodedesktop.com)**. If you're using the framework CLI, start with the [User Guide](framework/docs/USER_GUIDE.md).
+Start with the [User Guide](framework/docs/USER_GUIDE.md) for a complete walkthrough.
 
 ---
 
