@@ -662,9 +662,9 @@ Runs **in Node.js** during build (via `vite.framework-dev.config.js` `closeBundl
 
 **Errors fail the build; warnings print but don't block.**
 
-### MCP `coursecode_lint` — Unified Results
+### MCP `coursecode_lint` — Build-Time Only
 
-The MCP `coursecode_lint` tool always runs the build linter. When the preview server is running, it also merges runtime errors from the server's error log via HTTP (`/__lms/errors`). These are the same errors shown in the debug panel's Errors tab and returned by `coursecode_state` — LMS API misuse, console errors, uncaught exceptions, and data limit warnings. Runtime-sourced items are tagged with `source: 'runtime'` and `rule: 'runtime-error'`. The `runtimeLintIncluded` flag in the response indicates whether runtime errors were included. This gives AI agents a single tool for both static lint and runtime errors without needing a separate `coursecode_state` call.
+The MCP `coursecode_lint` tool runs the build linter (config validation, CSS class verification, structure checks). It does NOT include runtime errors. For runtime errors, contrast warnings, and other dynamic issues, use `coursecode_state` which returns `frameworkLogs` and `errors` from the preview server.
 
 ### Shared Rules (`lib/validation-rules.js`)
 
