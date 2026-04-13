@@ -662,6 +662,10 @@ Runs **in Node.js** during build (via `vite.framework-dev.config.js` `closeBundl
 
 **Errors fail the build; warnings print but don't block.**
 
+### MCP `coursecode_lint` — Unified Results
+
+The MCP `coursecode_lint` tool always runs the build linter. When the preview server is running and the headless browser is connected, it also merges runtime lint results (contrast, touch targets, spacing, layout) into the same response. Runtime-sourced items are tagged with `source: 'runtime'` and `rule: 'runtime-lint'`. The `runtimeLintIncluded` flag in the response indicates whether runtime checks were included. This gives AI agents a single, low-token-cost tool for all lint results without needing to pull the full course state via `coursecode_state`.
+
 ### Shared Rules (`lib/validation-rules.js`)
 
 Pure validation functions used by **both** linters. No environment-specific code (no DOM, no `fs`). Includes assessment validation, engagement validation, and result formatting.
