@@ -302,7 +302,7 @@ Once connected, your AI assistant gains these capabilities:
 | `coursecode_interaction_catalog` | Browse available interaction types (multiple choice, drag-drop, etc.) |
 | `coursecode_css_catalog` | Browse available CSS classes by category |
 | `coursecode_icon_catalog` | Browse available icons by name/category |
-| `coursecode_export_content` | Export course content/interactions as Markdown or JSON for review |
+
 | `coursecode_workflow_status` | Get guidance on what to do next based on your project's current state |
 | `coursecode_build` | Build the course for LMS deployment |
 
