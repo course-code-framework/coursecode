@@ -47,6 +47,20 @@
   height: 100%; /* Fill the entire grid cell height (for equal row heights) */
 }
 
+/* When multiple flip cards sit side-by-side in any grid or flex container,
+   align back-face content to the top so headings line up across cards.
+   :has(> .flip-card ~ .flip-card) matches any parent containing 2+ flip cards. */
+:has(> .flip-card ~ .flip-card) > .flip-card .flip-card-back {
+  justify-content: flex-start;
+}
+
+/* Back-face content stretches to fill the card and uses space-between
+   so the heading sits at top and remaining content anchors to bottom */
+:has(> .flip-card ~ .flip-card) > .flip-card .flip-card-back .flip-card-content {
+  flex: 1;
+  justify-content: space-between;
+}
+
 .flip-card-inner {
   display: grid; /* Grid allows both faces to contribute to height */
   width: 100%;
