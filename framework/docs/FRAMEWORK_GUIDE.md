@@ -664,7 +664,7 @@ Runs **in Node.js** during build (via `vite.framework-dev.config.js` `closeBundl
 
 ### MCP `coursecode_lint` — Build-Time Only
 
-The MCP `coursecode_lint` tool runs the build linter (config validation, CSS class verification, structure checks). It does NOT include runtime errors. For runtime errors, contrast warnings, and other dynamic issues, use `coursecode_state` which returns `frameworkLogs` and `errors` from the preview server.
+The MCP `coursecode_lint` tool runs the build linter (config validation, CSS class verification, structure checks). It does NOT include runtime errors. For runtime errors and contrast warnings, use `coursecode_errors` (lightweight — just errors and console logs) or `coursecode_state` (full state snapshot including errors).
 
 ### Shared Rules (`lib/validation-rules.js`)
 
@@ -873,6 +873,7 @@ If the preview is not running, runtime tools fail fast with a clear error messag
 | Tool | Purpose | Returns |
 |------|---------|--------|
 | `coursecode_state` | Full course snapshot | `{slide, toc, interactions, engagement, lmsState, apiLog, errors, frameworkLogs, consoleLogs}` |
+| `coursecode_errors` | Errors + console logs only | `{errors, consoleLogs, count, clean}` — same error sources as `coursecode_state`, without the state payload |
 | `coursecode_navigate` | Go to slide by ID | `{slide, interactions, engagement, accessibility}` |
 | `coursecode_interact` | Set response + evaluate | `{interactionId, response}` → `{correct, score, feedback}` |
 | `coursecode_screenshot` | Visual capture (JPEG) | Optional `slideId` to navigate first, `fullPage` for scroll capture |
