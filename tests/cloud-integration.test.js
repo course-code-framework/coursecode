@@ -101,15 +101,19 @@ describe('cloud integration', () => {
     });
   });
 
-  describe('deploy', () => {
-    it('rejects deploy without a zip file', async () => {
-      const res = await cloudRequest('/api/cli/courses/test-course/deploy', {
+  describe('ensure', () => {
+    it('POST /api/cli/courses/:slug/ensure resolves an existing course', async () => {
+      const res = await cloudRequest('/api/cli/courses/safety-orientation/ensure', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
       });
 
-      // Should be a client error (4xx), not a server crash (5xx)
-      expect(res.status).toBeGreaterThanOrEqual(400);
-      expect(res.status).toBeLessThan(500);
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data).toHaveProperty('courseId');
+      expect(data).toHaveProperty('orgId');
+      expect(data.courseId).toBe('11111111-1111-1111-1111-111111111111');
+      console.log(`    ✓ ensure: resolved ${data.courseId}`);
     });
   });
 
