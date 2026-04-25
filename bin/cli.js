@@ -38,12 +38,14 @@ if (!process.env.NODE_EXTRA_CA_CERTS) {
   const certPath = await injectSystemCerts();
   if (certPath) {
     // macOS/Linux: re-exec with NODE_EXTRA_CA_CERTS pointing to PEM file
-    const { execFileSync } = await import('child_process');
-    execFileSync(process.execPath, process.argv.slice(1), {
+    const { spawnSync } = await import('child_process');
+    const result = spawnSync(process.execPath, process.argv.slice(1), {
       env: { ...process.env, NODE_EXTRA_CA_CERTS: certPath },
       stdio: 'inherit',
     });
-    process.exit(0);
+    if (result.error) throw result.error;
+    if (result.signal) process.kill(process.pid, result.signal);
+    process.exit(result.status ?? 0);
   }
   // Windows: win-ca already injected certs in-process — continue normally
 }
@@ -425,4 +427,37 @@ program
     await deleteCourse({ force: options.force, json: options.json, repairBinding: options.repairBinding });
   });
 
-program.parse();
+// Centralized failure handler for async command actions. Friendly errors
+// (anything thrown with a non-Node-internal `.message`) are printed as-is;
+// raw Node/undici errors are reduced to their message + code so users never
+// see deep internal stack frames.
+function reportFatal(err) {
+  if (!err) {
+    console.error('coursecode: command failed');
+    process.exit(1);
+  }
+  if (err.isUploadError) {
+    console.error('\n✗ ' + err.message + '\n');
+    process.exit(1);
+  }
+  const code = (err.cause && err.cause.code) || err.code;
+  const msg = err.message || String(err);
+  console.error('\n✗ ' + msg + (code ? `  (${code})` : ''));
+  if (process.env.COURSECODE_DEBUG) {
+    console.error('\n' + (err.stack || ''));
+    if (err.cause) console.error('Caused by:', err.cause);
+  } else {
+    console.error('  Re-run with COURSECODE_DEBUG=1 for a full stack trace.');
+  }
+  console.error('');
+  process.exit(1);
+}
+
+process.on('unhandledRejection', reportFatal);
+process.on('uncaughtException', reportFatal);
+
+if (process.argv.length <= 2) {
+  program.help();
+}
+
+program.parseAsync().catch(reportFatal);

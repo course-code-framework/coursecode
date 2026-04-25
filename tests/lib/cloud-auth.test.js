@@ -34,7 +34,7 @@ function writeCredentials(tempHome, token = 'token-abc') {
   fs.mkdirSync(path.join(tempHome, '.coursecode'), { recursive: true });
   fs.writeFileSync(
     path.join(tempHome, '.coursecode', 'credentials.json'),
-    JSON.stringify({ token, cloud_url: 'https://coursecodecloud.com' }, null, 2)
+    JSON.stringify({ token }, null, 2)
   );
 }
 
