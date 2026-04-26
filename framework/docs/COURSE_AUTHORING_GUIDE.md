@@ -80,6 +80,8 @@ my-course/
 └── framework/
 ```
 
+**Static assets:** CourseCode serves common web/course asset types by extension: HTML, JS, CSS, JSON, XML, images (`png`, `jpg`, `svg`, `webp`, `avif`, `ico`), fonts (`woff`, `woff2`, `ttf`), audio/video, PDF, `csv`, `vtt`, `wasm`, `gltf/glb`, and source maps. Unknown extensions are treated as downloads.
+
 **Auto-export (macOS):** Uses AppleScript to drive Microsoft PowerPoint — exports each slide as PNG, then closes the file. Requires PowerPoint to be installed.
 
 **Manual fallback:** If PowerPoint isn't available, export slides to PNG manually (PowerPoint → File → Save As → PNG), then use `--slides-dir` to point at the exported folder.

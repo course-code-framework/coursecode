@@ -114,6 +114,8 @@ dist/assets/
   jose.js              ← Lazy chunk, only fetched by lti-driver.js
 ```
 
+CourseCode delivery serves static assets by file extension, not stored upload metadata. Supported course asset types include HTML, JS, CSS, JSON/XML, common images/fonts/audio/video, PDF, `csv`, `vtt`, `wasm`, `gltf/glb`, and source maps; unknown extensions are served as `application/octet-stream`.
+
 The browser only downloads the one chunk matching the meta tag. Unused driver chunks sit on disk (~20-30 KB each) and are never requested.
 
 #### Build Outputs by Scenario
