@@ -27,9 +27,6 @@ Thumbs.db
 *.swp
 *.swo
 
-# Narration cache
-.narration-cache.json
-
 # CourseCode Cloud (project binding)
 .coursecode/
 

@@ -141,6 +141,7 @@ program
   .option('-f, --force', 'Regenerate all narration (ignore cache)')
   .option('-s, --slide <id>', 'Generate narration for a specific slide only')
   .option('--dry-run', 'Preview what would be generated')
+  .option('--rebuild-cache', 'Rebuild .narration-cache.json from existing audio (no TTS calls)')
   .action(async (options) => {
     const { narration } = await import('../lib/narration.js');
     await narration(options);

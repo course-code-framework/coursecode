@@ -40,7 +40,7 @@ import {
     loadNarrationCache,
     narrationCacheKey,
     VOICE_SETTING_KEYS as _SHARED_VOICE_KEYS
-} from '../../lib/narration-parser.js';
+} from './narration-parser.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -65,6 +65,10 @@ const VERBOSE = args.includes('--verbose') || args.includes('-v');
 const SLIDE_FILTER = args.includes('--slide') ? args[args.indexOf('--slide') + 1] : null;
 const SHOW_PROVIDERS = args.includes('--providers') || args.includes('--provider');
 const SHOW_HELP = args.includes('--help') || args.includes('-h');
+// Rebuild .narration-cache.json from current slide text without calling any
+// TTS provider. Useful when audio is committed but the cache is missing
+// (e.g. after a fresh clone or migrating a project).
+const REBUILD_CACHE = args.includes('--rebuild-cache');
 
 /**
  * Load environment variables from .env file
@@ -224,7 +228,7 @@ function parseSlideNarration(filePath, baseName) {
 }
 
 // Removed: original inline parseSlideNarration / parseNarrationObject implementations
-// now live in lib/narration-parser.js so the build linter can reuse them.
+// now live in framework/scripts/narration-parser.js so the build linter can reuse them.
 
 /**
  * Main execution
@@ -244,11 +248,12 @@ async function main() {
 
 Usage:
    npm run narration                  Generate all changed narration
-   npm run narration -- --force       Regenerate all (ignore cache)
-   npm run narration -- --dry-run     Preview without generating
-   npm run narration -- --slide <id>  Generate specific slide only
-   npm run narration -- --providers   List available TTS providers
-   npm run narration -- --verbose     Show detailed output
+   npm run narration -- --force          Regenerate all (ignore cache)
+   npm run narration -- --dry-run        Preview without generating
+   npm run narration -- --slide <id>     Generate specific slide only
+   npm run narration -- --rebuild-cache  Rebuild cache from existing audio (no TTS calls)
+   npm run narration -- --providers      List available TTS providers
+   npm run narration -- --verbose        Show detailed output
 
 Provider Selection:
    Set TTS_PROVIDER env var to: elevenlabs, openai, or azure
@@ -266,17 +271,22 @@ Examples:
     // Load environment variables
     loadEnv();
     
-    // Initialize TTS provider
+    // Initialize TTS provider — skipped in --rebuild-cache mode since we
+    // never call the provider when only refreshing the cache file.
     let provider;
-    try {
-        provider = getActiveProvider();
-        provider.validateConfig();
-        const defaultVoice = provider.getDefaultVoiceId();
-        console.log(`🔊 Using TTS provider: ${provider.getName()} (voice: ${defaultVoice})\n`);
-    } catch (error) {
-        console.error(`❌ Provider error: ${error.message}\n`);
-        printProviderHelp();
-        process.exit(1);
+    if (REBUILD_CACHE) {
+        console.log('🔁 Rebuild-cache mode: hashing existing audio, no TTS calls.\n');
+    } else {
+        try {
+            provider = getActiveProvider();
+            provider.validateConfig();
+            const defaultVoice = provider.getDefaultVoiceId();
+            console.log(`🔊 Using TTS provider: ${provider.getName()} (voice: ${defaultVoice})\n`);
+        } catch (error) {
+            console.error(`❌ Provider error: ${error.message}\n`);
+            printProviderHelp();
+            process.exit(1);
+        }
     }
     
     // Load course config
@@ -375,7 +385,24 @@ Examples:
             const cacheKey = key === 'slide' ? source.src : `${source.src}#${key}`;
             const cachedHash = cache[cacheKey];
             const outputExists = fs.existsSync(outputPath);
-            
+
+            // --rebuild-cache: hash text+settings for existing audio and move on.
+            // Never call TTS, never write or delete audio files.
+            if (REBUILD_CACHE) {
+                if (outputExists) {
+                    newCache[cacheKey] = contentHash;
+                    skipped++;
+                    if (VERBOSE) {
+                        const label = key === 'slide' ? source.slideId : `${source.slideId}#${key}`;
+                        console.log(`   ✅ ${label}: cached (${path.relative(ROOT_DIR, outputPath)})`);
+                    }
+                } else if (VERBOSE) {
+                    const label = key === 'slide' ? source.slideId : `${source.slideId}#${key}`;
+                    console.log(`   ⏭️  ${label}: no audio yet, skipping`);
+                }
+                continue;
+            }
+
             if (cachedHash === contentHash && outputExists && !FORCE_REGENERATE) {
                 if (VERBOSE) {
                     const label = key === 'slide' ? source.slideId : `${source.slideId}#${key}`;

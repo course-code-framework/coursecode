@@ -9,7 +9,7 @@ import {
     narrationAudioPath,
     classifyNarrationFreshness,
     loadNarrationCache
-} from '../../lib/narration-parser.js';
+} from '../../framework/scripts/narration-parser.js';
 import { checkNarrationFreshness } from '../../lib/build-linter.js';
 
 let tmpRoot;
