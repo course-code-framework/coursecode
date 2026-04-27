@@ -32,9 +32,15 @@
 
 import fs from 'fs';
 import path from 'path';
-import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { getActiveProvider, printProviderHelp, listProviders as _listProviders } from './tts-providers/index.js';
+import {
+    parseSlideNarration as parseSlideNarrationShared,
+    hashContent,
+    loadNarrationCache,
+    narrationCacheKey,
+    VOICE_SETTING_KEYS as _SHARED_VOICE_KEYS
+} from '../../lib/narration-parser.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -48,8 +54,8 @@ const AUDIO_DIR = path.join(ASSETS_DIR, 'audio');
 const SLIDES_DIR = path.join(COURSE_DIR, 'slides');
 const CACHE_FILE = path.join(SCORM_TEMPLATE_DIR, '.narration-cache.json');
 
-// Reserved keys for voice settings (not narration content)
-const VOICE_SETTING_KEYS = ['voice_id', 'model_id', 'stability', 'similarity_boost', 'voice', 'model', 'speed', 'rate', 'pitch', 'style'];
+// Reserved keys for voice settings (not narration content) — re-exported from shared module
+const VOICE_SETTING_KEYS = _SHARED_VOICE_KEYS;
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -202,195 +208,23 @@ function categorizeAndFilterSources(sources) {
     return result;
 }
 
-/**
- * Load the narration cache
- */
+/** Load the narration cache (delegates to shared module) */
 function loadCache() {
-    if (fs.existsSync(CACHE_FILE)) {
-        try {
-            return JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'));
-        } catch {
-            return {};
-        }
-    }
-    return {};
+    return loadNarrationCache(CACHE_FILE);
 }
 
-/**
- * Save the narration cache
- */
+/** Save the narration cache */
 function saveCache(cache) {
     fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
 }
 
-/**
- * Calculate MD5 hash of content
- */
-function hashContent(content) {
-    return crypto.createHash('md5').update(content).digest('hex');
-}
-
-
-
-/**
- * Extract narration export from a slide file using static analysis.
- * This avoids importing the module (which would fail due to browser-only dependencies).
- * 
- * Supports:
- *   Simple string: export const narration = `text`;
- *   Object with text: export const narration = { text: `...`, voice_id: '...' };
- *   Multi-key object: export const narration = { slide: `...`, 'modal-id': `...`, 'tab-id': `...` };
- * 
- * Returns array of narration items with key, text, settings, outputPath
- */
+/** Wrapper that injects this script's AUDIO_DIR into the shared parser. */
 function parseSlideNarration(filePath, baseName) {
-    let content = fs.readFileSync(filePath, 'utf-8');
-    
-    // Remove block comments (/* ... */) to avoid matching examples in JSDoc
-    content = content.replace(/\/\*[\s\S]*?\*\//g, '');
-    
-    // Remove single-line comments (// ...)
-    content = content.replace(/\/\/.*$/gm, '');
-    
-    // Try to match the full narration export - look for the complete object/value
-    // This regex matches from 'export const narration =' until we hit another export, async, function, etc.
-    const exportMatch = content.match(/export\s+const\s+narration\s*=\s*([\s\S]*?);(?=\s*(?:export|async\s+function|function|const|let|var|class|\/\/|\/\*|$))/);
-    
-    if (!exportMatch) {
-        return null;
-    }
-    
-    const exportValue = exportMatch[1].trim();
-    
-    // Case 1: Simple template literal - export const narration = `text`;
-    if (exportValue.startsWith('`') && exportValue.endsWith('`')) {
-        const text = exportValue.slice(1, -1).trim();
-        return [{
-            key: 'slide',
-            text,
-            settings: {},
-            outputPath: path.join(AUDIO_DIR, `${baseName}.mp3`)
-        }];
-    }
-    
-    // Case 2: Simple quoted string - export const narration = "text" or 'text'
-    if ((exportValue.startsWith('"') && exportValue.endsWith('"')) ||
-        (exportValue.startsWith("'") && exportValue.endsWith("'"))) {
-        const text = exportValue.slice(1, -1).trim();
-        return [{
-            key: 'slide',
-            text,
-            settings: {},
-            outputPath: path.join(AUDIO_DIR, `${baseName}.mp3`)
-        }];
-    }
-    
-    // Case 3: Object - parse keys and values
-    if (exportValue.startsWith('{')) {
-        return parseNarrationObject(exportValue, baseName);
-    }
-    
-    return null;
+    return parseSlideNarrationShared(filePath, baseName, AUDIO_DIR);
 }
 
-/**
- * Parse a narration object with multiple keys
- * Handles: { slide: `...`, 'modal-id': `...`, text: `...`, voice_id: '...' }
- */
-function parseNarrationObject(objectStr, baseName) {
-    const results = [];
-    let globalSettings = {};
-    
-    // Extract voice settings (support both ElevenLabs and common formats)
-    const settingPatterns = [
-        { key: 'voice_id', regex: /voice_id\s*:\s*['"]([^'"]+)['"]/ },
-        { key: 'voice', regex: /voice\s*:\s*['"]([^'"]+)['"]/ },
-        { key: 'model_id', regex: /model_id\s*:\s*['"]([^'"]+)['"]/ },
-        { key: 'model', regex: /model\s*:\s*['"]([^'"]+)['"]/ },
-        { key: 'stability', regex: /stability\s*:\s*([\d.]+)/ },
-        { key: 'similarity_boost', regex: /similarity_boost\s*:\s*([\d.]+)/ },
-        { key: 'speed', regex: /speed\s*:\s*([\d.]+)/ },
-        { key: 'rate', regex: /rate\s*:\s*['"]([^'"]+)['"]/ },
-        { key: 'pitch', regex: /pitch\s*:\s*['"]([^'"]+)['"]/ },
-        { key: 'style', regex: /style\s*:\s*['"]([^'"]+)['"]/ }
-    ];
-    
-    for (const { key, regex } of settingPatterns) {
-        const match = objectStr.match(regex);
-        if (match) globalSettings[key] = match[1];
-    }
-    
-    // Check for old format: { text: `...` } (single narration with settings)
-    const singleTextMatch = objectStr.match(/^\s*\{\s*text\s*:\s*`([\s\S]*?)`/);
-    if (singleTextMatch && !objectStr.match(/slide\s*:/)) {
-        return [{
-            key: 'slide',
-            text: singleTextMatch[1].trim(),
-            settings: globalSettings,
-            outputPath: path.join(AUDIO_DIR, `${baseName}.mp3`)
-        }];
-    }
-    
-    // Multi-key format: { slide: `...`, 'key': `...` }
-    // Match patterns like: slide: `text` or 'modal-id': `text` or "tab-id": `text`
-    const keyValueRegex = /(?:(['"])([\w-]+)\1|(\w+))\s*:\s*`([\s\S]*?)`/g;
-    let match;
-    
-    while ((match = keyValueRegex.exec(objectStr)) !== null) {
-        const key = match[2] || match[3]; // Quoted key or unquoted key
-        const text = match[4].trim();
-        
-        // Skip voice setting keys
-        if (VOICE_SETTING_KEYS.includes(key)) continue;
-        
-        // Skip 'text' key in old format (already handled above)
-        if (key === 'text') continue;
-        
-        // Determine output filename
-        let outputPath;
-        if (key === 'slide') {
-            outputPath = path.join(AUDIO_DIR, `${baseName}.mp3`);
-        } else {
-            outputPath = path.join(AUDIO_DIR, `${baseName}--${key}.mp3`);
-        }
-        
-        results.push({
-            key,
-            text,
-            settings: { ...globalSettings },
-            outputPath
-        });
-    }
-    
-    // Also match quoted string values: 'key': "text" or 'key': 'text'
-    const quotedValueRegex = /(?:(['"])([\w-]+)\1|(\w+))\s*:\s*(['"])([\s\S]*?)\4/g;
-    while ((match = quotedValueRegex.exec(objectStr)) !== null) {
-        const key = match[2] || match[3];
-        const text = match[5].trim();
-        
-        if (VOICE_SETTING_KEYS.includes(key)) continue;
-        if (key === 'text') continue;
-        
-        // Check if we already have this key (from template literal match)
-        if (results.some(r => r.key === key)) continue;
-        
-        let outputPath;
-        if (key === 'slide') {
-            outputPath = path.join(AUDIO_DIR, `${baseName}.mp3`);
-        } else {
-            outputPath = path.join(AUDIO_DIR, `${baseName}--${key}.mp3`);
-        }
-        
-        results.push({
-            key,
-            text,
-            settings: { ...globalSettings },
-            outputPath
-        });
-    }
-    
-    return results.length > 0 ? results : null;
-}
+// Removed: original inline parseSlideNarration / parseNarrationObject implementations
+// now live in lib/narration-parser.js so the build linter can reuse them.
 
 /**
  * Main execution
