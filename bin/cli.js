@@ -51,7 +51,15 @@ if (!process.env.NODE_EXTRA_CA_CERTS) {
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __filename = fileURLToPath(import.meta.url);
 const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
+
+// Packaged Electron + ELECTRON_RUN_AS_NODE can preserve the CLI script path
+// as the first command operand after re-execing with NODE_EXTRA_CA_CERTS.
+// Commander expects operands to start at argv[2], so remove the duplicate.
+if (process.argv[2] && path.resolve(process.argv[2]) === __filename) {
+  process.argv.splice(2, 1);
+}
 
 const program = new Command();
 
@@ -460,4 +468,4 @@ if (process.argv.length <= 2) {
   program.help();
 }
 
-program.parseAsync().catch(reportFatal);
+program.parseAsync(process.argv, { from: 'node' }).catch(reportFatal);
