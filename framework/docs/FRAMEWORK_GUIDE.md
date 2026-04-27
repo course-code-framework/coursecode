@@ -37,6 +37,19 @@ npm run preview
 # - Content viewer for course review
 ```
 
+### Dependency Upgrade Policy
+
+The framework intentionally stays on **Vite 7** for now:
+
+- `vite@7.2.x`, `@vitejs/plugin-legacy@7.x`, and `vite-plugin-static-copy@3.x` are the compatible set used by the framework and course template.
+- SCORM itself does **not** require ES5 JavaScript. SCORM defines LMS runtime/API communication and package metadata, not the learner browser's ECMAScript level.
+- The legacy bundle path is still kept as compatibility insurance for unknown or older LMS launch environments, especially SCORM 1.2/2004 deployments that may use old embedded browsers or enterprise browser policies.
+- Vite 8 currently breaks that legacy path because Rolldown does not support the `system` output format used by `@vitejs/plugin-legacy` for SystemJS/ES5 fallback chunks.
+- Vite 7.3 has also shown a generated-course packaging regression with the legacy/post-build flow, where package validation can run before `dist/index.html` has been moved into place. Keep the template and framework dev dependency on `7.2.x` until that flow is reworked or verified against a newer Vite 7 patch.
+- Do not upgrade Vite, `@vitejs/plugin-legacy`, or `vite-plugin-static-copy` to their Vite 8 lines until CourseCode explicitly drops legacy browser fallback support or adds a separate verified legacy build pipeline.
+
+Other dependencies can be upgraded normally when their Node engine requirements and tests fit the framework. Keep `marked` on `17.x` while the public package requirement remains Node 18+, because `marked@18` requires Node 20+.
+
 ### LMS Compatibility Warnings
 The preview server (stub player) includes an advanced diagnostic system that monitors API usage and data limits to detect potential issues before deployment to a real LMS.
 
