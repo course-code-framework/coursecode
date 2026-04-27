@@ -205,6 +205,23 @@ export async function lintCourse(courseConfig) {
     // Cleanup offscreen container
     cleanupOffscreenContainer();
 
+    // --- 4. Filesystem-backed checks via preview server ---
+    // The browser can't read .narration-cache.json or hash slide source files,
+    // so the preview server exposes /__lint/narration to do that work and
+    // return any stale-narration warnings. Silently ignored if the endpoint
+    // is unavailable (e.g. running outside the preview server).
+    try {
+        const resp = await fetch('/__lint/narration', { cache: 'no-store' });
+        if (resp.ok) {
+            const data = await resp.json();
+            if (Array.isArray(data.warnings)) {
+                warnings.push(...data.warnings);
+            }
+        }
+    } catch {
+        // Endpoint absent (e.g. SCORM package preview) — skip silently.
+    }
+
     // Display warnings individually so each appears as a separate entry in the debug panel
     if (warnings.length > 0) {
         for (const w of warnings) {
