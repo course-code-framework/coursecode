@@ -507,8 +507,7 @@ export class Scorm2004Driver extends ScormDriverBase {
         const value = this._scorm.get(key);
         const errorCode = this._scorm.debug.getCode();
 
-        // Error 403 = "Data Model Element Value Not Initialized" - expected for optional fields
-        if (errorCode === 403) {
+        if (this._isOptionalReadError(errorCode)) {
             return null;
         }
 
@@ -561,18 +560,12 @@ export class Scorm2004Driver extends ScormDriverBase {
      * Populates the CMI cache at init time. Single LMS read pass.
      */
     _populateCache() {
-        // Helper: read a CMI value via strict _getValue, but tolerate error 403
-        // ("Data Model Element Value Not Initialized") which strict LMSes like
-        // SCORM Cloud return for unset elements on a fresh session.
-        // Any other SCORM error still throws through _getValue's normal path.
+        // Startup cache hydration reads LMS state opportunistically. Some LMS
+        // adapters report supported-but-empty or unavailable optional fields as
+        // SCORM errors, so use the optional read path here and keep strict reads
+        // for required operations.
         const getOrDefault = (key, fallback) => {
-            try {
-                return this._getValue(key) || fallback;
-            } catch (e) {
-                const code = this._scorm.debug.getCode();
-                if (code === 403) return fallback;
-                throw e;
-            }
+            return this._getValueOptional(key) || fallback;
         };
 
         // Read-only scalars (may be uninitialized on first launch)
@@ -712,6 +705,11 @@ export class Scorm2004Driver extends ScormDriverBase {
         throw new Error(msg);
     }
 
+    _isOptionalReadError(code) {
+        const numericCode = Number(code);
+        return numericCode === 401 || numericCode === 403;
+    }
+
     // --- Recovery Mode Helpers ---
 
     _getValueRecovered(key) {
@@ -739,7 +737,7 @@ export class Scorm2004Driver extends ScormDriverBase {
             const value = api.GetValue(key);
             const errCode = api.GetLastError ? parseInt(api.GetLastError(), 10) : 0;
 
-            if (errCode === 403) {
+            if (this._isOptionalReadError(errCode)) {
                 return null;
             }
 

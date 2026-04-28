@@ -134,7 +134,9 @@ function scormDevPostBuild() {
           fs.renameSync(indexSource, indexDest);
 
           let indexContent = fs.readFileSync(indexDest, 'utf-8');
-          indexContent = indexContent.replace(/(src|href)="\.\.\/(assets|course)\//g, '$1="./$2/');
+          indexContent = indexContent
+            .replace(/(src|href)="\.\.\/(assets|course)\//g, '$1="./$2/')
+            .replace(/(src|href)="\.\.\/template\/course\//g, '$1="./course/');
 
           // Stamp LMS format meta tag for runtime driver selection
           indexContent = indexContent.replace(

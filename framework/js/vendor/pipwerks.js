@@ -31,13 +31,9 @@ further modified by Philip Hutchison
     if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define([], factory);
-    } else if (typeof module === 'object' && module.exports) {
-        // Node. Does not work with strict CommonJS, but
-        // only CommonJS-like environments that support module.exports,
-        // like Node.
-        module.exports = factory();
     } else {
-        // Browser globals (root is window)
+        // Browser/global object. CourseCode imports this vendored copy as ESM,
+        // so avoid CommonJS export branches that modern bundlers warn about.
         root.pipwerks = factory();
     }
 }(typeof globalThis !== 'undefined' ? globalThis : typeof self !== 'undefined' ? self : typeof window !== 'undefined' ? window : this, function () {
@@ -927,5 +923,5 @@ further modified by Philip Hutchison
 // ESM Export for Vite/modern bundlers
 // Added to enable ES module imports while keeping original UMD intact
 // =============================================================================
-export default (typeof window !== 'undefined' && window.pipwerks) || (typeof global !== 'undefined' && global.pipwerks);
-export const SCORM = (typeof window !== 'undefined' && window.pipwerks?.SCORM) || (typeof global !== 'undefined' && global.pipwerks?.SCORM);
+export default globalThis.pipwerks;
+export const SCORM = globalThis.pipwerks?.SCORM;

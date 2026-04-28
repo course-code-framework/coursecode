@@ -120,7 +120,7 @@ class EventBus {
     // suppress to prevent infinite cascade
     if (isErrorEvent) {
       if (this._emittingError) {
-        console.warn(`[EventBus] Suppressed recursive error event: ${event}`);
+        logger.warn(`[EventBus] Suppressed recursive error event: ${event}`);
         return false;
       }
       this._emittingError = true;

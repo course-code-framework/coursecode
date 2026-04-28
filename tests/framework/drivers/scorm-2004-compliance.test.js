@@ -143,6 +143,50 @@ function createTestableDriver() {
     return { driver, writes, reads };
 }
 
+function createDriverWithScormReads(readHandlers) {
+    const driver = new Scorm2004Driver();
+    let lastErrorCode = 0;
+
+    driver._isConnected = true;
+    driver._isTerminated = false;
+    driver._isRecovered = false;
+    driver._scorm = {
+        get: vi.fn((key) => {
+            const handler = readHandlers[key];
+            if (!handler) {
+                lastErrorCode = 0;
+                return '';
+            }
+
+            const result = handler();
+            lastErrorCode = result.errorCode || 0;
+            return result.value || '';
+        }),
+        debug: {
+            getCode: vi.fn(() => lastErrorCode),
+            getInfo: vi.fn((code) => {
+                if (Number(code) === 401) return 'Undefined Data Model Element for GetValue or SetValue';
+                if (Number(code) === 403) return 'Data Model Element Value Not Initialized';
+                return `SCORM Error ${code}`;
+            })
+        }
+    };
+    driver._cmiCache = {
+        entry: null,
+        bookmark: '',
+        completionStatus: 'unknown',
+        successStatus: 'unknown',
+        learnerId: '',
+        learnerName: '',
+        objectives: {},
+        objectiveIdToIndex: new Map(),
+        interactions: [],
+        interactionsCount: 0
+    };
+
+    return driver;
+}
+
 // ═════════════════════════════════════════════════════════════════════
 // Tests: Data Model Element Names
 // Verify our driver writes to the correct CMI paths per the spec
@@ -207,6 +251,49 @@ describe('SCORM 2004 Spec: Data Model Element Names', () => {
         driver.setSuspendData({ test: true });
 
         expect(writes[0].key).toBe(SCORM_2004_SPEC.suspendData.element);
+    });
+});
+
+// ═════════════════════════════════════════════════════════════════════
+// Tests: LMS Optional Read Compatibility
+// ═════════════════════════════════════════════════════════════════════
+
+describe('SCORM 2004 LMS Compatibility: Optional Reads', () => {
+    it('does not fail initialization when an LMS reports success_status as undefined', () => {
+        const driver = createDriverWithScormReads({
+            'cmi.entry': () => ({ value: '', errorCode: 0 }),
+            'cmi.location': () => ({ value: '', errorCode: 0 }),
+            'cmi.completion_status': () => ({ value: 'unknown', errorCode: 0 }),
+            'cmi.success_status': () => ({ value: '', errorCode: 401 }),
+            'cmi.learner_id': () => ({ value: 'learner-1', errorCode: 0 }),
+            'cmi.learner_name': () => ({ value: 'Learner One', errorCode: 0 }),
+            'cmi.objectives._count': () => ({ value: '0', errorCode: 0 }),
+            'cmi.interactions._count': () => ({ value: '0', errorCode: 0 })
+        });
+
+        expect(() => driver._populateCache()).not.toThrow();
+        expect(driver._cmiCache.successStatus).toBe('unknown');
+        expect(driver._cmiCache.learnerId).toBe('learner-1');
+    });
+
+    it('returns null for optional reads rejected as undefined or uninitialized', () => {
+        const driver = createDriverWithScormReads({
+            'cmi.success_status': () => ({ value: '', errorCode: 401 }),
+            'cmi.score.scaled': () => ({ value: '', errorCode: 403 })
+        });
+
+        expect(driver._getValueOptional('cmi.success_status')).toBeNull();
+        expect(driver._getValueOptional('cmi.score.scaled')).toBeNull();
+    });
+
+    it('keeps strict GetValue failures fatal for required reads', () => {
+        const driver = createDriverWithScormReads({
+            'cmi.success_status': () => ({ value: '', errorCode: 401 })
+        });
+
+        expect(() => driver._getValue('cmi.success_status')).toThrow(
+            'Failed to get value for "cmi.success_status": Undefined Data Model Element for GetValue or SetValue'
+        );
     });
 });
 

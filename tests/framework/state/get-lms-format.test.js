@@ -61,17 +61,6 @@ describe('getLMSFormat() — runtime format detection', () => {
     });
 
     async function importFresh() {
-        // Re-mock after resetModules
-        vi.mock('../../../framework/js/utilities/logger.js', () => ({
-            logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), fatal: vi.fn() }
-        }));
-        vi.mock('../../../framework/js/core/event-bus.js', () => ({
-            eventBus: { emit: vi.fn(), on: vi.fn(() => () => {}), off: vi.fn() }
-        }));
-        vi.mock('../../../framework/js/drivers/driver-factory.js', () => ({
-            createDriver: vi.fn()
-        }));
-
         const mod = await import('../../../framework/js/state/lms-connection.js');
         return mod.LMSConnection;
     }
