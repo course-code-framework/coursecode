@@ -31,7 +31,7 @@
 
 /* App Layout - Fixed Frame Structure */
 #app {
-  max-width: 1400px;
+  max-width: var(--course-shell-max-width);
   margin: 0 auto;
   background: var(--bg-surface);
   box-shadow: var(--shadow-md);
@@ -325,19 +325,19 @@ main#content>section {
    while max-width constrains the upper bound. */
 .content-narrow {
   width: 100%;
-  max-width: 700px;
+  max-width: var(--content-width-narrow);
   margin: 0 auto;
 }
 
 .content-medium {
   width: 100%;
-  max-width: 900px;
+  max-width: var(--content-width-medium);
   margin: 0 auto;
 }
 
 .content-wide {
   width: 100%;
-  max-width: 1200px;
+  max-width: var(--content-width-wide);
   margin: 0 auto;
 }
 

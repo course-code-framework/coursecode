@@ -833,7 +833,7 @@ export const slide = {
                     data-title="Demo Modal" 
                     data-body="#demo-modal-body"
                     data-footer="#demo-modal-footer"
-                    data-audio-src="audio/example-ui-showcase--demo-modal.mp3"
+                    data-audio-src="@slides/example-ui-showcase.js#demo-modal"
                     data-audio-required="false">
                     Launch Modal with Audio
                   </button>
@@ -1497,7 +1497,7 @@ export const slide = {
                     <h4 class="font-bold mb-2">Full Size Player</h4>
                     <p class="text-sm mb-3">Complete controls with progress bar, time display, and all playback options.</p>
                     <div class="mt-2" data-component="audio-player" 
-                         data-audio-src="audio/example-ui-showcase--full-player.mp3"
+                         data-audio-src="@slides/example-ui-showcase.js#full-player"
                          data-audio-id="full-player-demo">
                     </div>
                   </div>
@@ -1507,7 +1507,7 @@ export const slide = {
                     <h4 class="font-bold mb-2">Compact Player</h4>
                     <p class="text-sm mb-3">Minimal controls (play/pause, restart, mute) - same style used in modals.</p>
                     <div class="mt-2" data-component="audio-player" 
-                         data-audio-src="audio/example-ui-showcase--compact-player.mp3"
+                         data-audio-src="@slides/example-ui-showcase.js#compact-player"
                          data-audio-id="compact-player-demo"
                          data-audio-compact="true">
                     </div>
@@ -1765,9 +1765,9 @@ export const slide = {
  *   - course/assets/audio/example-ui-showcase--compact-player.mp3
  * 
  * Reference in slide HTML:
- *   - Modal audio: data-audio-src="audio/example-ui-showcase--demo-modal.mp3"
- *   - Full player: data-audio-src="audio/example-ui-showcase--full-player.mp3"
- *   - Compact player: data-audio-src="audio/example-ui-showcase--compact-player.mp3"
+ *   - Modal audio: data-audio-src="@slides/example-ui-showcase.js#demo-modal"
+ *   - Full player: data-audio-src="@slides/example-ui-showcase.js#full-player"
+ *   - Compact player: data-audio-src="@slides/example-ui-showcase.js#compact-player"
  */
 export const narration = {
   'demo-modal': `

@@ -121,3 +121,13 @@ export const slide = {
     return container;
   }
 };
+
+export const narration = `
+Welcome to CourseCode.
+
+This opening slide introduces the template course and the main workflow it demonstrates.
+
+CourseCode helps training teams, instructional designers, and subject matter experts build interactive learning experiences with AI assistance.
+
+Use this course to explore the authoring workflow, preview tools, reusable components, theming options, and LMS-ready publishing process.
+`;

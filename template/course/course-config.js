@@ -241,6 +241,11 @@ export const courseConfig = {
                     engagement: {
                         required: false
                     },
+                    audio: {
+                        src: '@slides/example-welcome.js',
+                        autoplay: false,
+                        completionThreshold: 0.95
+                    },
                     navigation: {
                         sequential: true,
                         controls: {

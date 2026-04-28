@@ -492,16 +492,23 @@
   --btn-transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-interactive), transform var(--transition-interactive), opacity var(--transition-fast), filter var(--transition-fast);
   --btn-hover-translate-y: var(--motion-lift-sm); /* Shared hover lift for button variants */
 
-   /* Layout spacing defaults - overridden by responsive breakpoint classes */
-   --content-padding: var(--space-10);
-   --section-padding: var(--space-8);
-   --header-padding-x: var(--space-6);
-   --header-padding-y: var(--space-3);
-   --header-height: 72px;
-   --footer-padding-x: var(--space-6);
-   --footer-padding-y: var(--space-3);
-   --nav-padding-x: var(--space-6);
-   --nav-padding-y: var(--space-2);
+  /* Layout spacing defaults - overridden by responsive breakpoint classes */
+  --course-shell-max-width: 1400px;
+  --course-shell-max-width-large: 1440px;
+  --course-edge-base: var(--space-4);
+  --content-width-narrow: 700px;
+  --content-width-medium: 900px;
+  --content-width-wide: 1200px;
+  --focused-content-max-width: 1000px;
+  --content-padding: var(--space-10);
+  --section-padding: var(--space-8);
+  --header-padding-x: var(--space-6);
+  --header-padding-y: var(--space-3);
+  --header-height: 72px;
+  --footer-padding-x: var(--space-6);
+  --footer-padding-y: var(--space-3);
+  --nav-padding-x: var(--space-6);
+  --nav-padding-y: var(--space-2);
 
   /* Input System - Unified styling */
   --input-padding-y: var(--space-3);

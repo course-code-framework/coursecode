@@ -43,15 +43,22 @@ import {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// __dirname = framework/scripts, go up two levels to reach scorm_template
+// __dirname = framework/scripts, go up two levels to reach the course project
+// root. Real authored courses use ./course; this framework repo keeps its
+// development fixture at ./template/course.
 const SCORM_TEMPLATE_DIR = path.resolve(__dirname, '../..');
 const ROOT_DIR = path.resolve(SCORM_TEMPLATE_DIR, '..');
-const COURSE_DIR = path.join(SCORM_TEMPLATE_DIR, 'course');
+const DEFAULT_COURSE_DIR = path.join(SCORM_TEMPLATE_DIR, 'course');
+const FRAMEWORK_DEV_COURSE_DIR = path.join(SCORM_TEMPLATE_DIR, 'template', 'course');
+const COURSE_DIR = fs.existsSync(DEFAULT_COURSE_DIR)
+    ? DEFAULT_COURSE_DIR
+    : (fs.existsSync(FRAMEWORK_DEV_COURSE_DIR) ? FRAMEWORK_DEV_COURSE_DIR : DEFAULT_COURSE_DIR);
+const COURSE_ROOT_DIR = path.dirname(COURSE_DIR);
 const ASSETS_DIR = path.join(COURSE_DIR, 'assets');
 const AUDIO_DIR = path.join(ASSETS_DIR, 'audio');
 
 const SLIDES_DIR = path.join(COURSE_DIR, 'slides');
-const CACHE_FILE = path.join(SCORM_TEMPLATE_DIR, '.narration-cache.json');
+const CACHE_FILE = path.join(COURSE_ROOT_DIR, '.narration-cache.json');
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -73,6 +80,7 @@ const REBUILD_CACHE = args.includes('--rebuild-cache');
 function loadEnv() {
     const searchPaths = [
         path.join(process.cwd(), '.env'),           // Current working directory (most common)
+        path.join(COURSE_ROOT_DIR, '.env'),         // Course project or framework dev template
         path.join(SCORM_TEMPLATE_DIR, '.env'),      // Template directory
         path.join(ROOT_DIR, '.env')                 // Root directory
     ];

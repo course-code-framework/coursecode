@@ -21,6 +21,14 @@
     --layout-floating-nav-bg: var(--footer-floating-bg);
     --layout-floating-nav-border: 1px solid var(--footer-floating-border);
     --layout-floating-nav-shadow: var(--footer-floating-shadow);
+
+    /* Edge inset for floating UI (audio player, footer pill, FAB toggles,
+       edge nav arrows). On wide viewports, add the centered app gutter before
+       applying the normal in-frame edge padding. */
+    --course-edge-inset: max(
+        var(--course-edge-base),
+        calc(((100vw - var(--course-shell-max-width)) / 2) + var(--course-edge-base))
+    );
 }
 
 /* Default layout is traditional if not specified */

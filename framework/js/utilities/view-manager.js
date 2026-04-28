@@ -111,12 +111,25 @@ export function createViewManager(container, scope = 'local') {
             return element;
         }
 
-        // Check for per-slide override via data-content-width attribute
-        const dataAttrWidth = element.getAttribute('data-content-width');
-        const slideConfigWidth = dataAttrWidth;
+        const contentWidthValues = new Set(['narrow', 'medium', 'wide', 'full']);
+
+        // Check for per-slide override via data-content-width attribute. Slide
+        // modules commonly return a neutral container with the authored slide as
+        // its only child, so support the root and that first slide element.
+        const slideConfigWidth = getContentWidthOverride(element);
+        if (slideConfigWidth && !contentWidthValues.has(slideConfigWidth)) {
+            logger.warn(`[ViewManager] Ignoring invalid data-content-width="${slideConfigWidth}". Expected narrow, medium, wide, or full.`);
+        }
+
+        const globalConfigWidth = courseConfig?.slideDefaults?.contentWidth;
+        if (!slideConfigWidth && globalConfigWidth && !contentWidthValues.has(globalConfigWidth)) {
+            logger.warn(`[ViewManager] Ignoring invalid slideDefaults.contentWidth="${globalConfigWidth}". Expected narrow, medium, wide, or full.`);
+        }
 
         // Determine which width to use: per-slide override > global config > no wrapping
-        const configWidth = slideConfigWidth || courseConfig?.slideDefaults?.contentWidth;
+        const configWidth = contentWidthValues.has(slideConfigWidth)
+            ? slideConfigWidth
+            : (contentWidthValues.has(globalConfigWidth) ? globalConfigWidth : null);
         
         if (!configWidth) {
             // No wrapping configured
@@ -134,6 +147,24 @@ export function createViewManager(container, scope = 'local') {
         wrapper.className = `content-${configWidth}`;
         wrapper.appendChild(element);
         return wrapper;
+    }
+
+    /**
+     * Gets a per-slide content width override from the rendered root or from
+     * the single authored slide element inside a neutral wrapper.
+     * @param {HTMLElement} element - The rendered element
+     * @returns {string|null} The requested width, if present
+     * @private
+     */
+    function getContentWidthOverride(element) {
+        const rootOverride = element.getAttribute('data-content-width');
+        if (rootOverride) return rootOverride;
+
+        if (element.children?.length === 1) {
+            return element.firstElementChild?.getAttribute('data-content-width');
+        }
+
+        return null;
     }
 
     /**

@@ -60,7 +60,7 @@
     --header-border: var(--nav-edge-border);
     position: fixed;
     top: var(--space-4);
-    left: var(--space-4);
+    left: var(--course-edge-inset);
     z-index: var(--z-fixed);
     width: var(--nav-edge-control-size);
     height: var(--nav-edge-control-size);
@@ -103,7 +103,7 @@
 }
 
 [data-layout="focused"] main#content>section {
-    max-width: 1000px;
+    max-width: var(--focused-content-max-width);
     width: 100%;
     border: none;
     box-shadow: none;
@@ -112,7 +112,7 @@
 
 /* Slide container centered */
 [data-layout="focused"] #slide-container {
-    max-width: 1000px;
+    max-width: var(--focused-content-max-width);
     margin: 0 auto;
 }
 

@@ -413,7 +413,7 @@
 [data-layout="focused"] #audio-player {
     position: fixed;
     bottom: var(--space-4);
-    left: var(--space-4);
+    left: var(--course-edge-inset);
     right: auto;
     margin: 0;
     z-index: var(--z-fixed);

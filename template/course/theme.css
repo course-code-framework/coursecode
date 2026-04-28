@@ -109,6 +109,17 @@
        Adjust height, padding, and width of structural UI areas.
     */
 
+    /* Course shell sizing */
+    /* --course-shell-max-width: 1400px; */        /* Outer app frame max width */
+    /* --course-shell-max-width-large: 1440px; */  /* Outer app frame max width on large desktop */
+    /* --course-edge-base: 1rem; */                /* Floating UI inset within the app frame */
+
+    /* Slide content widths */
+    /* --content-width-narrow: 700px; */           /* .content-narrow max width */
+    /* --content-width-medium: 900px; */           /* .content-medium max width */
+    /* --content-width-wide: 1200px; */            /* .content-wide max width */
+    /* --focused-content-max-width: 1000px; */     /* Focused layout viewport-fit content cap */
+
     /* Header sizing */
     /* --header-height: 72px; */                    /* Header bar height */
     /* --header-padding-x: 1.5rem; */              /* Header horizontal padding */

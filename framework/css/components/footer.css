@@ -185,7 +185,7 @@ footer[data-footer-layout="floating"] .nav-controls {
 [data-layout="focused"] footer {
   position: fixed;
   bottom: var(--space-4);
-  right: var(--space-4);
+  right: var(--course-edge-inset);
   left: auto;
   width: auto;
   background: var(--layout-floating-nav-bg);
@@ -247,7 +247,7 @@ footer[data-footer-layout="floating"] .nav-controls {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 calc(var(--space-4) + env(safe-area-inset-left, 0px)) 0 calc(var(--space-4) + env(safe-area-inset-right, 0px));
+  padding: 0 calc(var(--course-edge-inset) + env(safe-area-inset-left, 0px)) 0 calc(var(--course-edge-inset) + env(safe-area-inset-right, 0px));
   pointer-events: none;
 }
 

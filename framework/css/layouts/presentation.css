@@ -63,7 +63,7 @@
     --header-border: var(--nav-edge-border);
     position: fixed;
     top: calc(var(--space-4) + env(safe-area-inset-top, 0px));
-    left: calc(var(--space-4) + env(safe-area-inset-left, 0px));
+    left: calc(var(--course-edge-inset) + env(safe-area-inset-left, 0px));
     z-index: var(--z-fixed);
     width: var(--nav-edge-control-size);
     height: var(--nav-edge-control-size);
