@@ -38,8 +38,7 @@ import {
     parseSlideNarration as parseSlideNarrationShared,
     hashContent,
     loadNarrationCache,
-    narrationCacheKey,
-    VOICE_SETTING_KEYS as _SHARED_VOICE_KEYS
+    narrationCacheKey
 } from './narration-parser.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -53,9 +52,6 @@ const AUDIO_DIR = path.join(ASSETS_DIR, 'audio');
 
 const SLIDES_DIR = path.join(COURSE_DIR, 'slides');
 const CACHE_FILE = path.join(SCORM_TEMPLATE_DIR, '.narration-cache.json');
-
-// Reserved keys for voice settings (not narration content) — re-exported from shared module
-const VOICE_SETTING_KEYS = _SHARED_VOICE_KEYS;
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -382,7 +378,7 @@ Examples:
             const contentHash = hashContent(text + JSON.stringify(settings));
             
             // Cache key includes the item key for multi-key narration
-            const cacheKey = key === 'slide' ? source.src : `${source.src}#${key}`;
+            const cacheKey = narrationCacheKey(source.src, key);
             const cachedHash = cache[cacheKey];
             const outputExists = fs.existsSync(outputPath);
 
