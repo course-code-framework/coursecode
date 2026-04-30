@@ -892,6 +892,8 @@ If the preview is not running, runtime tools fail fast with a clear error messag
 
 ### Runtime Tools (require preview server)
 
+Tool results include machine-readable `structuredContent` plus text content for compatibility. Tool failures use structured error payloads with stable `code`, `message`, `hint`, and optional `details` fields so AI clients can recover without parsing prose.
+
 | Tool | Purpose | Returns |
 |------|---------|--------|
 | `coursecode_state` | Full course snapshot + live diagnostics | `{slide, toc, interactions, engagement, lmsState, apiLog, diagnostics, issues, errors, frameworkLogs, consoleLogs}` |
