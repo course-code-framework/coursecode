@@ -297,7 +297,8 @@ Once connected, your AI assistant gains these capabilities:
 | `coursecode_screenshot` | Take a screenshot of any slide |
 | `coursecode_interact` | Answer an interaction and check if it's correct |
 | `coursecode_reset` | Clear progress and restart the course |
-| `coursecode_lint` | Check for errors (bad CSS classes, missing components, config issues) |
+| `coursecode_errors` | Check live preview diagnostics (build, runtime, framework, and console issues) |
+| `coursecode_lint` | Run static preflight checks (bad CSS classes, missing components, config issues) |
 | `coursecode_component_catalog` | Browse available UI components (tabs, accordion, cards, etc.) |
 | `coursecode_interaction_catalog` | Browse available interaction types (multiple choice, drag-drop, etc.) |
 | `coursecode_css_catalog` | Browse available CSS classes by category |
@@ -306,7 +307,7 @@ Once connected, your AI assistant gains these capabilities:
 | `coursecode_workflow_status` | Get guidance on what to do next based on your project's current state |
 | `coursecode_build` | Build the course for LMS deployment |
 
-> **Note:** The preview server must be running before using runtime tools like `coursecode_state`, `coursecode_screenshot`, or `coursecode_navigate`. Start it with `coursecode preview` in a terminal.
+> **Note:** The preview server must be running before using runtime tools like `coursecode_state`, `coursecode_errors`, `coursecode_screenshot`, or `coursecode_navigate`. If preview is not already running for this project, start it with `coursecode preview` in a terminal. Do not start a second preview server if one is already running.
 
 ### How the Workflow Changes
 

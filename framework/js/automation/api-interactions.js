@@ -6,7 +6,7 @@
 
 import interactionRegistry from '../managers/interaction-registry.js';
 import { courseConfig } from '../../../course/course-config.js';
-import { recordInteractionResult } from '../components/interactions/interaction-base.js';
+import { getInteractionState, recordInteractionResult } from '../components/interactions/interaction-base.js';
 import { logger } from '../utilities/logger.js';
 
 /**
@@ -18,11 +18,26 @@ export function createInteractionMethods(logTrace) {
     return {
         listInteractions() {
             const interactions = interactionRegistry.getAll();
-            const simplifiedList = interactions.map(i => ({
-                id: i.id,
-                type: i.type,
-                description: i.description
-            }));
+            const simplifiedList = interactions.map(i => {
+                const savedState = getInteractionState(i.id);
+                let response = savedState?.response;
+
+                if (response === undefined && typeof i.instance?.getResponse === 'function') {
+                    try {
+                        response = i.instance.getResponse();
+                    } catch {
+                        response = undefined;
+                    }
+                }
+
+                return {
+                    id: i.id,
+                    type: i.type,
+                    description: i.description,
+                    hasResponse: response !== null && response !== undefined && response !== '',
+                    isChecked: savedState?.submitted === true
+                };
+            });
             logTrace('listInteractions', { count: simplifiedList.length });
             return simplifiedList;
         },
@@ -33,10 +48,23 @@ export function createInteractionMethods(logTrace) {
                 throw new Error(`CourseCodeAutomation: Interaction "${interactionId}" not found on the current slide`);
             }
             logTrace('getInteractionMetadata', { interactionId });
+            const savedState = getInteractionState(entry.id);
+            let response = savedState?.response;
+
+            if (response === undefined && typeof entry.instance?.getResponse === 'function') {
+                try {
+                    response = entry.instance.getResponse();
+                } catch {
+                    response = undefined;
+                }
+            }
+
             return {
                 id: entry.id,
                 type: entry.type,
-                description: entry.description
+                description: entry.description,
+                hasResponse: response !== null && response !== undefined && response !== '',
+                isChecked: savedState?.submitted === true
             };
         },
 

@@ -242,7 +242,7 @@ export default defineConfig(async ({ mode: _mode }) => {
         targets: [
           { src: 'schemas/*.{xml,xsd,dtd}', dest: '.' },
           { src: 'schemas/common/*', dest: 'common' },
-          { src: 'template/course/**/*', dest: '.', rename: { stripBase: 1 } },
+          { src: 'template/course', dest: '.' },
           { src: 'framework/js/vendor/**/*', dest: 'js/vendor' }
         ],
         watch: { rerun: true }

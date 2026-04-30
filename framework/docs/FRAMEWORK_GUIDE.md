@@ -679,7 +679,12 @@ Runs **in Node.js** during build (via `vite.framework-dev.config.js` `closeBundl
 
 ### MCP `coursecode_lint` — Build-Time Only
 
-The MCP `coursecode_lint` tool runs the build linter (config validation, CSS class verification, structure checks). It does NOT include runtime errors. For runtime errors and contrast warnings, use `coursecode_errors` (lightweight — just errors and console logs) or `coursecode_state` (full state snapshot including errors).
+The MCP `coursecode_lint` tool runs the static/build-time linter (config validation, CSS class verification, structure checks). It does **not** inspect the running preview and does **not** include live runtime, browser console, or Vite build-watch diagnostics.
+
+Use:
+- `coursecode_lint` for static preflight validation after source/config edits
+- `coursecode_errors` for the live "what is broken right now?" preview rollup
+- `coursecode_state` when you also need current slide, TOC, engagement, LMS state, and diagnostics
 
 ### Shared Rules (`lib/validation-rules.js`)
 
@@ -861,16 +866,18 @@ The MCP server runs a **persistent headless Chrome** internally via `puppeteer-c
 
 ### Preview Server Ownership
 
-The MCP does **not** start or manage the preview server. The preview must be running before using runtime tools:
+The MCP does **not** start or manage the preview server. Runtime tools connect to an already-running preview server.
 
-- **Human**: run `coursecode preview` (or `npm run preview`) in a terminal
-- **AI agent**: use your terminal/command execution tool to run `npm run preview`
+- If preview is already running for the current project, use it. Do **not** start a second preview server.
+- If preview is not running, start it in a terminal with `coursecode preview`.
+- For framework development from this repo, use `npm run preview`.
+- AI agents may start preview only via their terminal/command execution tool, and only after confirming preview is not already running or after a runtime MCP tool reports that preview is not running.
 
 If the preview is not running, runtime tools fail fast with a clear error message.
 
 ### Setup
 
-1. Start the preview server externally (see above)
+1. Make sure the preview server is running externally (see above)
 2. Add to IDE MCP config:
 
 ```json
@@ -887,8 +894,8 @@ If the preview is not running, runtime tools fail fast with a clear error messag
 
 | Tool | Purpose | Returns |
 |------|---------|--------|
-| `coursecode_state` | Full course snapshot | `{slide, toc, interactions, engagement, lmsState, apiLog, errors, frameworkLogs, consoleLogs}` |
-| `coursecode_errors` | Errors + console logs only | `{errors, consoleLogs, count, clean}` — same error sources as `coursecode_state`, without the state payload |
+| `coursecode_state` | Full course snapshot + live diagnostics | `{slide, toc, interactions, engagement, lmsState, apiLog, diagnostics, issues, errors, frameworkLogs, consoleLogs}` |
+| `coursecode_errors` | Live diagnostic rollup only | `{build, runtime, framework, console, issues, errors, count, clean}` — same diagnostic sources as `coursecode_state`, without the state payload |
 | `coursecode_navigate` | Go to slide by ID | `{slide, interactions, engagement, accessibility}` |
 | `coursecode_interact` | Set response + evaluate | `{interactionId, response}` → `{correct, score, feedback}` |
 | `coursecode_screenshot` | Visual capture (JPEG) | Optional `slideId` to navigate first, `fullPage` for scroll capture |
@@ -933,7 +940,7 @@ MCP Server (IDE) ──puppeteer──▶ Headless Chrome ──HTTP──▶ Pr
                                     └── Course iframe (CourseCodeAutomation API)
 ```
 
-- **Preview not running?** → Tools return clear error: "Start preview server first"
+- **Preview not running?** → Tools return a clear error. Start preview externally in a terminal, then retry.
 - **Chrome not found?** → Install Google Chrome or set `CHROME_PATH` env var
 
 ### Pre-Release Responsive Checks (Framework)
