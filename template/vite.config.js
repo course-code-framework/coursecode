@@ -190,6 +190,7 @@ function scanDistFiles() {
 function scormPostBuild(isDev) {
   return {
     name: 'scorm-post-build',
+    enforce: 'post',
     buildStart() {
       if (isDev) console.log('🔨 Building...');
     },
@@ -251,7 +252,7 @@ function scormPostBuild(isDev) {
             console.log('\n📦 Creating external hosting package archives...');
             await createExternalPackagesForClients({ rootDir: ROOT_DIR, config });
           }
-          console.log('\n✅ Package built successfully');
+          console.log('\n✓ Package archive created');
         } else {
           console.log('✅ Build complete\n');
         }
