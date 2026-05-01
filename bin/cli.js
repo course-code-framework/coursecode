@@ -365,7 +365,7 @@ program
   .option('--promote', 'Force-promote: always move production pointer regardless of deploy_mode setting. Mutually exclusive with --stage.')
   .option('--stage', 'Force-stage: never move production pointer regardless of deploy_mode setting. Mutually exclusive with --promote.')
   .option('--repair-binding', 'Clear a stale local Cloud binding if the remote course was deleted, then continue')
-  .option('--password', 'Password-protect preview (interactive prompt, requires --preview)')
+  .option('--password [password]', 'Password-protect preview. Prompts if no value is provided.')
   .option('-m, --message <message>', 'Deploy reason (e.g. "Fixed accessibility issues")')
   .option('--local', 'Use local Cloud instance (http://localhost:3000)')
   .option('--json', 'Emit machine-readable JSON result')
@@ -402,6 +402,17 @@ program
     const { status, setLocalMode } = await import('../lib/cloud.js');
     if (options.local) setLocalMode();
     await status({ json: options.json, repairBinding: options.repairBinding });
+  });
+
+program
+  .command('deployments')
+  .description('List recent Cloud deployments for current course')
+  .option('--local', 'Use local Cloud instance (http://localhost:3000)')
+  .option('--json', 'Output raw JSON')
+  .action(async (options) => {
+    const { deployments, setLocalMode } = await import('../lib/cloud.js');
+    if (options.local) setLocalMode();
+    await deployments({ json: options.json });
   });
 
 program

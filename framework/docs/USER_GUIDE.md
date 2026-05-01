@@ -741,18 +741,42 @@ Open the URL in any browser, log in with your CourseCode account, and enter the 
 - **Preview pointer** — the version served on the cloud preview link (for stakeholder review).
 - **deploy_mode** — a per-course or org setting in the Cloud dashboard. Default is auto-promote (new uploads immediately go live). Can be set to staged (new uploads require a manual promote step).
 - `--promote` and `--stage` are mutually exclusive.
+- `--password` can be combined with `--preview` to create or update the main preview link password. If you omit the password value in an interactive terminal, the CLI prompts for it. In `--json` mode you must pass the value explicitly.
 - **GitHub-linked courses:** If your course is connected to a GitHub repo in the Cloud dashboard, production deploys happen via `git push` — the CLI blocks direct production uploads. Use `coursecode deploy --preview` to push a preview build for stakeholder review.
 - If a cloud deployment was deleted outside the CLI and this project still has the old local binding, rerun with `coursecode deploy --repair-binding`. To clear the stale binding without deploying yet, run `coursecode status --repair-binding`.
 
+**Managing previews and pointers after deploy:**
+
+Use these commands when you want to change Cloud state without rebuilding the course:
+
+```bash
+coursecode status
+coursecode deployments
+coursecode promote --preview
+coursecode promote --production
+coursecode preview-link --enable
+coursecode preview-link --password
+coursecode preview-link --remove-password
+coursecode preview-link --expires-in-days 7
+coursecode preview-link --disable
+```
+
+- `coursecode deployments` lists recent immutable deployments and marks the current Production and Preview pointers.
+- `coursecode promote --preview` moves the Preview pointer to an existing deployment. If you do not pass `--deployment <id>`, the CLI prompts you to pick from recent deployments.
+- `coursecode promote --production` moves the Production pointer. Preview-only deployments cannot be promoted to Production.
+- `coursecode preview-link` manages the main preview link. That link follows the Preview pointer, so the URL can stay the same while you choose which deployment reviewers see.
+- Cloud can also create additional pinned preview links for specific deployments in the web app. The main CLI preview link is the pointer-following link.
+
 **Typical Cloud workflow:**
 1. Run `coursecode login` once, open the URL shown, and enter the code.
-2. Run `coursecode deploy` from your project folder.
+2. Run `coursecode deploy` from your project folder, or `coursecode deploy --preview --password` for a password-protected review build.
 3. Open the CourseCode Cloud dashboard link shown after deploy.
-4. Use Cloud preview links for review.
-5. Download the LMS format you need from Cloud when you're ready to deliver.
+4. Use the main preview link for review.
+5. Move the Preview or Production pointer when needed.
+6. Download the LMS format you need from Cloud when you're ready to deliver.
 
 **Prefer a GUI instead of the terminal?**
-- Use **CourseCode Desktop** for the same project workflow with buttons for Preview / Export / Deploy.
+- Use **CourseCode Desktop** for the same project workflow with buttons for Preview / Export / Deploy, plus a focused Cloud Deployments panel for preview-link password/expiry management, recent deployments, and Production/Preview pointer changes.
 - Desktop docs: `coursecode-desktop/USER_GUIDE.md`
 
 **When to use Cloud vs local export:**
@@ -762,7 +786,7 @@ Open the URL in any browser, log in with your CourseCode account, and enter the 
 **Benefits:**
 - **No format decisions** — download the right ZIP for any LMS directly from the cloud
 - **Instant updates** — redeploy and all future launches get the new version
-- **Preview sharing** — cloud provides a shareable preview link automatically
+- **Preview sharing** — cloud provides a shareable preview link that can be password-protected and pointed at the review deployment you choose
 
 ### Exporting Content for Review
 

@@ -175,10 +175,25 @@ The preview server provides:
 
 When ready, deploy:
 
-**With [CourseCode Cloud](https://coursecodecloud.com)**: Push your course and get a live link. Cloud handles hosting, generates any LMS format on demand, and gives you sharable preview links with optional password protection. No ZIP files, no manual uploads.
+**With [CourseCode Cloud](https://coursecodecloud.com)**: Push your course and get a live link. Cloud handles hosting, generates any LMS format on demand, and gives you a shareable preview link with optional password protection. No ZIP files, no manual uploads.
 
 ```bash
 coursecode deploy
+```
+
+For stakeholder review, deploy a preview-only version and password-protect the preview link:
+
+```bash
+coursecode deploy --preview --password
+```
+
+You can inspect recent deployments and move pointers without rebuilding:
+
+```bash
+coursecode deployments
+coursecode promote --preview
+coursecode promote --production
+coursecode preview-link --password
 ```
 
 If the cloud course was deleted but the project still has the old local binding, redeploy with:
@@ -212,6 +227,9 @@ coursecode preview --export
 | `coursecode lint` | Validate course structure and content |
 | `coursecode build` | Build a package for LMS upload |
 | `coursecode deploy` | Build and deploy to CourseCode Cloud |
+| `coursecode deployments` | List recent Cloud deployments |
+| `coursecode promote` | Move the Production or Preview pointer |
+| `coursecode preview-link` | Manage the Cloud preview link |
 | `coursecode narration` | Generate audio narration from text |
 
 For the full command list and deployment options, see the [User Guide](framework/docs/USER_GUIDE.md#sharing-and-deploying) or run `coursecode --help`.
