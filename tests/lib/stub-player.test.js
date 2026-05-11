@@ -162,11 +162,17 @@ describe('generateStubPlayer — viewer mode (export/cloud)', () => {
         expect(html).toContain('z-index: 9999999');
     });
 
-    it('reset only clears the viewer LMS storage key', () => {
+    it('reset unloads the viewer iframe before clearing the scoped LMS storage key', () => {
         const viewerSource = readFileSync(new URL('../../lib/stub-player/app-viewer.js', import.meta.url), 'utf8');
+        const blankFrameIndex = viewerSource.indexOf("frame.src = 'about:blank'");
+        const fallbackResetIndex = viewerSource.indexOf('setTimeout(finishReset, 250)');
 
         expect(viewerSource).toContain('const storageKey = config.storageKey');
         expect(viewerSource).toContain('localStorage.removeItem(storageKey)');
+        expect(blankFrameIndex).toBeGreaterThan(-1);
+        expect(fallbackResetIndex).toBeGreaterThan(blankFrameIndex);
+        expect(viewerSource).toContain("frame.addEventListener('load', finishReset, { once: true })");
+        expect(viewerSource).toContain('setTimeout(finishReset, 250)');
         expect(viewerSource).not.toContain('localStorage.clear()');
     });
 });
