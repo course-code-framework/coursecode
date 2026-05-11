@@ -6,9 +6,12 @@ CourseCode creates real project files you can inspect, version, and edit directl
 
 Bring your own PDFs, Word docs, or PowerPoints, use AI to accelerate authoring, and deploy to any LMS format without vendor lock-in or subscriptions.
 
-## See it first
+## View the demo
 
 - [View the live CourseCode demo course](https://preview.coursecodecloud.com/preview/coursecode-demo/nTfJU2qvp23P0mguxrrGFZr4FlXfM03N)
+
+## Explore the ecosystem
+
 - [Build SCORM courses with the framework](https://coursecodeframework.com/scorm/)
 - [Use CourseCode Desktop if you prefer a GUI](https://coursecodedesktop.com/scorm/)
 - [Use CourseCode Cloud for hosted delivery](https://coursecodecloud.com)
