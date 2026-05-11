@@ -61,6 +61,8 @@ Open `http://localhost:4173` to view and edit your course.
 
 The example course included with every new project is a complete guide to using CourseCode.
 
+You can also view the live [CourseCode demo course](https://preview.coursecodecloud.com/preview/coursecode-demo/nTfJU2qvp23P0mguxrrGFZr4FlXfM03N).
+
 Start with the [User Guide](framework/docs/USER_GUIDE.md) for a complete walkthrough.
 
 ---
