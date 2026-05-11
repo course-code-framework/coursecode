@@ -7,6 +7,8 @@ export interface StubPlayerConfig {
   liveReload?: boolean
   courseContent?: string
   startSlide?: string | number
+  showHeader?: boolean
+  skipGating?: boolean | null
   isDesktop?: boolean
   moduleBasePath?: string
 }

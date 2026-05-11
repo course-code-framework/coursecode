@@ -2,6 +2,7 @@
  * Tests for stub-player.js — verifies HTML output for live vs viewer mode.
  */
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'fs';
 import { generateStubPlayer } from '../../lib/stub-player.js';
 
 const BASE_CONFIG = { title: 'Test Course', launchUrl: '/', storageKey: 'test-key' };
@@ -127,6 +128,28 @@ describe('generateStubPlayer — viewer mode (export/cloud)', () => {
         expect(html).toContain('id="stub-player-more-menu"');
     });
 
+    it('can hide the preview player header through config', () => {
+        const hiddenHeaderHtml = viewerHtml({ showHeader: false });
+
+        expect(hiddenHeaderHtml).toContain('class="stub-player-header-hidden"');
+        expect(hiddenHeaderHtml).toContain('showHeader: false');
+    });
+
+    it('can set skip gating through config', () => {
+        const skipGatingHtml = viewerHtml({ skipGating: true });
+
+        expect(skipGatingHtml).toContain('skipGating: true');
+    });
+
+    it('viewer query options override config and storage for header and gating', () => {
+        const viewerSource = readFileSync(new URL('../../lib/stub-player/app-viewer.js', import.meta.url), 'utf8');
+
+        expect(viewerSource).toContain("QUERY.get('previewHeader')");
+        expect(viewerSource).toContain("resolveBooleanQuery('hideHeader')");
+        expect(viewerSource).toContain("resolveBooleanQuery('skipGating')");
+        expect(viewerSource).toContain("initialSkipGating: INITIAL_SKIP_GATING");
+    });
+
     it('excludes authoring CSS (debug, config, edit)', () => {
         expect(html).not.toContain('#stub-player-debug-panel');
         expect(html).not.toContain('.config-section');
@@ -135,6 +158,15 @@ describe('generateStubPlayer — viewer mode (export/cloud)', () => {
     it('includes viewer CSS (header, content-viewer)', () => {
         expect(html).toContain('#stub-player-header');
         expect(html).toContain('#stub-player-content-panel');
+    });
+
+    it('reset clears all same-origin progress while preserving skip gating', () => {
+        const viewerSource = readFileSync(new URL('../../lib/stub-player/app-viewer.js', import.meta.url), 'utf8');
+
+        expect(viewerSource).toContain("localStorage.getItem('coursecode-skipGating')");
+        expect(viewerSource).toContain('localStorage.clear()');
+        expect(viewerSource).toContain("localStorage.setItem('coursecode-skipGating', skipGating)");
+        expect(viewerSource).not.toContain('localStorage.removeItem(storageKey)');
     });
 });
 
