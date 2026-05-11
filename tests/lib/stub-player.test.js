@@ -160,13 +160,12 @@ describe('generateStubPlayer — viewer mode (export/cloud)', () => {
         expect(html).toContain('#stub-player-content-panel');
     });
 
-    it('reset clears all same-origin progress while preserving skip gating', () => {
+    it('reset only clears the viewer LMS storage key', () => {
         const viewerSource = readFileSync(new URL('../../lib/stub-player/app-viewer.js', import.meta.url), 'utf8');
 
-        expect(viewerSource).toContain("localStorage.getItem('coursecode-skipGating')");
-        expect(viewerSource).toContain('localStorage.clear()');
-        expect(viewerSource).toContain("localStorage.setItem('coursecode-skipGating', skipGating)");
-        expect(viewerSource).not.toContain('localStorage.removeItem(storageKey)');
+        expect(viewerSource).toContain('const storageKey = config.storageKey');
+        expect(viewerSource).toContain('localStorage.removeItem(storageKey)');
+        expect(viewerSource).not.toContain('localStorage.clear()');
     });
 });
 
