@@ -20,6 +20,7 @@ Bring your own PDFs, Word docs, or PowerPoints, use AI to accelerate authoring, 
 
 - **MCP integration**: Works with Claude Code, Codex, Cursor, CourseCode Desktop, and any MCP-capable AI tool — previews, screenshots, linting, and testing without manual file sharing
 - **No coding required to start**: Describe what you want and let AI help build slides, interactions, and structure
+- **Course modernization**: Use existing SCORM courses, PowerPoints, PDFs, Word docs, scripts, and SME notes as source material for upgraded courses
 - **Full LMS integration**: SCORM 1.2, SCORM 2004, cmi5, and LTI with complete tracking records
 - **AI-assisted authoring workflow**: Structured guides and MCP tools for faster course development
 - **Rich UI components**: Images, video, accordions, tabs, and custom sandboxed HTML/JS embeds
