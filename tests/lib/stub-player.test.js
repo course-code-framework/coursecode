@@ -155,9 +155,11 @@ describe('generateStubPlayer — viewer mode (export/cloud)', () => {
         expect(html).not.toContain('.config-section');
     });
 
-    it('includes viewer CSS (header, content-viewer)', () => {
+    it('includes viewer CSS (header, content-viewer, confirm dialog)', () => {
         expect(html).toContain('#stub-player-header');
         expect(html).toContain('#stub-player-content-panel');
+        expect(html).toContain('#stub-player-confirm-dialog');
+        expect(html).toContain('z-index: 9999999');
     });
 
     it('reset only clears the viewer LMS storage key', () => {
