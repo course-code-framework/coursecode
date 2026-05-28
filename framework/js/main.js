@@ -219,6 +219,8 @@ window.addEventListener('click', (event) => {
 });
 
 function reportInitializationError(error) {
+    document.documentElement.removeAttribute('data-course-loading');
+
     // Store error in AppState if initialized (defensive - AppState might not be initialized yet)
     try {
         if (AppState.isInitialized()) {
@@ -346,10 +348,8 @@ function applyThemeVariants() {
     // Apply course layout from config (before theme variants)
     // Layouts: 'article' (default), 'traditional', 'focused', 'presentation', 'canvas'
     const layout = courseConfig.layout || 'article';
-    if (!html.hasAttribute('data-layout')) {
-        html.setAttribute('data-layout', layout);
-        logger.debug(`[Layout] Applied data-layout="${layout}" from course config`);
-    }
+    html.setAttribute('data-layout', layout);
+    logger.debug(`[Layout] Applied data-layout="${layout}" from course config`);
 
     // Apply sidebar enabled state from config
     // For 'traditional' layout, sidebar is always enabled
@@ -429,6 +429,7 @@ async function initializeCourseApplication() {
             const accessResult = validateAccess();
             if (!accessResult.valid) {
                 logger.warn('[AccessControl] Access denied:', accessResult.error);
+                document.documentElement.removeAttribute('data-course-loading');
                 showUnauthorizedScreen(accessResult.error);
                 return; // Halt initialization
             }

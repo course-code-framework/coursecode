@@ -174,6 +174,7 @@ export function initAppUI() {
  * Hides the loading indicator after the course has finished initializing.
  */
 export function hideLoadingIndicator() {
+    document.documentElement.removeAttribute('data-course-loading');
     if (loadingIndicator) {
         loadingIndicator.style.display = 'none';
         AppState.setLoadingVisible(false);

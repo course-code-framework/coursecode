@@ -1,20 +1,22 @@
 # CourseCode
 
-**Open-source, local-first course authoring built for AI tools like Claude Code, Codex, Cursor, and [CourseCode Desktop](https://coursecodedesktop.com) — no coding required to start, full code control when you need it.**
+**Open-source, local-first course authoring with no vendor lock-in. Built for AI tools like Claude Code, Codex, Cursor, and [CourseCode Desktop](https://coursecodedesktop.com). No coding required to start, full code control when you need it.**
 
-CourseCode creates real project files you can inspect, version, and edit directly — with a predictable, file-based workflow instead of a black-box GUI. Built-in MCP integration means your AI assistant connects directly to your course project.
+CourseCode creates real project files you can inspect, version, and edit directly instead of relying on restrictive graphical editing tools. Built-in MCP integration means your AI assistant connects directly to your course project and understands the framework immediately.
 
-Bring your own PDFs, Word docs, or PowerPoints, use AI to accelerate authoring, and deploy to any LMS format without vendor lock-in or subscriptions.
+Bring your own PDFs, Word docs, or other reference documents, use AI to accelerate authoring, and deploy to any LMS without vendor lock-in or subscriptions.
 
 ## View the demo
 
 - [View the live CourseCode demo course](https://preview.coursecodecloud.com/preview/coursecode-demo/nTfJU2qvp23P0mguxrrGFZr4FlXfM03N)
 
-## Explore the ecosystem
+## CourseCode ecosystem
 
 - [Build SCORM courses with the framework](https://coursecodeframework.com/scorm/)
 - [Use CourseCode Desktop if you prefer a GUI](https://coursecodedesktop.com/scorm/)
 - [Use CourseCode Cloud for hosted delivery](https://coursecodecloud.com)
+
+> CourseCode Framework is a standalone tool. Desktop and Cloud are optional. 
 
 ## Features
 

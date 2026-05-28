@@ -24,9 +24,17 @@
    
    ============================================================================ */
 
-/* Loading indicator - overlay that covers the content area */
+/* Hide shell chrome until course-config-derived layout attributes are applied. */
+html[data-course-loading="true"] .course-header,
+html[data-course-loading="true"] .sidebar,
+html[data-course-loading="true"] .sidebar-backdrop,
+html[data-course-loading="true"] .app-footer {
+  display: none;
+}
+
+/* Loading indicator - overlay that covers the full shell during startup */
 #loading {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
@@ -42,7 +50,7 @@
     radial-gradient(circle at 20% 50%, var(--color-secondary-alpha-05) 0%, transparent 50%),
     radial-gradient(circle at 80% 80%, var(--color-primary-alpha-10) 0%, transparent 50%);
   color: var(--text-muted);
-  z-index: 100;
+  z-index: var(--z-overlay);
 }
 
 /* Loading text styling */
