@@ -92,13 +92,15 @@
  * EXTERNAL HOSTING (CDN deployment with proxy packages):
  *   format: 'scorm1.2-proxy' | 'scorm2004-proxy' | 'cmi5-remote'
  *   externalUrl: 'https://cdn.example.com/courses/my-course'  // Where course is hosted
- *   accessControl: {
- *     clients: {
- *       'acme-corp': { token: 'generated-token-here' },
- *       'globex': { token: 'another-token-here' }
- *     }
- *   }
- *   Generate tokens: coursecode token --add <clientId>
+ *   accessControl: { enforcement: 'server' }
+ *   Client tokens are stored outside course source in the gitignored file
+ *   .coursecode/access-control.json (created by coursecode token --add <clientId>).
+ *   The CDN/backend MUST validate credentials before serving index.html/assets.
+ *
+ * LMS PACKAGE MASTERY (optional):
+ *   lms: { masteryScore: 80 }  // 0-100; omitted by default
+ *   Only set this when the whole package has one LMS-level threshold. Individual
+ *   assessment passing scores remain in their assessment settings.
  *   Build output: One package per client (e.g., acme-corp_proxy.zip)
  *
  * CLOUD DEPLOYMENT:

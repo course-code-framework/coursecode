@@ -299,6 +299,36 @@ describe('data-reporter: cloud meta tag priority chain', () => {
         vi.useRealTimers();
     });
 
+    it('retries a failed batch without waiting for another learner event', async () => {
+        vi.useFakeTimers();
+        fetchSpy
+            .mockResolvedValueOnce({ ok: false, status: 503 })
+            .mockResolvedValueOnce({ ok: true, status: 200 });
+
+        initDataReporter({
+            environment: {
+                dataReporting: {
+                    endpoint: 'https://self-hosted.example.com/data',
+                    batchSize: 1,
+                    flushInterval: 30000
+                }
+            }
+        });
+
+        eventBus.emit('assessment:submitted', {
+            assessmentId: 'quiz-retry',
+            results: { scorePercentage: 80, passed: true, attemptNumber: 1, totalQuestions: 5, correctCount: 4 }
+        });
+
+        await vi.advanceTimersByTimeAsync(0);
+        expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(fetchSpy).toHaveBeenCalledTimes(2);
+
+        vi.useRealTimers();
+    });
+
     it('includes Authorization: Bearer header when cc-api-key is present', async () => {
         vi.useFakeTimers();
 

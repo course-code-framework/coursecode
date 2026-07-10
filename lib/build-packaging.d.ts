@@ -2,6 +2,10 @@ export function stampFormat(html: string, format: string): string
 export function stampFormatInHtml(htmlPath: string, format: string): void
 
 export function validateExternalHostingConfig(config: Record<string, unknown>): void
+export function loadExternalAccessConfig(rootDir: string, courseConfig: Record<string, any>): {
+  enforcement: string | null
+  clients: Record<string, { token: string }>
+}
 
 export function createStandardPackage(options: {
   rootDir: string

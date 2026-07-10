@@ -1,28 +1,11 @@
 /**
- * Access Control - validates client tokens for multi-tenant CDN hosting
+ * Access Control compatibility helper for multi-tenant CDN hosting.
  * 
- * Checks URL params (clientId, token) against course config.
- * Used by external hosting modes (scorm*-proxy, cmi5-remote).
+ * Real authorization must happen at the CDN/backend before course files are
+ * served. This module deliberately refuses the legacy browser-token design.
  */
 
 import { courseConfig } from '../../../course/course-config.js';
-
-/**
- * Constant-time string comparison to prevent timing side-channel attacks.
- * Returns false for mismatched lengths without leaking which byte differs.
- * @param {string} a
- * @param {string} b
- * @returns {boolean}
- */
-function timingSafeEqual(a, b) {
-    if (typeof a !== 'string' || typeof b !== 'string') return false;
-    if (a.length !== b.length) return false;
-    let mismatch = 0;
-    for (let i = 0; i < a.length; i++) {
-        mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
-    }
-    return mismatch === 0;
-}
 
 /**
  * Validate access based on URL token
@@ -31,45 +14,28 @@ function timingSafeEqual(a, b) {
 export function validateAccess() {
     const accessControl = courseConfig.accessControl;
 
-    // If no access control clients configured, allow all
-    if (!accessControl?.clients) {
+    if (!accessControl) {
         return { valid: true, clientId: null, error: null };
     }
 
-    const params = new URLSearchParams(window.location.search);
-    const clientId = params.get('clientId');
-    const token = params.get('token');
-
-    // Missing credentials
-    if (!clientId || !token) {
+    if (accessControl.clients) {
         return {
             valid: false,
             clientId: null,
-            error: 'Missing clientId or token'
+            error: 'Legacy browser-side accessControl.clients is insecure and unsupported. Move credentials to .coursecode/access-control.json.'
         };
     }
 
-    // Unknown client
-    const client = accessControl.clients?.[clientId];
-    if (!client) {
+    if (accessControl.enforcement !== 'server') {
         return {
             valid: false,
-            clientId,
-            error: `Unknown client: ${clientId}`
+            clientId: null,
+            error: "External access control must use enforcement: 'server'"
         };
     }
 
-    // Invalid token (constant-time comparison)
-    if (!timingSafeEqual(client.token, token)) {
-        return {
-            valid: false,
-            clientId,
-            error: 'Invalid token'
-        };
-    }
-
-    // Success
-    return { valid: true, clientId, error: null };
+    // Reaching this JavaScript means the server/CDN already authorized delivery.
+    return { valid: true, clientId: null, error: null };
 }
 
 /**

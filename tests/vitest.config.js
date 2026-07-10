@@ -32,7 +32,13 @@ export default defineConfig({
                 'lib/proxy-templates/**'
             ],
             reporter: ['text', 'html', 'json-summary'],
-            reportsDirectory: './coverage'
+            reportsDirectory: './coverage',
+            thresholds: {
+                statements: 18,
+                branches: 18,
+                functions: 20,
+                lines: 18
+            }
         }
     }
 });

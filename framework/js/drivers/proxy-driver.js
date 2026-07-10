@@ -28,7 +28,7 @@ export class ProxyDriver {
 
         // Origin of the parent proxy frame (set during initialize)
         // Used for postMessage origin validation
-        this._parentOrigin = '*'; // Fallback — overridden with real origin when available
+        this._parentOrigin = null;
 
         // Pre-fetched cache populated during initialize()
         this._cache = {
@@ -94,11 +94,14 @@ export class ProxyDriver {
                 const referrerUrl = new URL(document.referrer);
                 this._parentOrigin = referrerUrl.origin;
                 logger.debug('ProxyDriver: Parent origin from referrer:', this._parentOrigin);
-            } else {
-                logger.warn('ProxyDriver: No document.referrer available — using wildcard origin. Some LMS strip the Referer header.');
+            } else if (window.location.ancestorOrigins?.[0]) {
+                this._parentOrigin = new URL(window.location.ancestorOrigins[0]).origin;
             }
         } catch {
-            logger.warn('ProxyDriver: Could not parse document.referrer — using wildcard origin');
+            this._parentOrigin = null;
+        }
+        if (!this._parentOrigin) {
+            throw new Error('ProxyDriver: Cannot determine parent origin; refusing insecure wildcard postMessage transport');
         }
 
         try {
@@ -419,7 +422,7 @@ export class ProxyDriver {
         }
 
         // Validate origin when we have a known parent origin
-        if (this._parentOrigin !== '*' && event.origin !== this._parentOrigin) {
+        if (event.source !== window.parent || event.origin !== this._parentOrigin) {
             logger.warn('ProxyDriver: Rejected message from unexpected origin:', event.origin);
             return;
         }

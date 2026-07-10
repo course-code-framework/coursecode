@@ -28,7 +28,7 @@ describe('loading startup shell', () => {
         const removalCount = (mainJs.match(/removeAttribute\('data-course-loading'\)/g) || []).length;
 
         expect(appUi).toContain("document.documentElement.removeAttribute('data-course-loading');");
-        expect(removalCount).toBeGreaterThanOrEqual(2);
+        expect(removalCount).toBeGreaterThanOrEqual(1);
     });
 
     it('still applies the course-config layout at runtime', () => {
@@ -36,5 +36,12 @@ describe('loading startup shell', () => {
 
         expect(mainJs).toContain("const layout = courseConfig.layout || 'article';");
         expect(mainJs).toContain("html.setAttribute('data-layout', layout);");
+    });
+
+    it('references the generated-project course theme path', () => {
+        const html = fs.readFileSync(path.join(repoRoot, 'framework/index.html'), 'utf8');
+
+        expect(html).toContain('href="../course/theme.css"');
+        expect(html).not.toContain('../template/course/theme.css');
     });
 });

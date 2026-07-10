@@ -44,11 +44,15 @@
     </div>
     
     <iframe id="course" style="display:none"></iframe>
-    
+
+    <script src="pipwerks.js"></script>
+    <script>
+        // Injected as a JSON string by the build system before the bridge loads.
+        window.COURSECODE_PROXY_CONFIG = { courseUrl: {{EXTERNAL_URL_JSON}} };
+    </script>
     <script src="scorm-bridge.js"></script>
     <script>
-        // Course URL is injected at build time
-        const COURSE_URL = '{{EXTERNAL_URL}}';
+        const COURSE_URL = window.COURSECODE_PROXY_CONFIG.courseUrl;
         
         const iframe = document.getElementById('course');
         const loading = document.getElementById('loading');

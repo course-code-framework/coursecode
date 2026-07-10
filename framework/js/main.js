@@ -422,21 +422,9 @@ async function initializeCourseApplication() {
         // 0c. Initialize course channel (if configured) - pub/sub transport for course-to-course comms
         initCourseChannel(courseConfig);
 
-        // 0d. Validate access control (for external hosting / multi-tenant CDN)
-        // This MUST run early before any LMS initialization to reject unauthorized clients
-        if (courseConfig.accessControl?.clients) {
-            const { validateAccess, showUnauthorizedScreen } = await import('./utilities/access-control.js');
-            const accessResult = validateAccess();
-            if (!accessResult.valid) {
-                logger.warn('[AccessControl] Access denied:', accessResult.error);
-                document.documentElement.removeAttribute('data-course-loading');
-                showUnauthorizedScreen(accessResult.error);
-                return; // Halt initialization
-            }
-            if (accessResult.clientId) {
-                logger.debug(`[AccessControl] Client authorized: ${accessResult.clientId}`);
-            }
-        }
+        // External-hosting authorization is enforced before delivery by the
+        // configured CDN/backend. Browser-side token comparison is not a
+        // security boundary and is intentionally not performed here.
 
         // 0e. Initialize breakpoint manager (must be early - before components render)
         // Applies responsive .bp-* classes to <html> based on viewport width

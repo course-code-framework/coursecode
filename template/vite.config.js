@@ -1,5 +1,4 @@
 import { defineConfig } from 'vite';
-import legacy from '@vitejs/plugin-legacy';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
@@ -10,10 +9,12 @@ let contentDiscoveryPlugin;
 let createStandardPackage;
 let createExternalPackagesForClients;
 let validateExternalHostingConfig;
+let loadExternalAccessConfig;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname);
 const DIST_DIR = path.join(ROOT_DIR, 'dist');
+const SUPPORTED_BROWSER_TARGETS = ['chrome111', 'edge111', 'firefox114', 'safari16.4'];
 
 async function loadBuildUtils() {
   if (
@@ -21,7 +22,8 @@ async function loadBuildUtils() {
     contentDiscoveryPlugin &&
     createStandardPackage &&
     createExternalPackagesForClients &&
-    validateExternalHostingConfig
+    validateExternalHostingConfig &&
+    loadExternalAccessConfig
   ) {
     return;
   }
@@ -31,7 +33,8 @@ async function loadBuildUtils() {
     ({
       createStandardPackage,
       createExternalPackagesForClients,
-      validateExternalHostingConfig
+      validateExternalHostingConfig,
+      loadExternalAccessConfig
     } = await import('coursecode/build-packaging'));
     ({ default: contentDiscoveryPlugin } = await import('coursecode/vite-plugin-content-discovery'));
   } catch {
@@ -43,7 +46,8 @@ async function loadBuildUtils() {
     ({
       createStandardPackage,
       createExternalPackagesForClients,
-      validateExternalHostingConfig
+      validateExternalHostingConfig,
+      loadExternalAccessConfig
     } = await import(toUrl('build-packaging.js')));
     ({ default: contentDiscoveryPlugin } = await import(toUrl('vite-plugin-content-discovery.js')));
   }
@@ -87,6 +91,34 @@ function validatePackage(format = 'scorm2004') {
   const assetsDir = path.join(DIST_DIR, 'assets');
   if (!fs.existsSync(assetsDir)) {
     warnings.push('No assets directory found');
+  }
+
+  // Authoring inputs must never be published with the learner runtime.
+  const forbiddenCoursePaths = [
+    'course/course-config.js',
+    'course/references',
+    'course/slides',
+    'course/assessments',
+    'course/theme.css'
+  ];
+  for (const relativePath of forbiddenCoursePaths) {
+    if (fs.existsSync(path.join(DIST_DIR, relativePath))) {
+      errors.push(`Authoring source leaked into package: ${relativePath}`);
+    }
+  }
+
+  const invalidCopyLayouts = [
+    '.vite',
+    'schemas',
+    'common/schemas',
+    'course/course',
+    'course/template',
+    'js/vendor/framework'
+  ];
+  for (const relativePath of invalidCopyLayouts) {
+    if (fs.existsSync(path.join(DIST_DIR, relativePath))) {
+      errors.push(`Static-copy output has an unexpected nested source path: ${relativePath}`);
+    }
   }
 
   // Validate manifest/tool config content by format
@@ -142,6 +174,12 @@ async function loadCourseConfig() {
   const module = await import(configUrl);
   const config = module.courseConfig || module.default || {};
 
+  const masteryScore = config.lms?.masteryScore;
+  if (masteryScore !== undefined && (!Number.isFinite(masteryScore) || masteryScore < 0 || masteryScore > 100)) {
+    throw new Error('lms.masteryScore must be a number between 0 and 100');
+  }
+
+  const lmsFormat = process.env.LMS_FORMAT || config.format || 'cmi5';
   return {
     title: config.metadata?.title || 'SCORM Course',
     description: config.metadata?.description || 'SCORM 2004 4th Edition Course',
@@ -151,9 +189,10 @@ async function loadCourseConfig() {
     windowWidth: config.environment?.window?.width || 1024,
     windowHeight: config.environment?.window?.height || 768,
     // LMS format: CLI override (env var) takes precedence over config file
-    lmsFormat: process.env.LMS_FORMAT || config.format || 'cmi5',
-    externalUrl: config.externalUrl || null,
-    accessControl: config.accessControl || null,
+    lmsFormat,
+    externalUrl: process.env.LTI_EXTERNAL_URL || config.externalUrl || null,
+    masteryScore: masteryScore ?? null,
+    accessControl: loadExternalAccessConfig(ROOT_DIR, config),
     galleryConfig: config.navigation?.documentGallery || null
   };
 }
@@ -184,14 +223,31 @@ function scanDistFiles() {
   return files;
 }
 
+function removeHiddenBuildArtifacts(dir) {
+  if (!fs.existsSync(dir)) return;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      removeHiddenBuildArtifacts(fullPath);
+    } else if (entry.name === '.DS_Store' || entry.name === '.gitkeep' || entry.name.startsWith('._')) {
+      fs.rmSync(fullPath, { force: true });
+    }
+  }
+}
+
 /**
  * SCORM post-build plugin
  */
-function scormPostBuild(isDev) {
+function scormPostBuild(isDev, { isWatchBuild }) {
+  let initialBuild = true;
   return {
     name: 'scorm-post-build',
     enforce: 'post',
     buildStart() {
+      if (initialBuild && isWatchBuild && fs.existsSync(DIST_DIR)) {
+        fs.rmSync(DIST_DIR, { recursive: true, force: true });
+      }
+      initialBuild = false;
       if (isDev) console.log('🔨 Building...');
     },
     closeBundle: async () => {
@@ -199,6 +255,7 @@ function scormPostBuild(isDev) {
         // Move index.html to root
         const indexSource = path.join(DIST_DIR, 'framework', 'index.html');
         const indexDest = path.join(DIST_DIR, 'index.html');
+        removeHiddenBuildArtifacts(DIST_DIR);
 
         // Load course config once for meta tag injection and manifest generation
         const config = await loadCourseConfig();
@@ -267,6 +324,7 @@ function scormPostBuild(isDev) {
 export default defineConfig(async ({ mode }) => {
   await loadBuildUtils();
   const isDev = mode === 'development';
+  const isWatchBuild = process.argv.includes('--watch');
   const courseConfig = await loadCourseConfig();
 
   return {
@@ -292,18 +350,20 @@ export default defineConfig(async ({ mode }) => {
 
     build: {
       outDir: 'dist',
-      emptyOutDir: !isDev,
-      manifest: true,
+      emptyOutDir: !isWatchBuild,
+      // Stable browser contract for LMS launches. SCORM defines the LMS API,
+      // not an obsolete browser requirement; IE11/SystemJS is unsupported.
+      target: SUPPORTED_BROWSER_TARGETS,
       // LMS environments (SCORM/cmi5) can be restrictive with dynamic imports,
       // so we intentionally keep main.js as a single chunk
       chunkSizeWarningLimit: 600,
-      rollupOptions: {
+      rolldownOptions: {
         input: {
           main: path.resolve(__dirname, 'framework/index.html')
         },
         // All drivers are bundled as lazy chunks in the universal build.
-        // jose is dynamically imported by lti-driver.js only when LTI format
-        // is selected at runtime, so it's safe to include in all builds.
+        // LTI OIDC/JWT validation remains server-side, so no browser crypto
+        // verification dependency is required here.
         output: {
           entryFileNames: 'assets/[name].js',
           chunkFileNames: 'assets/[name].js',
@@ -316,26 +376,19 @@ export default defineConfig(async ({ mode }) => {
       // Content discovery - generates manifest at build time
       contentDiscoveryPlugin({ galleryConfig: courseConfig.galleryConfig }),
 
-      ...(!isDev ? [
-        legacy({
-          targets: ['ie >= 11'],
-          renderLegacyChunks: true,
-          modernPolyfills: true,
-          ignoreBrowserslistConfig: true
-        })
-      ] : []),
-
       viteStaticCopy({
         targets: [
-          { src: 'schemas/*.{xml,xsd,dtd}', dest: '.' },
-          { src: 'schemas/common/*', dest: 'common' },
-          { src: 'course', dest: '.' },
-          { src: 'framework/js/vendor/**/*', dest: 'js/vendor' }
+          { src: 'schemas/*.{xml,xsd,dtd}', dest: '.', rename: { stripBase: 1 } },
+          { src: 'schemas/common/*', dest: 'common', rename: { stripBase: 2 } },
+          // Publish runtime assets only. Never ship authoring references,
+          // configuration source, assessment source, or hidden project files.
+          { src: 'course/assets', dest: 'course', rename: { stripBase: 1 } },
+          { src: 'framework/js/vendor/**/*', dest: 'js/vendor', rename: { stripBase: 3 } }
         ],
         watch: isDev ? { rerun: true } : undefined
       }),
 
-      scormPostBuild(isDev)
+      scormPostBuild(isDev, { isWatchBuild })
     ]
   };
 });

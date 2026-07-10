@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "description": "CourseCode project",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "scripts": {
     "dev": "vite build --mode development --watch",
     "build": "npm run lint && vite build",
@@ -13,16 +16,22 @@
   },
   "dependencies": {
     "@xapi/cmi5": "^1.4.0",
-    "jose": "^6.2.2",
     "lz-string": "^1.5.0",
     "marked": "^17.0.6",
     "marked-gfm-heading-id": "^4.1.4"
   },
   "devDependencies": {
-    "@vitejs/plugin-legacy": "~7.2.1",
     "archiver": "^7.0.1",
     "eslint": "^9.39.4",
-    "vite": "~7.2.2",
-    "vite-plugin-static-copy": "^3.4.0"
+    "vite": "~8.1.4",
+    "vite-plugin-static-copy": "^4.1.1"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "uuid": "^11.1.1"
+    }
   }
 }

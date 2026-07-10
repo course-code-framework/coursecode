@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { LtiDriver } from '../../../framework/js/drivers/lti-driver.js';
 
 // ─── LTI 1.3 Specification Compliance Tests ──────────────────────────
@@ -188,8 +188,7 @@ describe('LTI 1.3 Spec: AGS Score Payload', () => {
         driver._isConnected = true;
         driver._mock = false;
         driver._claims = { sub: 'user-123' };
-        driver._agsLineItemUrl = 'https://lms.example.com/lineitems/1';
-        driver._accessToken = 'test-token';
+        driver._agsProxyEndpoint = '/api/lti/score';
 
         capturedRequests = [];
 
@@ -205,14 +204,14 @@ describe('LTI 1.3 Spec: AGS Score Payload', () => {
         };
     });
 
-    it('posts score to /scores endpoint (AGS Section 6.1)', async () => {
+    it('posts score to the trusted same-origin AGS proxy', async () => {
         driver._score = 0.85;
         driver._completionStatus = 'completed';
         driver._successStatus = 'passed';
 
         await driver._postScore();
 
-        expect(capturedRequests[0].url).toBe('https://lms.example.com/lineitems/1/scores');
+        expect(capturedRequests[0].url).toBe('/api/lti/score');
         expect(capturedRequests[0].method).toBe('POST');
     });
 
@@ -334,11 +333,20 @@ describe('LTI 1.3 Spec: AGS Score Payload', () => {
 
     it('does not post score when no AGS endpoint configured', async () => {
         driver._score = 0.85;
-        driver._agsLineItemUrl = null;
+        driver._agsProxyEndpoint = null;
 
         await driver._postScore();
 
         expect(capturedRequests).toHaveLength(0);
+    });
+
+    it('treats a non-2xx AGS proxy response as a failed score write', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 401, statusText: 'Unauthorized' });
+        driver._score = 0.85;
+        await driver._postScore();
+        // _postScore is non-blocking for the learner, but the failure must not
+        // be logged as a success or escape observability.
+        expect(globalThis.fetch).toHaveBeenCalledOnce();
     });
 });
 
@@ -361,12 +369,12 @@ describe('LTI Driver: Cloud-Hosted Detection', () => {
         globalThis.window = origWindow;
     });
 
-    it('_hasLaunchParameters returns true when lms-format meta tag is "lti"', () => {
+    it('_hasLaunchParameters requires server-validated claims, not only a format tag', () => {
         globalThis.window = { location: { search: '', hash: '' } };
         globalThis.document = {
             querySelector: (selector) => {
-                if (selector === 'meta[name="lms-format"]') {
-                    return { content: 'lti' };
+                if (selector === 'meta[name="cc-lti-claims"]') {
+                    return { content: JSON.stringify({ sub: 'user-1' }) };
                 }
                 return null;
             }
@@ -384,13 +392,13 @@ describe('LTI Driver: Cloud-Hosted Detection', () => {
         expect(driver._hasLaunchParameters()).toBe(false);
     });
 
-    it('_hasLaunchParameters returns true with id_token in URL', () => {
+    it('_hasLaunchParameters rejects direct browser id_token launches', () => {
         globalThis.window = { location: { search: '?id_token=eyJ0eXAi&state=abc', hash: '' } };
         globalThis.document = {
             querySelector: () => null
         };
 
-        expect(driver._hasLaunchParameters()).toBe(true);
+        expect(driver._hasLaunchParameters()).toBe(false);
     });
 
     it('_resolveCloudClaims reads from meta tag', () => {
@@ -410,13 +418,18 @@ describe('LTI Driver: Cloud-Hosted Detection', () => {
         expect(result.name).toBe('Cloud User');
     });
 
-    it('_resolveCloudClaims falls back to window.__LTI_CONFIG__', () => {
-        const claims = { sub: 'config-user' };
+    it('_resolveCloudClaims rejects mutable window config as a trust source', () => {
+        const claims = { sub: 'untrusted-config-user' };
         globalThis.document = { querySelector: () => null };
         globalThis.window = { __LTI_CONFIG__: { claims } };
 
-        const result = driver._resolveCloudClaims();
-        expect(result.sub).toBe('config-user');
+        expect(() => driver._resolveCloudClaims()).toThrow(/server-injected/);
+    });
+
+    it('rejects cross-origin state and AGS endpoints', () => {
+        globalThis.window = { location: { origin: 'https://tool.example.com' } };
+        expect(() => driver._resolveTrustedSameOriginEndpoint('https://evil.example/state', 'state')).toThrow(/same-origin/);
+        expect(driver._resolveTrustedSameOriginEndpoint('/api/lti/state', 'state')).toBe('https://tool.example.com/api/lti/state');
     });
 
     it('_resolveCloudAgsEndpoint reads from meta tag', () => {

@@ -13,11 +13,13 @@ vi.mock('../../../framework/js/utilities/logger.js', () => ({
 }));
 
 const { EventBus } = await import('../../../framework/js/core/event-bus.js');
+const { logger } = await import('../../../framework/js/utilities/logger.js');
 
 describe('EventBus', () => {
     let bus;
 
     beforeEach(() => {
+        vi.clearAllMocks();
         bus = new EventBus();
     });
 
@@ -51,6 +53,22 @@ describe('EventBus', () => {
 
         it('emit returns false when no listeners', () => {
             expect(bus.emit('ghost')).toBe(false);
+        });
+
+        it('logs error-suffixed events even when no listener is registered', () => {
+            expect(bus.emit('interaction:registry:error', { message: 'boom' })).toBe(false);
+            expect(logger.error).toHaveBeenCalledWith(
+                expect.stringContaining('interaction:registry:error'),
+                expect.stringContaining('boom')
+            );
+        });
+
+        it('does not recursively auto-log the logger transport event', () => {
+            const listener = vi.fn();
+            bus.on('log:error', listener);
+            bus.emit('log:error', { message: 'reported once' });
+            expect(listener).toHaveBeenCalledOnce();
+            expect(logger.error).not.toHaveBeenCalled();
         });
 
         it('emit returns true when listeners exist', () => {

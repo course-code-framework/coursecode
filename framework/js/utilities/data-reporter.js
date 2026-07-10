@@ -40,6 +40,16 @@ let _courseId = null;
 
 const DEFAULT_BATCH_SIZE = 10;
 const DEFAULT_FLUSH_INTERVAL = 30000; // 30 seconds
+const INITIAL_RETRY_DELAY = 1000;
+const MAX_RETRY_DELAY = 30000;
+let retryDelay = INITIAL_RETRY_DELAY;
+
+function scheduleFlush(delay) {
+    if (flushTimer) return;
+    flushTimer = setTimeout(() => {
+        flush();
+    }, delay);
+}
 
 /**
  * Queue a record for batched sending
@@ -69,9 +79,7 @@ function queueRecord(type, data) {
     // Schedule flush on timer if not already scheduled
     if (!flushTimer) {
         const interval = _config.flushInterval || DEFAULT_FLUSH_INTERVAL;
-        flushTimer = setTimeout(() => {
-            flush();
-        }, interval);
+        scheduleFlush(interval);
     }
 }
 
@@ -102,16 +110,21 @@ async function flush() {
         });
 
         if (response.ok) {
+            retryDelay = INITIAL_RETRY_DELAY;
             logger.debug(`[DataReporter] Batch sent successfully (${records.length} records)`);
         } else {
             logger.warn(`[DataReporter] Failed to send batch: ${response.status}`);
             // Re-queue failed records at front of batch
             batch.unshift(...records);
+            scheduleFlush(retryDelay);
+            retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY);
         }
     } catch (e) {
         logger.warn(`[DataReporter] Network error sending batch: ${e.message}`);
         // Re-queue failed records
         batch.unshift(...records);
+        scheduleFlush(retryDelay);
+        retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY);
     }
 }
 

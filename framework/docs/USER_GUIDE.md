@@ -66,7 +66,7 @@ A complete guide to creating interactive e-learning courses with AI assistance. 
 ### What You'll Need
 
 **Required:**
-- [Node.js](https://nodejs.org/) (version 18 or later)
+- [Node.js](https://nodejs.org/) (version 20.19 or later)
 
 **Recommended:**
 - A text editor like [VS Code](https://code.visualstudio.com/) or [Notepad++](https://notepad-plus-plus.org/)
@@ -648,9 +648,13 @@ An LMS (Learning Management System) is the platform your organization uses to de
 | **SCORM 1.2** | Oldest standard, most compatible. | Older systems, or when you're unsure |
 | **LTI** | Integration standard, not a package format. | LMS platforms that use LTI (Canvas, Blackboard) |
 
+> **LTI requires a backend:** A production LTI 1.3 launch is not a static ZIP. A trusted server must complete OIDC/JWT validation, hold the private key, persist learner state, and proxy AGS score writes. The CourseCode browser driver intentionally rejects raw `id_token` launches.
+
 **Not sure which to pick?** Ask your LMS administrator. If they don't know, try **SCORM 1.2** — it works with almost everything.
 
 > **SCORM 1.2 caveat:** SCORM 1.2 has a strict ~4KB suspend data limit. CourseCode uses a strict storage mode to fit within that limit, which can reduce how much interaction UI state is restored across slides on resume.
+
+> **Browser support:** CourseCode learner packages support Chrome 111+, Edge 111+, Firefox 114+, and Safari 16.4+. SCORM format selection does not change that browser floor. Internet Explorer and other non-ESM webviews are not supported.
 
 > **Using CourseCode Cloud?** You don't need to choose a format. Cloud-deployed courses use a universal build — the cloud generates the correct format automatically when you download a ZIP for your LMS. The format setting in `course-config.js` only applies to local `coursecode build` commands.
 
@@ -669,7 +673,7 @@ This creates a ZIP file in `dist/` that you upload directly to your LMS. Every t
 
 For teams that update courses frequently or serve multiple LMS clients, CourseCode supports **CDN deployment**. Instead of uploading the full course to each LMS, you:
 
-1. Host the course on a CDN (like Netlify, Vercel, or GitHub Pages)
+1. Host the course behind a CDN/backend that can authorize every course file
 2. Upload a tiny proxy package (~15KB) to each LMS
 3. The proxy loads the course from the CDN at runtime
 
@@ -678,7 +682,7 @@ For teams that update courses frequently or serve multiple LMS clients, CourseCo
 - **Multi-tenant** — one CDN deployment serves multiple LMS clients, each with their own access token
 - **Smaller LMS packages** — faster upload and launch times
 
-CDN deployment uses special format variants (`scorm1.2-proxy`, `scorm2004-proxy`, `cmi5-remote`). Ask your AI assistant to set this up — it involves configuring an external URL and access tokens in `course-config.js`.
+CDN deployment uses special format variants (`scorm1.2-proxy`, `scorm2004-proxy`, `cmi5-remote`). Configure `accessControl: { enforcement: 'server' }` in `course-config.js`; client credentials are stored separately in the gitignored `.coursecode/access-control.json`.
 
 Generate and add client tokens with:
 
@@ -686,6 +690,8 @@ Generate and add client tokens with:
 coursecode token --add client-a
 coursecode token --add client-b
 ```
+
+These commands create build-time credentials only. Your CDN/backend must validate them before serving `index.html`, JavaScript, or assets. Static hosts without request authorization cannot protect course content.
 
 Then build your proxy/remote package and deploy:
 

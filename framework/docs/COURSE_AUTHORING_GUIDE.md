@@ -35,6 +35,8 @@
 | `coursecode test-data` | Test data reporting webhook configuration |
 | `coursecode mcp` | Start MCP server for AI agent integration |
 
+When upgrading a project created before the Vite 8/browser-policy migration, run `coursecode upgrade --configs` and then `npm install`. The command backs up customized Vite/ESLint files, installs the managed Vite 8 dependency ranges, and removes the retired IE11 legacy plugin. Review the `.backup` files before deleting them.
+
 **Format options** (for local `dev`, `build`, `preview` — not needed for cloud-deployed courses):
 ```bash
 coursecode build --format scorm1.2   # Build for SCORM 1.2 LMS
@@ -105,9 +107,12 @@ coursecode preview                    # Open http://localhost:4173
 | Option | Description |
 |--------|-------------|
 | `--port <port>` | Preview server port (default: 4173) |
+| `--host <host>` | Bind address (default: `127.0.0.1`; use another address only for deliberate LAN access) |
 | `--title <title>` | Custom browser title |
 | `--no-content` | Disable course content viewer |
 | `-f, --format <format>` | LMS format: `scorm2004`, `scorm1.2`, `cmi5`, or `lti` |
+
+Live preview includes source-editing endpoints, so it binds to loopback by default and protects mutations with a per-process token. Treat `--host 0.0.0.0` as deliberate developer-machine access, not as a deployment mode.
 
 ### Static Export
 
@@ -283,17 +288,14 @@ Deploy courses to a CDN for instant updates without re-uploading to the LMS.
 format: 'scorm1.2-proxy',
 externalUrl: 'https://cdn.example.com/my-course',
 accessControl: {
-    clients: {
-        'acme-corp': { token: 'abc123' },
-        'globex': { token: 'def456' }
-    }
+    enforcement: 'server'
 }
 ```
 
 **Generate tokens:**
 ```bash
 coursecode token                  # Generate random token
-coursecode token --add acme-corp  # Add client with token to config
+coursecode token --add acme-corp  # Store token in .coursecode/access-control.json
 ```
 
 **Build:**
@@ -302,7 +304,7 @@ coursecode build  # Creates dist/ + *_<client>_proxy.zip per client
 ```
 
 **Deploy:**
-1. Upload `dist/` to CDN (GitHub Pages, Vercel, Netlify, etc.)
+1. Upload `dist/` behind a CDN/backend that validates the generated client credentials before serving any file
 2. Upload client-specific proxy ZIP to each client's LMS
 3. Future updates: just redeploy to CDN—no LMS re-upload needed
 

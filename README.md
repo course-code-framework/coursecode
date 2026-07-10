@@ -23,7 +23,7 @@ Bring your own PDFs, Word docs, or other reference documents, use AI to accelera
 - **MCP integration**: Works with Claude Code, Codex, Cursor, CourseCode Desktop, and any MCP-capable AI tool — previews, screenshots, linting, and testing without manual file sharing
 - **No coding required to start**: Describe what you want and let AI help build slides, interactions, and structure
 - **Course modernization**: Use existing SCORM courses, PowerPoints, PDFs, Word docs, scripts, and SME notes as source material for upgraded courses
-- **Full LMS integration**: SCORM 1.2, SCORM 2004, cmi5, and LTI with complete tracking records
+- **LMS integration**: SCORM 1.2, SCORM 2004, and cmi5 packaging, plus an LTI 1.3 browser contract for trusted server-backed launches
 - **AI-assisted authoring workflow**: Structured guides and MCP tools for faster course development
 - **Rich UI components**: Images, video, accordions, tabs, and custom sandboxed HTML/JS embeds
 - **Rich interactions**: Multiple choice, drag-drop, fill-in-the-blank, matching, sequencing, and more
@@ -44,11 +44,13 @@ Bring your own PDFs, Word docs, or other reference documents, use AI to accelera
 
 ### Required
 
-Install [Node.js](https://nodejs.org/) (v18 or later), then run:
+Install [Node.js](https://nodejs.org/) (v20.19 or later), then run:
 
 ```bash
 npm install -g coursecode
 ```
+
+Learner courses support Chrome 111+, Edge 111+, Firefox 114+, and Safari 16.4+. SCORM compatibility describes LMS communication and packaging; it does not imply Internet Explorer support.
 
 ### Recommended
 

@@ -110,11 +110,12 @@ class EventBus {
    * @returns {boolean} True if event had listeners
    */
   emit(event, data) {
-    if (!this.events[event] || this.events[event].length === 0) {
-      return false;
-    }
+    // log:error is the logger transport itself; treating it as another source
+    // error would recursively call logger.error().
+    const isErrorEvent = event.endsWith(':error') && event !== 'log:error';
+    const hasListeners = Boolean(this.events[event]?.length);
 
-    const isErrorEvent = event.endsWith(':error');
+    if (!isErrorEvent && !hasListeners) return false;
 
     // Re-entrancy guard — if we're already inside an :error emit,
     // suppress to prevent infinite cascade
@@ -131,6 +132,8 @@ class EventBus {
       if (isErrorEvent) {
         logger.error(`[EventBus Error] ${event}:`, safeStringify(data));
       }
+
+      if (!hasListeners) return false;
 
       // Create a copy of listeners to avoid issues if listeners modify the array
       const listeners = [...this.events[event]];
@@ -170,9 +173,21 @@ class EventBus {
    * @returns {Promise} Resolves when all listeners have been called
    */
   async emitAsync(event, data) {
-    if (!this.events[event] || this.events[event].length === 0) {
-      return false;
+    const isErrorEvent = event.endsWith(':error') && event !== 'log:error';
+    const hasListeners = Boolean(this.events[event]?.length);
+    if (!isErrorEvent && !hasListeners) return false;
+
+    if (isErrorEvent) {
+      if (this._emittingError) {
+        logger.warn(`[EventBus] Suppressed recursive error event: ${event}`);
+        return false;
+      }
+      this._emittingError = true;
+      logger.error(`[EventBus Error] ${event}:`, safeStringify(data));
+      this._emittingError = false;
     }
+
+    if (!hasListeners) return false;
 
     const listeners = [...this.events[event]];
     const onceListeners = [];

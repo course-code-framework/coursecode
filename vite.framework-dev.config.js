@@ -23,13 +23,15 @@ import { lintCourse, formatLintResults } from './lib/build-linter.js';
 import {
   createStandardPackage,
   createExternalPackagesForClients,
-  validateExternalHostingConfig
+  validateExternalHostingConfig,
+  loadExternalAccessConfig
 } from './lib/build-packaging.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname);
 const DIST_DIR = path.join(ROOT_DIR, 'dist');
 const COURSE_DIR = path.join(ROOT_DIR, 'template', 'course');
+const SUPPORTED_BROWSER_TARGETS = ['chrome111', 'edge111', 'firefox114', 'safari16.4'];
 
 // Check if we should create a zip package (for testing full packages)
 const SHOULD_PACKAGE = process.env.PACKAGE === 'true';
@@ -50,15 +52,22 @@ async function loadCourseConfig() {
   const configModule = await import(configUrl);
   const config = configModule.courseConfig || configModule.default;
   
+  const masteryScore = config.lms?.masteryScore;
+  if (masteryScore !== undefined && (!Number.isFinite(masteryScore) || masteryScore < 0 || masteryScore > 100)) {
+    throw new Error('lms.masteryScore must be a number between 0 and 100');
+  }
+
+  const lmsFormat = process.env.LMS_FORMAT || config.format || 'cmi5';
   return {
     title: config.metadata?.title || 'SCORM Course',
     description: config.metadata?.description || 'SCORM 2004 4th Edition Course',
     version: config.metadata?.version || '1.0.0',
     author: config.metadata?.author || 'Unknown',
     language: config.metadata?.language || 'en',
-    lmsFormat: process.env.LMS_FORMAT || config.format || 'cmi5',
-    externalUrl: config.externalUrl || null,
-    accessControl: config.accessControl || null,
+    lmsFormat,
+    externalUrl: process.env.LTI_EXTERNAL_URL || config.externalUrl || (lmsFormat === 'lti' ? 'http://localhost:4173' : null),
+    masteryScore: masteryScore ?? null,
+    accessControl: loadExternalAccessConfig(ROOT_DIR, config),
     galleryConfig: config.navigation?.documentGallery || null
   };
 }
@@ -90,13 +99,60 @@ function scanDistFiles() {
   return files;
 }
 
+function removeHiddenBuildArtifacts(dir) {
+  if (!fs.existsSync(dir)) return;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      removeHiddenBuildArtifacts(fullPath);
+    } else if (entry.name === '.DS_Store' || entry.name === '.gitkeep' || entry.name.startsWith('._')) {
+      fs.rmSync(fullPath, { force: true });
+    }
+  }
+}
+
+function assertNoAuthoringSourceInDist() {
+  const forbiddenCoursePaths = [
+    'course/course-config.js',
+    'course/references',
+    'course/slides',
+    'course/assessments',
+    'course/theme.css'
+  ];
+  const leaked = forbiddenCoursePaths.filter(relativePath => fs.existsSync(path.join(DIST_DIR, relativePath)));
+  if (leaked.length > 0) {
+    throw new Error(`Authoring source leaked into package: ${leaked.join(', ')}`);
+  }
+
+  const invalidCopyLayouts = [
+    '.vite',
+    'schemas',
+    'common/schemas',
+    'course/course',
+    'course/template',
+    'js/vendor/framework'
+  ];
+  const nested = invalidCopyLayouts.filter(relativePath => fs.existsSync(path.join(DIST_DIR, relativePath)));
+  if (nested.length > 0) {
+    throw new Error(`Static-copy output has unexpected nested source paths: ${nested.join(', ')}`);
+  }
+}
+
 /**
  * SCORM post-build plugin for dev
  */
-function scormDevPostBuild() {
+function scormDevPostBuild({ isWatchBuild }) {
+  let initialBuild = true;
   return {
     name: 'scorm-dev-post-build',
     buildStart() {
+      // Vite watch mode intentionally preserves output between rebuilds, but
+      // the first build must start clean so stale manifests/chunks from a
+      // different LMS format cannot leak into the next package.
+      if (initialBuild && isWatchBuild && fs.existsSync(DIST_DIR)) {
+        fs.rmSync(DIST_DIR, { recursive: true, force: true });
+      }
+      initialBuild = false;
       console.log('🔨 Building...');
     },
     closeBundle: async () => {
@@ -122,6 +178,9 @@ function scormDevPostBuild() {
         if (!fs.existsSync(DIST_DIR)) {
           fs.mkdirSync(DIST_DIR, { recursive: true });
         }
+
+        removeHiddenBuildArtifacts(DIST_DIR);
+        assertNoAuthoringSourceInDist();
 
         // Move index.html to root
         const indexSource = path.join(DIST_DIR, 'framework', 'index.html');
@@ -187,6 +246,7 @@ function scormDevPostBuild() {
 export default defineConfig(async ({ mode: _mode }) => {
   const config = await loadCourseConfig();
   const lmsFormat = config.lmsFormat;
+  const isWatchBuild = process.argv.includes('--watch');
 
   return {
     root: '.',
@@ -217,12 +277,12 @@ export default defineConfig(async ({ mode: _mode }) => {
 
     build: {
       outDir: 'dist',
-      emptyOutDir: false,
-      manifest: true,
+      emptyOutDir: !isWatchBuild,
+      target: SUPPORTED_BROWSER_TARGETS,
       // LMS environments (SCORM/cmi5) can be restrictive with dynamic imports,
       // so we intentionally keep main.js as a single chunk
       chunkSizeWarningLimit: 600,
-      rollupOptions: {
+      rolldownOptions: {
         input: {
           main: path.resolve(__dirname, 'framework/index.html')
         },
@@ -235,20 +295,34 @@ export default defineConfig(async ({ mode: _mode }) => {
     },
 
     plugins: [
+      // The published/generated layout has framework/ and course/ as siblings.
+      // Framework development keeps its sample course under template/course.
+      {
+        name: 'framework-dev-course-paths',
+        transformIndexHtml: {
+          order: 'pre',
+          handler(html) {
+            return html.replace('../course/theme.css', '../template/course/theme.css');
+          }
+        }
+      },
+
       // Content discovery - generates manifest at build time
       contentDiscoveryPlugin({ coursePath: COURSE_DIR, slidesDir: path.join(COURSE_DIR, 'slides'), galleryConfig: config.galleryConfig }),
 
       viteStaticCopy({
         targets: [
-          { src: 'schemas/*.{xml,xsd,dtd}', dest: '.' },
-          { src: 'schemas/common/*', dest: 'common' },
-          { src: 'template/course', dest: '.' },
-          { src: 'framework/js/vendor/**/*', dest: 'js/vendor' }
+          { src: 'schemas/*.{xml,xsd,dtd}', dest: '.', rename: { stripBase: 1 } },
+          { src: 'schemas/common/*', dest: 'common', rename: { stripBase: 2 } },
+          // Only publish learner-facing runtime assets. Authoring source,
+          // references, configuration, answers, and hidden files stay out of dist/.
+          { src: 'template/course/assets', dest: 'course', rename: { stripBase: 2 } },
+          { src: 'framework/js/vendor/**/*', dest: 'js/vendor', rename: { stripBase: 3 } }
         ],
         watch: { rerun: true }
       }),
 
-      scormDevPostBuild()
+      scormDevPostBuild({ isWatchBuild })
     ]
   };
 });

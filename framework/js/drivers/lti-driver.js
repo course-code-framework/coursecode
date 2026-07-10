@@ -4,22 +4,20 @@
  * Extends HttpDriverBase for shared mock state, suspend data, and semantic interface.
  *
  * LTI 1.3 launch flow:
- * 1. Platform redirects to tool with id_token (JWT) via OIDC
- * 2. Driver validates JWT using platform's JWKS endpoint
- * 3. State persistence via host-provided state endpoint
- * 4. Score reporting via AGS (Assignment and Grade Services)
+ * 1. A trusted same-origin backend completes OIDC and validates the launch
+ * 2. The backend injects validated display claims into the launch HTML
+ * 3. State persistence uses a same-origin authenticated endpoint
+ * 4. Score reporting uses a same-origin AGS proxy endpoint
  *
  * This driver adds:
- * - JWT validation and claims extraction
- * - AGS score passback on terminate
+ * - Validated-claim extraction from trusted launch HTML
+ * - AGS score passback through a server-side proxy on terminate
  * - State persistence via host endpoint
  * - Emergency save via sendBeacon
  */
 
 import { HttpDriverBase } from './http-driver-base.js';
 import { logger } from '../utilities/logger.js';
-
-// jose is dynamically imported in initialize() to avoid bundling for non-LTI builds
 
 // =============================================================================
 // LTI Driver Class
@@ -33,9 +31,7 @@ export class LtiDriver extends HttpDriverBase {
         this._claims = null;
 
         // AGS endpoint (from JWT claims)
-        this._agsEndpoint = null;
-        this._agsLineItemUrl = null;
-        this._accessToken = null;
+        this._agsProxyEndpoint = null;
 
         // Host state endpoint for suspend_data persistence
         this._stateEndpoint = null;
@@ -86,7 +82,7 @@ export class LtiDriver extends HttpDriverBase {
             return true;
         }
 
-        // Check for LTI launch parameters
+        // Check for a server-validated LTI launch context
         if (!this._hasLaunchParameters()) {
             if (import.meta.env.DEV) {
                 logger.info('[LtiDriver] No LTI launch parameters. Using localStorage mock.');
@@ -96,10 +92,10 @@ export class LtiDriver extends HttpDriverBase {
                 this._logMockStatement('initialized', { verb: 'initialized' });
                 return true;
             }
-            throw new Error('[LtiDriver] No LTI launch context detected. Expected <meta name="lms-format" content="lti"> or id_token/state URL parameters.');
+            throw new Error('[LtiDriver] No trusted LTI launch context detected. LTI requires a server-side OIDC backend that injects cc-lti-claims.');
         }
 
-        // Production mode: validate JWT and extract claims
+        // Production mode: consume the server-validated launch session
         try {
             await this._processLaunch();
             await this._prefetchState();
@@ -255,63 +251,33 @@ export class LtiDriver extends HttpDriverBase {
     _hasLaunchParameters() {
         if (typeof window === 'undefined') return false;
 
-        // Cloud-hosted: engine handles OIDC server-side, signals via meta tag
-        const formatMeta = document.querySelector('meta[name="lms-format"]');
-        if (formatMeta?.content === 'lti') return true;
-
-        // Self-hosted: JWT params in URL from OIDC redirect
+        // Raw browser JWT handling is intentionally rejected. A browser cannot
+        // safely hold the tool private key or exchange AGS client credentials.
         const params = new URLSearchParams(window.location.search);
-        return Boolean(
-            params.get('id_token') ||
-            params.get('state') ||
-            window.location.hash.includes('id_token')
-        );
+        if (params.get('id_token') || params.get('state') || window.location.hash.includes('id_token')) {
+            return false;
+        }
+
+        return Boolean(document.querySelector('meta[name="cc-lti-claims"]')?.content);
     }
 
     async _processLaunch() {
         const params = new URLSearchParams(window.location.search);
-        const idToken = params.get('id_token');
-
-        // Cloud-hosted path: OIDC handled server-side, no JWT in URL
-        if (!idToken) {
-            this._claims = this._resolveCloudClaims();
-            this._stateEndpoint = this._resolveStateEndpoint();
-
-            const agsUrl = this._resolveCloudAgsEndpoint();
-            if (agsUrl) {
-                this._agsLineItemUrl = agsUrl;
-                logger.debug('[LtiDriver] Cloud AGS endpoint:', agsUrl);
-            }
-
-            logger.debug('[LtiDriver] Cloud-hosted launch. User:', this._claims?.sub || 'unknown');
-            return;
+        if (params.get('id_token') || params.get('state') || window.location.hash.includes('id_token')) {
+            throw new Error('Direct browser OIDC/JWT launches are not supported. Complete LTI OIDC on a trusted backend.');
         }
 
-        // Self-hosted path: validate JWT from URL params
-        const { jwtVerify, createRemoteJWKSet } = await import('jose');
+        this._claims = this._resolveCloudClaims();
+        this._validateLtiClaims(this._claims);
+        this._stateEndpoint = this._resolveTrustedSameOriginEndpoint(this._resolveStateEndpoint(), 'state');
 
-        const [headerB64] = idToken.split('.');
-        const header = JSON.parse(atob(headerB64));
-
-        const jwksUrl = this._getJwksUrl(header);
-        const JWKS = createRemoteJWKSet(new URL(jwksUrl));
-
-        const { payload } = await jwtVerify(idToken, JWKS, {
-            algorithms: ['RS256', 'ES256']
-        });
-
-        this._validateLtiClaims(payload);
-        this._claims = payload;
-
-        const agsEndpoint = payload['https://purl.imsglobal.org/spec/lti-ags/claim/endpoint'];
-        if (agsEndpoint) {
-            this._agsEndpoint = agsEndpoint.lineitems;
-            this._agsLineItemUrl = agsEndpoint.lineitem;
-            logger.debug('[LtiDriver] AGS endpoint configured:', this._agsEndpoint);
+        const agsUrl = this._resolveCloudAgsEndpoint();
+        if (agsUrl) {
+            this._agsProxyEndpoint = this._resolveTrustedSameOriginEndpoint(agsUrl, 'AGS proxy');
+            logger.debug('[LtiDriver] Same-origin AGS proxy configured:', this._agsProxyEndpoint);
         }
 
-        this._stateEndpoint = this._resolveStateEndpoint();
-        logger.debug('[LtiDriver] Launch processed. User:', payload.sub);
+        logger.debug('[LtiDriver] Server-validated launch. User:', this._claims?.sub || 'unknown');
     }
 
     _validateLtiClaims(claims) {
@@ -338,26 +304,24 @@ export class LtiDriver extends HttpDriverBase {
         }
     }
 
-    _getJwksUrl(_header) {
-        const meta = document.querySelector('meta[name="lti-jwks-url"]');
-        if (meta) return meta.content;
-
-        if (window.__LTI_CONFIG__?.jwksUrl) return window.__LTI_CONFIG__.jwksUrl;
-
-        throw new Error('JWKS URL not configured. Set via meta tag or window.__LTI_CONFIG__.');
-    }
-
     _resolveStateEndpoint() {
         const meta = document.querySelector('meta[name="lti-state-endpoint"]');
         if (meta) return meta.content;
 
-        if (window.__LTI_CONFIG__?.stateEndpoint) return window.__LTI_CONFIG__.stateEndpoint;
-
         return '/api/lti/state';
     }
 
+    _resolveTrustedSameOriginEndpoint(value, label) {
+        if (!value) throw new Error(`Missing ${label} endpoint`);
+        const endpoint = new URL(value, window.location.origin);
+        if (endpoint.origin !== window.location.origin) {
+            throw new Error(`${label} endpoint must be same-origin so authentication remains server-controlled`);
+        }
+        return endpoint.toString();
+    }
+
     /**
-     * Resolves LTI claims from cloud-injected meta tags or config object.
+     * Resolves LTI claims from server-injected meta tags.
      * Used when OIDC is handled server-side (no JWT in URL).
      */
     _resolveCloudClaims() {
@@ -370,19 +334,15 @@ export class LtiDriver extends HttpDriverBase {
             }
         }
 
-        if (window.__LTI_CONFIG__?.claims) return window.__LTI_CONFIG__.claims;
-
-        throw new Error('[LtiDriver] Cloud LTI launch detected but no claims provided. Expected <meta name="cc-lti-claims"> or window.__LTI_CONFIG__.claims.');
+        throw new Error('[LtiDriver] LTI launch detected but no valid server-injected <meta name="cc-lti-claims"> was provided.');
     }
 
     /**
-     * Resolves AGS lineitem URL from cloud-injected meta tags or config object.
+     * Resolves the same-origin AGS proxy from a server-injected meta tag.
      */
     _resolveCloudAgsEndpoint() {
         const meta = document.querySelector('meta[name="cc-lti-ags"]');
         if (meta?.content) return meta.content;
-
-        if (window.__LTI_CONFIG__?.agsEndpoint) return window.__LTI_CONFIG__.agsEndpoint;
 
         return null;
     }
@@ -407,7 +367,7 @@ export class LtiDriver extends HttpDriverBase {
 
         try {
             const response = await fetch(`${this._stateEndpoint}?key=${encodeURIComponent(stateKey)}`, {
-                headers: this._getAuthHeaders()
+                credentials: 'same-origin'
             });
 
             if (response.ok) {
@@ -445,9 +405,9 @@ export class LtiDriver extends HttpDriverBase {
         const response = await fetch(this._stateEndpoint, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                ...this._getAuthHeaders()
+                'Content-Type': 'application/json'
             },
+            credentials: 'same-origin',
             body: JSON.stringify(payload)
         });
 
@@ -460,19 +420,12 @@ export class LtiDriver extends HttpDriverBase {
         logger.debug('[LtiDriver] State persisted');
     }
 
-    _getAuthHeaders() {
-        if (this._accessToken) {
-            return { 'Authorization': `Bearer ${this._accessToken}` };
-        }
-        return {};
-    }
-
     // =========================================================================
     // Private: AGS Score Passback
     // =========================================================================
 
     async _postScore() {
-        if (!this._agsLineItemUrl || this._score === null) {
+        if (!this._agsProxyEndpoint || this._score === null) {
             return;
         }
 
@@ -487,15 +440,18 @@ export class LtiDriver extends HttpDriverBase {
                 gradingProgress: this._successStatus !== 'unknown' ? 'FullyGraded' : 'NotReady'
             };
 
-            const scoreUrl = `${this._agsLineItemUrl}/scores`;
-            await fetch(scoreUrl, {
+            const response = await fetch(this._agsProxyEndpoint, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/vnd.ims.lis.v1.score+json',
-                    ...this._getAuthHeaders()
+                    'Content-Type': 'application/vnd.ims.lis.v1.score+json'
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify(scorePayload)
             });
+
+            if (!response.ok) {
+                throw new Error(`AGS proxy rejected score: ${response.status} ${response.statusText || ''}`.trim());
+            }
 
             logger.debug('[LtiDriver] Score posted to AGS:', this._score);
 

@@ -6,6 +6,7 @@ export default [
             'dist/**',
             'framework/dist/**',
             'node_modules/**',
+            'coverage/**',
             '*.min.js',
             '**/vendor/**',
             'docs/**',

@@ -1,6 +1,6 @@
 {
   "name": "coursecode",
-  "version": "0.1.53",
+  "version": "0.1.54",
   "description": "Multi-format course authoring framework with CLI tools (SCORM 2004, SCORM 1.2, cmi5, LTI 1.3)",
   "type": "module",
   "bin": {
@@ -57,20 +57,21 @@
     "build:scorm12": "LMS_FORMAT=scorm1.2 npx vite build --config vite.framework-dev.config.js",
     "build:cmi5": "LMS_FORMAT=cmi5 npx vite build --config vite.framework-dev.config.js",
     "build:lti": "LMS_FORMAT=lti npx vite build --config vite.framework-dev.config.js",
-    "package": "npm run lint && PACKAGE=true npx vite build --config vite.framework-dev.config.js",
-    "package:scorm2004": "npm run lint && LMS_FORMAT=scorm2004 PACKAGE=true npx vite build --config vite.framework-dev.config.js",
-    "package:scorm12": "npm run lint && LMS_FORMAT=scorm1.2 PACKAGE=true npx vite build --config vite.framework-dev.config.js",
-    "package:cmi5": "npm run lint && LMS_FORMAT=cmi5 PACKAGE=true npx vite build --config vite.framework-dev.config.js",
-    "package:lti": "npm run lint && LMS_FORMAT=lti PACKAGE=true npx vite build --config vite.framework-dev.config.js",
+    "package": "npm run lint && npm run test:coverage && PACKAGE=true npx vite build --config vite.framework-dev.config.js",
+    "package:scorm2004": "npm run lint && npm run test:coverage && LMS_FORMAT=scorm2004 PACKAGE=true npx vite build --config vite.framework-dev.config.js",
+    "package:scorm12": "npm run lint && npm run test:coverage && LMS_FORMAT=scorm1.2 PACKAGE=true npx vite build --config vite.framework-dev.config.js",
+    "package:cmi5": "npm run lint && npm run test:coverage && LMS_FORMAT=cmi5 PACKAGE=true npx vite build --config vite.framework-dev.config.js",
+    "package:lti": "npm run lint && npm run test:coverage && LMS_FORMAT=lti PACKAGE=true npx vite build --config vite.framework-dev.config.js",
     "test": "vitest run --config tests/vitest.config.js",
     "test:e2e": "vitest run --config tests/vitest.e2e.config.js",
-    "test:all": "npm test && npm run test:e2e",
+    "test:drivers": "vitest run --config tests/vitest.e2e.scorm2004.config.js && vitest run --config tests/vitest.e2e.scorm12.config.js && vitest run --config tests/vitest.e2e.cmi5.config.js && vitest run --config tests/vitest.e2e.lti.config.js",
+    "test:all": "npm test && npm run test:e2e && npm run test:drivers",
     "test:cloud": "vitest run --config tests/vitest.cloud.config.js",
     "test:watch": "vitest --config tests/vitest.config.js",
     "test:coverage": "vitest run --config tests/vitest.config.js --coverage",
-    "prerelease:check": "npm run lint && npm run lint:responsive && npm run lint:responsive:structure && npm run build",
-    "prerelease:check:full": "npm run prerelease:check && npm run smoke:responsive -- --profile=expanded",
-    "prepublishOnly": "echo '📦 Preparing coursecode for npm...'"
+    "prerelease:check": "npm run lint && npm run lint:responsive && npm run lint:responsive:structure && npm run test:coverage && npm run build",
+    "prerelease:check:full": "npm run prerelease:check && npm run test:e2e && npm run test:drivers && npm run smoke:responsive -- --profile=expanded",
+    "prepublishOnly": "npm run prerelease:check"
   },
   "repository": {
     "type": "git",
@@ -98,34 +99,40 @@
   },
   "homepage": "https://github.com/course-code-framework/coursecode/blob/main/framework/docs/USER_GUIDE.md",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.19.0"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "acorn": "^8.15.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "acorn": "^8.17.0",
     "archiver": "^7.0.1",
     "commander": "^14.0.3",
     "lz-string": "^1.5.0",
-    "mammoth": "^1.8.0",
+    "mammoth": "^1.12.0",
     "marked": "^17.0.6",
     "marked-gfm-heading-id": "^4.1.4",
     "node-pptx-parser": "^1.0.1",
-    "pdf2json": "^4.0.2",
+    "pdf2json": "^4.0.3",
     "pdf2md": "^1.0.2",
-    "puppeteer-core": "^24.42.0",
+    "puppeteer-core": "^24.43.1",
     "win-ca": "^3.5.1",
-    "ws": "^8.18.0"
+    "ws": "^8.21.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-legacy": "^7.2.1",
-    "@vitest/coverage-v8": "^4.1.5",
+    "@vitest/coverage-v8": "^4.1.10",
     "@xapi/cmi5": "^1.4.0",
-    "eslint": "^10.2.1",
-    "globals": "^17.5.0",
-    "jose": "^6.2.2",
+    "eslint": "^10.6.0",
+    "globals": "^17.7.0",
     "pptxgenjs": "^4.0.1",
-    "vite": "~7.2.2",
-    "vite-plugin-static-copy": "^3.4.0",
-    "vitest": "^4.1.5"
+    "vite": "~8.1.4",
+    "vite-plugin-static-copy": "^4.1.1",
+    "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
+  },
+  "pnpm": {
+    "overrides": {
+      "uuid": "^11.1.1"
+    }
   }
 }

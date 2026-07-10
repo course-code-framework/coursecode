@@ -210,6 +210,7 @@ program
   .option('-p, --password <password>', 'Require password to access preview (export only)')
   .option('--title <title>', 'Custom title (default: course title)')
   .option('--port <port>', 'Preview server port (default: 4173)', '4173')
+  .option('--host <host>', 'Preview bind address (default: 127.0.0.1)', '127.0.0.1')
   .option('--skip-build', 'Skip build step for export (use existing dist folder)')
   .option('--nojekyll', 'Add .nojekyll file (required for GitHub Pages)')
   .option('--no-content', 'Exclude course content viewer from preview toolbar')

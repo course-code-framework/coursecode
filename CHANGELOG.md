@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.54] - 2026-07-10
+
+### Added
+- Added release guards for learner-package contents, static-copy output layout, XML manifest escaping, preview-server trust boundaries, and generated-project upgrades.
+- Added an explicit `lms.masteryScore` setting for courses that need one package-level LMS threshold; manifests no longer invent a default score.
+
+### Changed
+- Replaced the IE11/Babel/SystemJS dual-bundle pipeline with a single ESM build targeting Chrome 111+, Edge 111+, Firefox 114+, and Safari 16.4+.
+- Upgraded generated projects and framework builds to Vite 8 and `vite-plugin-static-copy` 4.
+- Migrated Vite configuration from the deprecated `build.rollupOptions` alias to `build.rolldownOptions`.
+- Raised the authoring runtime requirement from Node 18 to Node 20.19+.
+- Changed live preview to bind to loopback by default and require a per-process token for source-changing requests.
+- Changed LTI 1.3 delivery to require a trusted backend for launch validation, key custody, state persistence, and AGS writes; the browser no longer treats raw launch parameters as trusted claims.
+- Moved external-hosting client credentials out of learner-facing course configuration and into the gitignored `.coursecode/access-control.json`; the delivery layer must authorize files before serving them.
+- `coursecode upgrade --configs` now synchronizes managed build dependencies, removes the retired legacy plugin, updates the Node engine, and backs up customized configuration files.
+
+### Fixed
+- Fixed path traversal and unsafe project-path handling in preview and project utilities.
+- Fixed permissive cross-window messaging in external proxy packages by validating message source and origin.
+- Fixed XML-invalid course metadata and filenames in SCORM/cmi5 manifests.
+- Fixed static-copy v4 nesting that could place schemas, course assets, and vendor files at invalid package paths.
+- Fixed generated-course theme loading, startup cleanup, unobserved error events, and failed reporting batches that previously waited indefinitely for another learner event.
+
+### Removed
+- Removed `@vitejs/plugin-legacy`, IE11 targeting, legacy chunks, and automatic modern polyfill bundles. SCORM support continues unchanged because SCORM defines LMS packaging and runtime communication rather than a browser JavaScript version.
+
 ## [0.1.37] - 2026-04-27
 
 ### Fixed

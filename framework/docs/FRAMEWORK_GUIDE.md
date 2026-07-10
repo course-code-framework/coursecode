@@ -37,18 +37,20 @@ npm run preview
 # - Content viewer for course review
 ```
 
-### Dependency Upgrade Policy
+### Build and Browser Compatibility Policy
 
-The framework intentionally stays on **Vite 7** for now:
+CourseCode uses Vite 8 and emits one standards-based ESM build. The supported learner-browser floor is intentionally fixed in both Vite configurations:
 
-- `vite@7.2.x`, `@vitejs/plugin-legacy@7.x`, and `vite-plugin-static-copy@3.x` are the compatible set used by the framework and course template.
-- SCORM itself does **not** require ES5 JavaScript. SCORM defines LMS runtime/API communication and package metadata, not the learner browser's ECMAScript level.
-- The legacy bundle path is still kept as compatibility insurance for unknown or older LMS launch environments, especially SCORM 1.2/2004 deployments that may use old embedded browsers or enterprise browser policies.
-- Vite 8 currently breaks that legacy path because Rolldown does not support the `system` output format used by `@vitejs/plugin-legacy` for SystemJS/ES5 fallback chunks.
-- Vite 7.3 has also shown a generated-course packaging regression with the legacy/post-build flow, where package validation can run before `dist/index.html` has been moved into place. Keep the template and framework dev dependency on `7.2.x` until that flow is reworked or verified against a newer Vite 7 patch.
-- Do not upgrade Vite, `@vitejs/plugin-legacy`, or `vite-plugin-static-copy` to their Vite 8 lines until CourseCode explicitly drops legacy browser fallback support or adds a separate verified legacy build pipeline.
+- Chrome 111+
+- Edge 111+
+- Firefox 114+
+- Safari 16.4+
 
-Other dependencies can be upgraded normally when their Node engine requirements and tests fit the framework. Keep `marked` on `17.x` while the public package requirement remains Node 18+, because `marked@18` requires Node 20+.
+SCORM 1.2 and SCORM 2004 define the LMS runtime/API contract; they do not require ES3, ES5, Internet Explorer, or a SystemJS bundle. CourseCode no longer generates an IE11 fallback with `@vitejs/plugin-legacy`. The framework's CSS design system depends heavily on custom properties, Grid, `color-mix()`, and other modern platform features that JavaScript transpilation cannot make reliable in IE11.
+
+Treat an older embedded LMS browser as a separate, explicitly tested customer requirement. Do not re-enable Babel/SystemJS as a general compatibility precaution: a legacy JavaScript bundle alone is not evidence that the complete course UI works in that engine.
+
+The framework and generated projects require **Node 20.19+**. Vite, `vite-plugin-static-copy`, and their lockfiles must be upgraded together and verified with a freshly generated project plus every LMS-format build.
 
 ### LMS Compatibility Warnings
 The preview server (stub player) includes an advanced diagnostic system that monitors API usage and data limits to detect potential issues before deployment to a real LMS.
@@ -124,7 +126,6 @@ dist/assets/
   cmi5-driver.js       ← Lazy chunk, only fetched if format = 'cmi5'
   lti-driver.js        ← Lazy chunk, only fetched if format = 'lti'
   proxy-driver.js      ← Lazy chunk, only fetched if format = '*-proxy'
-  jose.js              ← Lazy chunk, only fetched by lti-driver.js
 ```
 
 CourseCode delivery serves static assets by file extension, not stored upload metadata. Supported course asset types include HTML, JS, CSS, JSON/XML, common images/fonts/audio/video, PDF, `csv`, `vtt`, `wasm`, `gltf/glb`, and source maps; unknown extensions are served as `application/octet-stream`.
@@ -204,19 +205,14 @@ For hot-fixable courses, the framework supports **external hosting**: course con
 export const courseConfig = {
     format: 'scorm1.2-proxy',
     externalUrl: 'https://cdn.example.com/my-course',  // Required
-    accessControl: {  // Required for proxy/remote formats
-        clients: {
-            'acme-corp': { token: 'abc123' },
-            'globex': { token: 'def456' }
-        }
-    }
+    accessControl: { enforcement: 'server' }
 };
 ```
 
 **Generate tokens:**
 ```bash
 coursecode token                  # Generate random token
-coursecode token --add acme-corp  # Add client to config
+coursecode token --add acme-corp  # Store client in .coursecode/access-control.json
 ```
 
 **Build outputs:**
@@ -224,9 +220,10 @@ coursecode token --add acme-corp  # Add client to config
 - `*_acme-corp_proxy.zip`, `*_globex_proxy.zip` — One package per client
 
 **Access Control:**
-- Tokens are injected into URLs: `https://cdn.example.com/my-course?clientId=acme-corp&token=abc123`
-- Runtime validation in `access-control.js` blocks unauthorized access
-- To disable a client: remove from config → redeploy CDN
+- Tokens are stored in the gitignored `.coursecode/access-control.json`, never in learner-facing course source.
+- Tokens are injected into client package URLs: `https://cdn.example.com/my-course?clientId=acme-corp&token=...`.
+- The CDN/backend **must validate credentials before serving `index.html` or assets**. Browser-side checks are not access control.
+- To disable a client, remove it from the access file and revoke it at the delivery layer.
 
 **Architecture:**
 - **Proxy formats**: LMS loads a lightweight proxy (proxy.html + bridge) that iframes the CDN-hosted course. The bridge relays `postMessage` calls to the LMS SCORM API via pipwerks.
@@ -236,10 +233,14 @@ coursecode token --add acme-corp  # Add client to config
 | File | Purpose |
 |------|---------|
 | `framework/js/drivers/proxy-driver.js` | Course-side postMessage LMSDriver |
-| `framework/js/utilities/access-control.js` | Token validation + unauthorized screen |
+| `.coursecode/access-control.json` | Gitignored build-time client credentials |
 | `lib/proxy-templates/proxy.html` | Proxy package entry point |
 | `lib/proxy-templates/scorm-bridge.js` | postMessage ↔ pipwerks bridge |
 | `lib/token.js` | CLI token generator |
+
+### LTI Trust Boundary
+
+LTI 1.3 requires a trusted server backend. The backend performs OIDC state/nonce, issuer, audience, signature, and deployment validation; holds the tool private key; exchanges OAuth client credentials; persists learner state; and proxies AGS score writes. The browser driver only consumes server-validated launch claims and calls same-origin state/AGS proxy endpoints. Direct browser `id_token` processing is intentionally rejected.
 
 **Preview mode**: Proxy/remote suffixes are stripped (e.g., `scorm1.2-proxy` → `scorm1.2`) so the stub LMS works normally.
 
