@@ -5,6 +5,7 @@
  * 
  * Commands:
  *   coursecode create <name>  - Create a new course project
+ *   coursecode init [name]    - Initialize the current directory
  *   coursecode dev            - Start development server
  *   coursecode build          - Build course package
  *   coursecode upgrade        - Upgrade framework in current project
@@ -79,13 +80,24 @@ program
 // Create command
 program
   .command('create <name>')
-  .description('Create a new course project')
+  .description('Create a new course project (use "." for the current directory)')
   .option('--blank', 'Create without example slides (clean starter)')
   .option('--no-install', 'Skip npm install')
   .option('--start', 'Auto-start dev server after creation (skip prompt)')
   .action(async (name, options) => {
     const { create } = await import('../lib/create.js');
     await create(name, options);
+  });
+
+program
+  .command('init [name]')
+  .description('Initialize the current directory as a CourseCode project')
+  .option('--blank', 'Create without example content (clean starter)')
+  .option('--no-install', 'Skip npm install')
+  .option('--start', 'Auto-start dev server after creation (skip prompt)')
+  .action(async (name, options) => {
+    const { create } = await import('../lib/create.js');
+    await create(name || '.', { ...options, currentDirectory: true });
   });
 
 // Dev command

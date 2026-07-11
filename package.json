@@ -1,6 +1,6 @@
 {
   "name": "coursecode",
-  "version": "0.1.54",
+  "version": "0.1.57",
   "description": "Multi-format course authoring framework with CLI tools (SCORM 2004, SCORM 1.2, cmi5, LTI 1.3)",
   "type": "module",
   "bin": {
@@ -14,7 +14,6 @@
     "!framework/dist/**",
     "schemas",
     "template",
-    "!template/.gitattributes",
     "!template/**/.gitkeep",
     "README.md",
     "THIRD_PARTY_NOTICES.md"
@@ -51,6 +50,7 @@
     "lint:responsive:structure": "node scripts/check-responsive-structure-scoping.mjs",
     "lint:fix": "eslint . --fix",
     "smoke:responsive": "node scripts/responsive-visual-smoke.mjs",
+    "smoke:packed-create": "node scripts/smoke-packed-create.mjs",
     "build": "npx vite build --config vite.framework-dev.config.js",
     "build:dev": "npx vite build --config vite.framework-dev.config.js",
     "build:scorm2004": "LMS_FORMAT=scorm2004 npx vite build --config vite.framework-dev.config.js",
@@ -69,7 +69,7 @@
     "test:cloud": "vitest run --config tests/vitest.cloud.config.js",
     "test:watch": "vitest --config tests/vitest.config.js",
     "test:coverage": "vitest run --config tests/vitest.config.js --coverage",
-    "prerelease:check": "npm run lint && npm run lint:responsive && npm run lint:responsive:structure && npm run test:coverage && npm run build",
+    "prerelease:check": "npm run lint && npm run lint:responsive && npm run lint:responsive:structure && npm run test:coverage && npm run build && npm run smoke:packed-create",
     "prerelease:check:full": "npm run prerelease:check && npm run test:e2e && npm run test:drivers && npm run smoke:responsive -- --profile=expanded",
     "prepublishOnly": "npm run prerelease:check"
   },
@@ -104,7 +104,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "acorn": "^8.17.0",
-    "archiver": "^7.0.1",
+    "archiver": "^8.0.0",
     "commander": "^14.0.3",
     "lz-string": "^1.5.0",
     "mammoth": "^1.12.0",

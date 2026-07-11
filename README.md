@@ -235,7 +235,8 @@ coursecode preview --export
 
 | Command | Description |
 |---------|-------------|
-| `coursecode create <name>` | Create a new course project |
+| `coursecode create <name>` | Create a new course project; `create .` derives a title-cased course title and hyphenated npm name from the current folder |
+| `coursecode init [name]` | Initialize the current directory, optionally with a course title |
 | `coursecode preview` | Preview your course locally |
 | `coursecode convert` | Convert PDFs, Word, PowerPoint to markdown |
 | `coursecode mcp` | Start the MCP server for AI integration |

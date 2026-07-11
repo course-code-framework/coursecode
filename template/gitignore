@@ -30,6 +30,9 @@ Thumbs.db
 # CourseCode Cloud (project binding)
 .coursecode/
 
+# Narration cache
+.narration-cache.json
+
 # Logs
 *.log
 npm-debug.log*

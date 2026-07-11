@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.57] - 2026-07-11
+
+### Changed
+- Upgraded ZIP generation to `archiver` 8 and its ESM `ZipArchive` API, removing the deprecated `archiver-utils` and `glob` dependency chain from framework and generated-project installs.
+
+### Fixed
+- `coursecode create` and `coursecode init` now explicitly create Git-persistent `course/references/` and `course/references/converted/` directories instead of relying on template `.gitkeep` files that npm excludes from the published package.
+- The packed consumer smoke test now verifies both reference directories survive real npm packing and project creation.
+
+## [0.1.56] - 2026-07-11
+
+### Fixed
+- `coursecode create .` and unnamed `coursecode init` now derive a human-readable, title-cased course title and a conventional hyphenated npm package name from the current directory while preserving explicit-name behavior.
+- The packed consumer smoke test now exercises the complete `create . --blank` workflow through dependency installation, lint, and production build.
+
+## [0.1.55] - 2026-07-11
+
+### Added
+- Added `coursecode init [name]` and `coursecode create .` workflows for safely initializing an existing directory while preserving Git metadata and merging project control rules.
+- Added a packed-tarball consumer smoke test that creates a blank course, installs its dependencies, generates slide and assessment scaffolds, verifies Git ignore behavior, lints, builds, and produces an LMS ZIP as part of the release gate.
+
+### Changed
+- Clarified the slide render contract as `render(_root, context)`: the first argument is reserved and currently `null`, while slides create and return their own root element.
+- Package-safe `gitignore` and `gitattributes` template sources are now materialized as `.gitignore` and `.gitattributes` in generated projects.
+
+### Fixed
+- Fixed isolated generated projects failing to build by adding the creating `coursecode` version to generated development dependencies.
+- Fixed blank and newly generated slides failing strict ESLint checks because of unused render arguments.
+- Fixed generated assessments passing questions in the override slot and attempting to render into the reserved `null` slide argument.
+- Fixed blank projects retaining demo documents, images, widgets, narration cache data, and failing builds when no learner assets exist.
+- Fixed generated Git repositories exposing dependencies, build output, LMS ZIPs, narration caches, and local environment files as untracked content.
+
 ## [0.1.54] - 2026-07-10
 
 ### Added

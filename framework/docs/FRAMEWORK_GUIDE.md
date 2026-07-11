@@ -310,7 +310,7 @@ Separates data, presentation, logic (used in `app/`, `navigation/`):
 
 - **Single ViewManager** in `main.js` controls slide navigation
 - **No caching** - views render fresh each `showView()` to prevent stale data
-- Slide signature: `render(root, context)` where `root` is framework-provided container
+- Slide signature: `render(_root, context)`. The first argument is reserved and currently `null`; slides create and return their own root `HTMLElement`. The second argument carries navigation/render context.
 - Components with sub-views (assessments) create own ViewManager
 
 ### Event Delegation

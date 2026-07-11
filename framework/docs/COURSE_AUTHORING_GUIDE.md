@@ -16,6 +16,8 @@
 |---------|-------------|
 | `coursecode create <name>` | Create a new course project (includes example slides) |
 | `coursecode create <name> --blank` | Create a blank project (no example content) |
+| `coursecode create .` | Initialize the current directory; `client-manager-course` becomes title `Client Manager Course` and package name `client-manager-course` |
+| `coursecode init [name]` | Initialize the current directory, optionally with a specific course title |
 | `coursecode clean` | Remove example files and reset config to minimal starter |
 | `coursecode new slide <id>` | Create a new slide file in `course/slides/` |
 | `coursecode new assessment <id>` | Create a new assessment file in `course/slides/` |
@@ -253,13 +255,15 @@ coursecode export-content --format json -o content.json
 3. **Create slide** in `course/slides/intro.js`:
    ```javascript
    export const slide = {
-     render(root, context) {
+     render(_root, _context) {
        const container = document.createElement('div');
        container.innerHTML = `<h1>Welcome</h1><p>Content here</p>`;
        return container;  // Must return a DOM element
      }
    };
    ```
+
+   The first render argument is reserved and currently receives `null`. Keep it as `_root` for API compatibility. Create and return a new root `HTMLElement`; use the second argument only when the slide needs navigation or assessment context.
 
    > **⚠️ No import statements.** Components, interactions, CSS classes, and icons are all globally available at runtime. The only valid `import` is for local assets (images, SVGs). Access framework APIs via `const { createXxxQuestion } = CourseCode;` (destructure from global, **not** an import).
 

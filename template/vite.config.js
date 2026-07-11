@@ -16,6 +16,13 @@ const ROOT_DIR = path.resolve(__dirname);
 const DIST_DIR = path.join(ROOT_DIR, 'dist');
 const SUPPORTED_BROWSER_TARGETS = ['chrome111', 'edge111', 'firefox114', 'safari16.4'];
 
+function directoryContainsFiles(directory) {
+  if (!fs.existsSync(directory)) return false;
+  return fs.readdirSync(directory, { withFileTypes: true }).some(entry => (
+    entry.isFile() || (entry.isDirectory() && directoryContainsFiles(path.join(directory, entry.name)))
+  ));
+}
+
 async function loadBuildUtils() {
   if (
     generateManifest &&
@@ -382,7 +389,10 @@ export default defineConfig(async ({ mode }) => {
           { src: 'schemas/common/*', dest: 'common', rename: { stripBase: 2 } },
           // Publish runtime assets only. Never ship authoring references,
           // configuration source, assessment source, or hidden project files.
-          { src: 'course/assets', dest: 'course', rename: { stripBase: 1 } },
+          // A blank course is valid and may not contain any assets yet.
+          ...(directoryContainsFiles(path.join(ROOT_DIR, 'course', 'assets'))
+            ? [{ src: 'course/assets', dest: 'course', rename: { stripBase: 1 } }]
+            : []),
           { src: 'framework/js/vendor/**/*', dest: 'js/vendor', rename: { stripBase: 3 } }
         ],
         watch: isDev ? { rerun: true } : undefined
