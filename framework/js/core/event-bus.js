@@ -137,16 +137,16 @@ class EventBus {
 
       // Create a copy of listeners to avoid issues if listeners modify the array
       const listeners = [...this.events[event]];
-      const onceListeners = [];
 
       listeners.forEach(listener => {
+        // Remove one-shot listeners before invocation so thrown callbacks and
+        // re-entrant emits cannot execute them more than once.
+        if (listener.once) {
+          this.off(event, listener.id);
+        }
+
         try {
           listener.callback(data);
-
-          // Track once listeners for removal
-          if (listener.once) {
-            onceListeners.push(listener.id);
-          }
         } catch (error) {
           // Log the error but don't break other listeners — use safeStringify
           // to prevent a secondary cascade from unserializable error objects
@@ -154,8 +154,6 @@ class EventBus {
         }
       });
 
-      // Remove once listeners
-      onceListeners.forEach(id => this.off(event, id));
     } finally {
       if (isErrorEvent) {
         this._emittingError = false;
@@ -177,37 +175,42 @@ class EventBus {
     const hasListeners = Boolean(this.events[event]?.length);
     if (!isErrorEvent && !hasListeners) return false;
 
+    if (isErrorEvent && this._emittingError) {
+      logger.warn(`[EventBus] Suppressed recursive error event: ${event}`);
+      return false;
+    }
+
     if (isErrorEvent) {
-      if (this._emittingError) {
-        logger.warn(`[EventBus] Suppressed recursive error event: ${event}`);
-        return false;
-      }
       this._emittingError = true;
-      logger.error(`[EventBus Error] ${event}:`, safeStringify(data));
-      this._emittingError = false;
     }
 
-    if (!hasListeners) return false;
+    try {
+      if (isErrorEvent) {
+        logger.error(`[EventBus Error] ${event}:`, safeStringify(data));
+      }
 
-    const listeners = [...this.events[event]];
-    const onceListeners = [];
+      if (!hasListeners) return false;
 
-    for (const listener of listeners) {
-      try {
-        await listener.callback(data);
+      const listeners = [...this.events[event]];
 
+      for (const listener of listeners) {
         if (listener.once) {
-          onceListeners.push(listener.id);
+          this.off(event, listener.id);
         }
-      } catch (error) {
-        logger.error(`[EventBus] Error in async listener for '${event}':`, error);
+
+        try {
+          await listener.callback(data);
+        } catch (error) {
+          logger.error(`[EventBus] Error in async listener for '${event}':`, error);
+        }
+      }
+
+      return true;
+    } finally {
+      if (isErrorEvent) {
+        this._emittingError = false;
       }
     }
-
-    // Remove once listeners
-    onceListeners.forEach(id => this.off(event, id));
-
-    return true;
   }
 
   /**

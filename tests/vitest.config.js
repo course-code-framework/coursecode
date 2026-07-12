@@ -34,10 +34,10 @@ export default defineConfig({
             reporter: ['text', 'html', 'json-summary'],
             reportsDirectory: './coverage',
             thresholds: {
-                statements: 18,
-                branches: 18,
-                functions: 20,
-                lines: 18
+                statements: 19.5,
+                branches: 18.9,
+                functions: 22.1,
+                lines: 19.9
             }
         }
     }

@@ -275,6 +275,7 @@ export async function show({ title, body, footer = '', modalId = null, config = 
     // (enforced by runtime-linter - a slide cannot have both)
     if (audioManager.isReady() && audio && audio.src) {
         const audioContextId = `modal-${currentModalId}`;
+        let modalAudioLoaded = false;
         try {
             await audioManager.load({
                 src: audio.src,
@@ -282,6 +283,7 @@ export async function show({ title, body, footer = '', modalId = null, config = 
                 required: audio.required || false,
                 completionThreshold: audio.completionThreshold || 0.95
             }, audioContextId, 'modal');
+            modalAudioLoaded = true;
 
             logger.debug(`[Modal] Loaded modal audio: ${audioContextId}`);
 
@@ -290,11 +292,13 @@ export async function show({ title, body, footer = '', modalId = null, config = 
                 AudioPlayer.initAudioControlsInContainer(modalFooter);
             }
         } catch (err) {
-            logger.warn('[Modal] Failed to load modal audio:', err.message);
+            if (err.name !== 'AbortError') {
+                logger.warn('[Modal] Failed to load modal audio:', err.message);
+            }
         }
 
         // If audio is required, listen for completion
-        if (audio.required) {
+        if (audio.required && modalAudioLoaded) {
             audioCompletedHandler = ({ contextId }) => {
                 if (contextId === audioContextId && currentSlideId) {
                     engagementManager.trackModalAudioComplete(currentSlideId, currentModalId);

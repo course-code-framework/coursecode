@@ -633,11 +633,11 @@ Courses linked to GitHub for production deploys are protected from accidental CL
 | Layer | Mechanism | Key |
 |-------|-----------|-----|
 | **CLI (local)** | `deploy()` reads `sourceType` from `.coursecoderc.json` | Fast fail before build — no wasted time |
-| **Server (safety net)** | Deploy endpoint rejects non-preview uploads for `source_type = 'github'` | Can't bypass via old CLI or `curl` |
+| **Server (safety net)** | Finalize endpoint rejects non-preview CLI uploads when `github_repo` is set | Can't bypass via old CLI or `curl` |
 
 - **`--preview` always allowed** — useful for testing without touching production pointer
 - **`.coursecoderc.json`** carries `sourceType` and `githubRepo` (committed to repo by cloud's GitHub integration), so anyone cloning gets the guard automatically
-- **Self-healing on unlink:** If the cloud course is unlinked from GitHub, both `status()` and `deploy()` reconcile — they detect the server no longer reports `source_type: 'github'` and clear the local `sourceType`/`githubRepo` from `.coursecoderc.json`. No manual cleanup or repo commit needed.
+- **Self-healing link state:** Both `status()` and `deploy()` treat the server's `github_repo` as authoritative. They add or refresh local `sourceType`/`githubRepo` metadata when linked and clear it when unlinked. No manual cleanup or repo commit is needed.
 - CLI error code: `github_source_blocked` (structured JSON for Desktop/CI consumers)
 
 ---

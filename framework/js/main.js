@@ -615,6 +615,7 @@ async function initializeCourseApplication() {
                     await audioManager.load(slide.audio, toSlideId, 'slide');
                     logger.debug(`[AudioManager] Loaded audio for slide: ${toSlideId}`);
                 } catch (error) {
+                    if (error.name === 'AbortError') return;
                     logger.error(`[AudioManager] Failed to load audio for slide ${toSlideId}:`, error);
                     // Continue - don't let audio errors break navigation
                 }

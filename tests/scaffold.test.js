@@ -3,6 +3,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { newAssessment, newSlide } from '../lib/scaffold.js';
+import { extractAssessment } from '../lib/course-parser.js';
 
 let tempDir;
 let originalCwd;
@@ -37,9 +38,19 @@ describe('scaffold generators', () => {
       'utf-8'
     );
     expect(source).toContain('render(_root, context = {})');
+    expect(source).toContain('assessmentId: config.id');
     expect(source).toContain('document.createElement(\'div\')');
+    expect(source).toContain("type: 'multiple-choice'");
+    expect(source).not.toContain('createMultipleChoiceQuestion');
     expect(source).toContain('createAssessment({ ...config, questions })');
     expect(source).toContain('assessment.render(container, context)');
     expect(source).toContain('return container');
+
+    const parsed = extractAssessment(source, 'knowledge-check');
+    expect(parsed.questions).toHaveLength(1);
+    expect(parsed.questions[0]).toMatchObject({
+      id: 'knowledge-check-q1',
+      type: 'multiple-choice'
+    });
   });
 });

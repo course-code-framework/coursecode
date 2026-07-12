@@ -112,4 +112,34 @@ describe('Integration: LMS Reporting & Recovery', () => {
         const errorArgs = failureSpy.mock.calls[0][0];
         expect(errorArgs.error).toContain('Network Error');
     });
+
+    it('allows termination to be retried after the LMS rejects it', async () => {
+        mockLMS.terminate
+            .mockRejectedValueOnce(new Error('Temporary LMS failure'))
+            .mockResolvedValueOnce(true);
+
+        await expect(stateManager.terminate()).rejects.toThrow('Temporary LMS failure');
+        expect(stateManager.isTerminated).toBe(false);
+
+        await expect(stateManager.terminate()).resolves.toBe(true);
+        expect(stateManager.isTerminated).toBe(true);
+        expect(mockLMS.terminate).toHaveBeenCalledTimes(2);
+    });
+
+    it('coalesces concurrent termination requests', async () => {
+        let resolveTermination;
+        mockLMS.terminate.mockImplementation(() => new Promise(resolve => {
+            resolveTermination = resolve;
+        }));
+
+        const first = stateManager.terminate();
+        const second = stateManager.terminate();
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(mockLMS.terminate).toHaveBeenCalledOnce();
+        resolveTermination(true);
+
+        await expect(Promise.all([first, second])).resolves.toEqual([true, true]);
+        expect(stateManager.isTerminated).toBe(true);
+    });
 });

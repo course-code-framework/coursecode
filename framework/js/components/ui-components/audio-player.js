@@ -915,7 +915,9 @@ class StandaloneAudioPlayer {
                 completionThreshold: this.threshold
             }, this.contextId, 'standalone');
         } catch (error) {
-            logger.error(`[AudioPlayer] Failed to load ${this.audioId}:`, error.message);
+            if (error.name !== 'AbortError') {
+                logger.error(`[AudioPlayer] Failed to load ${this.audioId}:`, error.message);
+            }
         }
     }
 

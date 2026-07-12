@@ -289,7 +289,7 @@ describe('cloud auth and binding regression guards', () => {
 
     // Status preflight succeeds (course exists)
     const fetchMock = mockCloudFetchSequence([
-      { ok: true, status: 200, body: { slug: 'github-course', source_type: 'github' } },
+      { ok: true, status: 200, body: { slug: 'github-course', source_type: 'coursecode', github_repo: 'owner/repo' } },
     ]);
 
     const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
@@ -306,6 +306,53 @@ describe('cloud auth and binding regression guards', () => {
 
     // Only the status preflight call — no build/upload calls
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('deploy discovers a cloud-side github link and blocks before building', async () => {
+    fs.mkdirSync(path.join(tempProject, '.coursecode'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tempProject, '.coursecode', 'project.json'),
+      JSON.stringify({ slug: 'github-course', orgId: 'org-123', courseId: 'course-123' }, null, 2)
+    );
+    fs.writeFileSync(
+      path.join(tempProject, '.coursecoderc.json'),
+      JSON.stringify({ cloudId: 'course-123', orgId: 'org-123' }, null, 2)
+    );
+
+    vi.resetModules();
+    mockOsHome(tempHome);
+    vi.doMock('../../lib/project-utils.js', () => ({
+      validateProject: () => {},
+    }));
+    writeCredentials(tempHome);
+
+    const fetchMock = mockCloudFetchSequence([
+      {
+        ok: true,
+        status: 200,
+        body: {
+          slug: 'github-course',
+          source_type: 'coursecode',
+          github_repo: 'owner/repo',
+        },
+      },
+    ]);
+
+    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const exitError = new Error('process.exit');
+    vi.spyOn(process, 'exit').mockImplementation(() => { throw exitError; });
+
+    const cloud = await import('../../lib/cloud.js');
+    await expect(cloud.deploy({ json: true })).rejects.toBe(exitError);
+
+    const payload = JSON.parse(stdoutSpy.mock.calls[0][0]);
+    expect(payload.errorCode).toBe('github_source_blocked');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    const rc = JSON.parse(fs.readFileSync(path.join(tempProject, '.coursecoderc.json'), 'utf-8'));
+    expect(rc.sourceType).toBe('github');
+    expect(rc.githubRepo).toBe('owner/repo');
   });
 
   it('deploy --json --preview bypasses github guard', async () => {
@@ -333,7 +380,7 @@ describe('cloud auth and binding regression guards', () => {
 
     // Status preflight succeeds
     mockCloudFetchSequence([
-      { ok: true, status: 200, body: { slug: 'github-course', source_type: 'github' } },
+      { ok: true, status: 200, body: { slug: 'github-course', source_type: 'coursecode', github_repo: 'owner/repo' } },
     ]);
 
     vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -382,6 +429,45 @@ describe('cloud auth and binding regression guards', () => {
     expect(rc.sourceType).toBeUndefined();
     expect(rc.githubRepo).toBeUndefined();
     expect(rc.cloudId).toBe('course-123'); // other fields preserved
+    expect(stdoutSpy).toHaveBeenCalled();
+  });
+  it('status --json reconciles local sourceType when github link is added on cloud', async () => {
+    fs.mkdirSync(path.join(tempProject, '.coursecode'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tempProject, '.coursecode', 'project.json'),
+      JSON.stringify({ slug: 'linked-course', orgId: 'org-123' }, null, 2)
+    );
+    fs.writeFileSync(
+      path.join(tempProject, '.coursecoderc.json'),
+      JSON.stringify({ cloudId: 'course-123', orgId: 'org-123' }, null, 2)
+    );
+
+    vi.resetModules();
+    mockOsHome(tempHome);
+    writeCredentials(tempHome);
+
+    mockCloudFetchSequence([
+      {
+        ok: true,
+        status: 200,
+        body: {
+          slug: 'linked-course',
+          name: 'Demo Course',
+          orgName: 'Org',
+          source_type: 'coursecode',
+          github_repo: 'owner/repo',
+        },
+      },
+    ]);
+
+    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    const cloud = await import('../../lib/cloud.js');
+    await cloud.status({ json: true });
+
+    const rc = JSON.parse(fs.readFileSync(path.join(tempProject, '.coursecoderc.json'), 'utf-8'));
+    expect(rc.sourceType).toBe('github');
+    expect(rc.githubRepo).toBe('owner/repo');
+    expect(rc.cloudId).toBe('course-123');
     expect(stdoutSpy).toHaveBeenCalled();
   });
   it('deploy reconciles sourceType from preflight and proceeds when github link was removed', async () => {

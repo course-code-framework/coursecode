@@ -104,6 +104,25 @@ describe('EventBus', () => {
             bus.emit('test');
             expect(fn).toHaveBeenCalledOnce();
         });
+
+        it('removes a once listener even when it throws', () => {
+            const fn = vi.fn(() => { throw new Error('boom'); });
+            bus.once('test', fn);
+
+            bus.emit('test');
+            bus.emit('test');
+
+            expect(fn).toHaveBeenCalledOnce();
+        });
+
+        it('removes a once listener before a re-entrant emit', () => {
+            const fn = vi.fn(() => bus.emit('test'));
+            bus.once('test', fn);
+
+            bus.emit('test');
+
+            expect(fn).toHaveBeenCalledOnce();
+        });
     });
 
     // ─── off ────────────────────────────────────────────────────────
@@ -141,6 +160,28 @@ describe('EventBus', () => {
             bus.on('test', fn);
             await bus.emitAsync('test');
             expect(fn).toHaveBeenCalledOnce();
+        });
+
+        it('removes an async once listener even when it rejects', async () => {
+            const fn = vi.fn(async () => { throw new Error('async fail'); });
+            bus.once('test', fn);
+
+            await bus.emitAsync('test');
+            await bus.emitAsync('test');
+
+            expect(fn).toHaveBeenCalledOnce();
+        });
+
+        it('guards against recursive async error events until listeners finish', async () => {
+            const inner = vi.fn();
+            bus.on('inner:error', inner);
+            bus.on('outer:error', async () => {
+                await bus.emitAsync('inner:error', { message: 'recursive' });
+            });
+
+            await bus.emitAsync('outer:error', { message: 'original' });
+
+            expect(inner).not.toHaveBeenCalled();
         });
     });
 

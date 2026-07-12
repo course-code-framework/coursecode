@@ -85,6 +85,9 @@ class AudioManager {
         
         /** @type {Function|null} - Cleanup function for pending load operation */
         this._pendingLoadCleanup = null;
+
+        /** @type {Function|null} - Rejects a pending load when its source is replaced */
+        this._pendingLoadCancel = null;
     }
 
     /**
@@ -279,10 +282,7 @@ class AudioManager {
         });
         
         // Clean up any pending load operation before starting new one
-        if (this._pendingLoadCleanup) {
-            this._pendingLoadCleanup();
-            this._pendingLoadCleanup = null;
-        }
+        this._cancelPendingLoad();
         
         // Set flag to ignore MEDIA_ERR_ABORTED during source switch
         this._isSwitchingSource = true;
@@ -353,11 +353,25 @@ class AudioManager {
             const cleanup = () => {
                 this.audio.removeEventListener('canplaythrough', onLoaded);
                 this.audio.removeEventListener('error', onError);
-                this._pendingLoadCleanup = null;
+                if (this._pendingLoadCleanup === cleanup) {
+                    this._pendingLoadCleanup = null;
+                    this._pendingLoadCancel = null;
+                }
+            };
+
+            const cancel = () => {
+                if (resolved) return;
+                resolved = true;
+                this._isSwitchingSource = false;
+                cleanup();
+                const error = new Error(`Audio load cancelled: ${audioSrc}`);
+                error.name = 'AbortError';
+                reject(error);
             };
             
             // Store cleanup function so it can be called if load is cancelled
             this._pendingLoadCleanup = cleanup;
+            this._pendingLoadCancel = cancel;
             
             // Add event listeners BEFORE setting src
             this.audio.addEventListener('canplaythrough', onLoaded);
@@ -533,10 +547,7 @@ class AudioManager {
         this._savePosition();
         
         // Clean up any pending load operation
-        if (this._pendingLoadCleanup) {
-            this._pendingLoadCleanup();
-            this._pendingLoadCleanup = null;
-        }
+        this._cancelPendingLoad();
         
         // Save contextType before clearing state (needed for event)
         const contextType = this.state.contextType;
@@ -576,6 +587,20 @@ class AudioManager {
         
         this._emitStateChange('unloaded');
         eventBus.emit('audio:unloaded', { contextType });
+    }
+
+    /**
+     * Settles and cleans up an in-progress load before replacing its source.
+     * @private
+     */
+    _cancelPendingLoad() {
+        if (this._pendingLoadCancel) {
+            this._pendingLoadCancel();
+        } else if (this._pendingLoadCleanup) {
+            this._pendingLoadCleanup();
+            this._pendingLoadCleanup = null;
+        }
+        this._pendingLoadCancel = null;
     }
 
     /**

@@ -50,6 +50,7 @@ class StateManager {
     constructor() {
         this.isInitialized = false;
         this.isTerminated = false;
+        this._terminationPromise = null;
 
         // Compose internal modules
         this._txLog = new TransactionLog();
@@ -307,17 +308,35 @@ class StateManager {
      */
     async terminate() {
         this._assertInitialized();
+
+        // Coalesce concurrent exit requests so the final commit and LMS
+        // termination happen exactly once.
+        if (this._terminationPromise) {
+            return await this._terminationPromise;
+        }
+
         this._assertNotTerminated('Cannot terminate again.');
 
         logger.debug('[StateManager] Terminating...');
 
-        // Emit BEFORE termination so services can send final xAPI statements
-        await eventBus.emitAsync('session:beforeTerminate');
+        this._terminationPromise = (async () => {
+            // Emit BEFORE termination so services can send final xAPI statements
+            await eventBus.emitAsync('session:beforeTerminate');
 
-        await this._commits.commitToLMS();
-        this.isTerminated = true;
+            await this._commits.commitToLMS();
+            const result = await lmsConnection.terminate();
 
-        return await lmsConnection.terminate();
+            // Do not strand the manager in a terminated state when the LMS
+            // operation rejects; callers must be able to retry.
+            this.isTerminated = true;
+            return result;
+        })();
+
+        try {
+            return await this._terminationPromise;
+        } finally {
+            this._terminationPromise = null;
+        }
     }
 
     // =================================================================
