@@ -231,15 +231,37 @@ export function createAssessmentInstance(config) {
                     });
                     throw error;
                 } else {
-                    // Production mode: Log warning and filter out missing questions
-                    // Also emit event so course can potentially track this
-                    logger.warn(`[AssessmentFactory] ${errorMessage} Continuing with available questions.`);
+                    // Index-keyed responses cannot be safely paired with a
+                    // filtered question list. Restart only the in-progress
+                    // session and preserve the learner's submitted summaries.
+                    logger.warn(`[AssessmentFactory] ${errorMessage} Restarting the in-progress attempt safely.`);
                     eventBus.emit('state:recovered', {
                         domain: 'assessment',
                         message: errorMessage,
                         context: { assessmentId, missingIds },
-                        action: 'filtered_missing_questions'
+                        action: 'restarted_changed_assessment'
                     });
+
+                    const replacementQuestions = _selectNewQuestions();
+                    const existingSession = assessmentState.getSession() || {};
+                    assessmentState.updateSession({
+                        ...existingSession,
+                        currentView: 'intro',
+                        currentQuestionIndex: 0,
+                        startTime: null,
+                        submitted: false,
+                        responses: {},
+                        selectedQuestions: replacementQuestions.map(question => question.id),
+                        reviewReached: false
+                    }, 'assessment-state:course-update').catch(error => {
+                        logger.error(`Failed to persist safe assessment restart: ${error.message}`, {
+                            domain: 'assessment',
+                            operation: 'recover-changed-questions',
+                            assessmentId,
+                            stack: error.stack
+                        });
+                    });
+                    return replacementQuestions;
                 }
             }
 
@@ -248,22 +270,19 @@ export function createAssessmentInstance(config) {
                 .filter(q => q !== undefined); // Filter out any missing questions
         }
 
+        return _selectNewQuestions();
+    }
+
+    function _selectNewQuestions() {
         if (config.questionBanks && Array.isArray(config.questionBanks) && config.questionBanks.length > 0) {
-            // New session with banks: select and optionally randomize
             let selected = _selectQuestionsFromBanks(config.questionBanks);
-
-            if (config.settings?.randomizeQuestions) {
-                selected = shuffleArray(selected);
-            }
-
+            if (config.settings?.randomizeQuestions) selected = shuffleArray(selected);
             return selected;
         }
 
-        // Direct mode: use questions array as-is
         if (config.settings?.randomizeQuestions && Array.isArray(config.questions)) {
             return shuffleArray(config.questions);
         }
-
         return config.questions || [];
     }
 
@@ -320,10 +339,20 @@ export function createAssessmentInstance(config) {
         // Resolve active questions for this session
         activeQuestions = _resolveActiveQuestions();
 
-        // Persist selection if this is a new bank-based session (fire-and-forget)
-        if (config.questionBanks && !session?.selectedQuestions) {
+        // Persist every randomized order, including direct question arrays.
+        // Responses are keyed by index, so resume must reconstruct the exact
+        // same question order or answers can be scored against another item.
+        const requiresPersistedOrder = Boolean(
+            config.questionBanks || config.settings?.randomizeQuestions
+        );
+        if (requiresPersistedOrder && !session?.selectedQuestions) {
             assessmentState.setSelectedQuestions(activeQuestions).catch(error => {
-                logger.error(`Failed to persist selected questions: ${error.message}`, { domain: 'assessment', operation: 'persist-selected-questions', assessmentId });
+                logger.error(`Failed to persist selected questions: ${error.message}`, {
+                    domain: 'assessment',
+                    operation: 'persist-selected-questions',
+                    assessmentId,
+                    stack: error.stack
+                });
             });
         }
 

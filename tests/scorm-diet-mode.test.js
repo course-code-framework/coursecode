@@ -55,55 +55,48 @@ const FULL_STATE = {
 describe('Diet Mode: _createDietState', () => {
     const driver = createTestDriver('slide-intro');
 
-    it('preserves navigation with abbreviated keys', () => {
+    it('stores a versioned lossless state envelope', () => {
         const diet = driver._createDietState(FULL_STATE);
-        expect(diet.nav).toBeDefined();
-        expect(diet.nav.cur).toBe('slide-intro');
-        expect(diet.nav.vis).toEqual(['slide-intro', 'slide-topic1', 'slide-topic2']);
+        expect(diet.v).toBe(2);
+        expect(diet.s.navigation.currentSlide).toBe('slide-intro');
+        expect(diet.s.navigation.visitedSlides).toEqual(['slide-intro', 'slide-topic1', 'slide-topic2']);
     });
 
     it('preserves accessibility untouched', () => {
         const diet = driver._createDietState(FULL_STATE);
-        expect(diet.acc).toEqual({ fontSize: 'large', highContrast: true });
+        expect(diet.s.accessibility).toEqual({ fontSize: 'large', highContrast: true });
     });
 
     it('preserves flags', () => {
         const diet = driver._createDietState(FULL_STATE);
-        expect(diet.flg).toEqual({ showWelcome: false });
+        expect(diet.s.flags).toEqual({ showWelcome: false });
     });
 
-    it('drops engagement detail, keeps only completion flag', () => {
+    it('preserves partial engagement details', () => {
         const diet = driver._createDietState(FULL_STATE);
-        expect(diet.eng['slide-intro']).toEqual({ c: 1 });
-        expect(diet.eng['slide-topic1']).toEqual({ c: 0 });
-        // No tracked data, no timeSpent
-        expect(diet.eng['slide-intro'].tracked).toBeUndefined();
-        expect(diet.eng['slide-intro'].timeSpent).toBeUndefined();
+        expect(diet.s.engagement['slide-intro']).toEqual(FULL_STATE.engagement['slide-intro']);
+        expect(diet.s.engagement['slide-topic1']).toEqual(FULL_STATE.engagement['slide-topic1']);
     });
 
-    it('keeps interaction responses for current slide only', () => {
+    it('keeps interaction responses for every slide', () => {
         const diet = driver._createDietState(FULL_STATE);
-        expect(diet.int).toBeDefined();
-        expect(diet.int['slide-intro']).toEqual({ q1: 'answer-a' });
-        expect(diet.int['slide-topic1']).toBeUndefined();
+        expect(diet.s.interactionResponses).toEqual(FULL_STATE.interactionResponses);
     });
 
-    it('preserves assessment state with abbreviated key', () => {
+    it('preserves complete assessment state', () => {
         const diet = driver._createDietState(FULL_STATE);
-        expect(diet.as_quiz1).toBeDefined();
-        expect(diet.as_quiz1.score).toBe(85);
-        expect(diet.as_quiz1.passed).toBe(true);
+        expect(diet.s.assessment_quiz1).toEqual(FULL_STATE.assessment_quiz1);
     });
 
-    it('drops audio positions', () => {
+    it('preserves extension domains such as audio positions', () => {
         const diet = driver._createDietState(FULL_STATE);
-        expect(diet.audioPositions).toBeUndefined();
+        expect(diet.s.audioPositions).toEqual(FULL_STATE.audioPositions);
     });
 
-    it('omits flags key when empty', () => {
+    it('preserves empty domains without changing semantics', () => {
         const noFlags = { ...FULL_STATE, flags: {} };
         const diet = driver._createDietState(noFlags);
-        expect(diet.flg).toBeUndefined();
+        expect(diet.s.flags).toEqual({});
     });
 });
 
@@ -177,12 +170,9 @@ describe('Diet Mode: Roundtrip', () => {
         expect(expanded.assessment_quiz1.passed).toBe(true);
     });
 
-    it('drops engagement detail (expected data loss)', () => {
+    it('preserves engagement detail', () => {
         const diet = driver._createDietState(FULL_STATE);
         const expanded = driver._expandDietState(diet);
-        // Tracked data is intentionally lost
-        expect(expanded.engagement['slide-intro'].tracked).toEqual({});
-        // Completion is preserved
-        expect(expanded.engagement['slide-intro'].complete).toBe(true);
+        expect(expanded.engagement['slide-intro']).toEqual(FULL_STATE.engagement['slide-intro']);
     });
 });

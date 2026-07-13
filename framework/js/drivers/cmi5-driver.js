@@ -13,7 +13,7 @@
  * - xAPI statement methods (objectives, interactions, assessments, slides)
  * - suspend_data persistence via xAPI State API
  * - Bookmark persistence via xAPI State API
- * - Emergency save via sendBeacon
+ * - Emergency save via authenticated keepalive fetch
  */
 
 import { HttpDriverBase } from './http-driver-base.js';
@@ -37,6 +37,8 @@ export class Cmi5Driver extends HttpDriverBase {
         // Track what statements we've sent (persisted for resume)
         this._sentComplete = false;
         this._sentResult = false;
+        this._sentSuccessStatus = null;
+        this._outcomeDirty = false;
     }
 
     // =========================================================================
@@ -161,28 +163,7 @@ export class Cmi5Driver extends HttpDriverBase {
 
         try {
             await this._persistState();
-
-            if (this._completionStatus === 'completed' && !this._sentComplete) {
-                await this._cmi5.complete();
-                this._sentComplete = true;
-                logger.debug('[Cmi5Driver] Sent Completed statement');
-            }
-
-            if (!this._sentResult) {
-                const scoreObj = this._score !== null ? { scaled: this._score } : undefined;
-
-                if (this._successStatus === 'passed') {
-                    await this._cmi5.pass(scoreObj);
-                    this._sentResult = true;
-                    logger.debug('[Cmi5Driver] Sent Passed statement');
-                } else if (this._successStatus === 'failed') {
-                    await this._cmi5.fail(scoreObj);
-                    this._sentResult = true;
-                    logger.debug('[Cmi5Driver] Sent Failed statement');
-                }
-            }
-
-            await this._persistSentFlags();
+            await this._flushOutcomeStatements();
             await this._cmi5.terminate();
             logger.debug('[Cmi5Driver] Sent Terminated statement');
 
@@ -196,7 +177,7 @@ export class Cmi5Driver extends HttpDriverBase {
     }
 
     /**
-     * Emergency save using sendBeacon for page unload scenarios.
+     * Emergency save using authenticated keepalive requests for page unload scenarios.
      */
     emergencySave() {
         if (this._mock || this._isTerminated) {
@@ -218,6 +199,16 @@ export class Cmi5Driver extends HttpDriverBase {
         }
 
         const endpoint = params.endpoint?.replace(/\/$/, '');
+        const authToken = this._cmi5.getAuthToken?.();
+        if (!endpoint || !authToken) {
+            logger.warn('[Cmi5Driver] Emergency save unavailable because the authenticated LRS connection is incomplete', {
+                domain: 'cmi5',
+                operation: 'emergencySave',
+                hasEndpoint: Boolean(endpoint),
+                hasAuthToken: Boolean(authToken)
+            });
+            return;
+        }
         const registration = params.registration;
         const activityId = encodeURIComponent(params.activityId);
         const agent = encodeURIComponent(JSON.stringify(params.actor));
@@ -225,14 +216,7 @@ export class Cmi5Driver extends HttpDriverBase {
 
         if (this._suspendDataDirty && this._suspendDataCache !== null) {
             const suspendDataUrl = `${endpoint}/activities/state?stateId=${stateId}&activityId=${activityId}&agent=${agent}&registration=${registration}`;
-            const suspendDataBlob = new Blob([JSON.stringify(this._suspendDataCache)], { type: 'application/json' });
-
-            const suspendSent = navigator.sendBeacon(suspendDataUrl, suspendDataBlob);
-            if (suspendSent) {
-                logger.debug('[Cmi5Driver] Emergency save: suspend_data sent via sendBeacon');
-            } else {
-                logger.warn('[Cmi5Driver] Emergency save: sendBeacon failed for suspend_data');
-            }
+            this._sendAuthenticatedKeepalive(suspendDataUrl, this._suspendDataCache, authToken, 'suspend_data');
         }
 
         if (this._bookmarkDirty) {
@@ -244,17 +228,33 @@ export class Cmi5Driver extends HttpDriverBase {
                 successStatus: this._successStatus,
                 score: this._score,
                 sentComplete: this._sentComplete,
-                sentResult: this._sentResult
+                sentResult: this._sentResult,
+                sentSuccessStatus: this._sentSuccessStatus
             };
-            const bookmarkBlob = new Blob([JSON.stringify(bookmarkData)], { type: 'application/json' });
-
-            const bookmarkSent = navigator.sendBeacon(bookmarkUrl, bookmarkBlob);
-            if (bookmarkSent) {
-                logger.debug('[Cmi5Driver] Emergency save: bookmark sent via sendBeacon');
-            } else {
-                logger.warn('[Cmi5Driver] Emergency save: sendBeacon failed for bookmark');
-            }
+            this._sendAuthenticatedKeepalive(bookmarkUrl, bookmarkData, authToken, 'bookmark');
         }
+    }
+
+    async commit() {
+        const result = await super.commit();
+        if (!result || this._mock) return result;
+        await this._flushOutcomeStatements();
+        return true;
+    }
+
+    reportScore(score) {
+        super.reportScore(score);
+        this._outcomeDirty = true;
+    }
+
+    reportCompletion(status) {
+        super.reportCompletion(status);
+        this._outcomeDirty = true;
+    }
+
+    reportSuccess(status) {
+        super.reportSuccess(status);
+        this._outcomeDirty = true;
     }
 
     // =========================================================================
@@ -324,7 +324,6 @@ export class Cmi5Driver extends HttpDriverBase {
         }
 
         const params = this._cmi5.getLaunchParameters();
-        const xapi = this._cmi5.xapi;
 
         const verbMap = {
             'completed': 'http://adlnet.gov/expapi/verbs/completed',
@@ -337,26 +336,22 @@ export class Cmi5Driver extends HttpDriverBase {
         const verbDisplay = data.verb || 'progressed';
 
         const statement = {
+            actor: params.actor,
             verb: {
                 id: verbId,
                 display: { 'en-US': verbDisplay }
             },
             object: {
-                id: `${params.activityId}/objectives/${data.id}`,
+                id: this._activityObjectId(params.activityId, 'objectives', data.id),
                 definition: {
                     type: 'http://adlnet.gov/expapi/activities/objective',
                     name: data.name ? { 'en-US': data.name } : { 'en-US': data.id }
                 }
             },
-            context: {
-                registration: params.registration,
-                contextActivities: {
-                    parent: [{ id: params.activityId }]
-                }
-            }
+            context: this._buildAllowedStatementContext(params)
         };
 
-        if (data.score !== undefined || data.duration) {
+        if (data.score !== undefined || data.duration || ['completed', 'passed', 'failed'].includes(data.verb)) {
             statement.result = {};
             if (data.score !== undefined) {
                 statement.result.score = { scaled: data.score };
@@ -373,7 +368,7 @@ export class Cmi5Driver extends HttpDriverBase {
         }
 
         try {
-            await xapi.sendStatement(statement);
+            await this._cmi5.sendXapiStatement(statement);
             logger.debug(`[Cmi5Driver] Sent objective statement: ${data.verb} for ${data.id}`);
         } catch (error) {
             logger.error('[Cmi5Driver] Failed to send objective statement:', error);
@@ -396,7 +391,6 @@ export class Cmi5Driver extends HttpDriverBase {
         }
 
         const params = this._cmi5.getLaunchParameters();
-        const xapi = this._cmi5.xapi;
 
         const interactionTypeMap = {
             'choice': 'choice',
@@ -412,12 +406,13 @@ export class Cmi5Driver extends HttpDriverBase {
         };
 
         const statement = {
+            actor: params.actor,
             verb: {
                 id: 'http://adlnet.gov/expapi/verbs/answered',
                 display: { 'en-US': 'answered' }
             },
             object: {
-                id: `${params.activityId}/interactions/${data.id}`,
+                id: this._activityObjectId(params.activityId, 'interactions', data.id),
                 definition: {
                     type: 'http://adlnet.gov/expapi/activities/cmi.interaction',
                     interactionType: interactionTypeMap[data.type] || 'other'
@@ -427,12 +422,7 @@ export class Cmi5Driver extends HttpDriverBase {
                 response: String(data.response),
                 success: data.correct
             },
-            context: {
-                registration: params.registration,
-                contextActivities: {
-                    parent: [{ id: params.activityId }]
-                }
-            }
+            context: this._buildAllowedStatementContext(params)
         };
 
         if (data.description) {
@@ -445,13 +435,13 @@ export class Cmi5Driver extends HttpDriverBase {
 
         if (data.objectiveId) {
             statement.context.contextActivities.other = [{
-                id: `${params.activityId}/objectives/${data.objectiveId}`,
+                id: this._activityObjectId(params.activityId, 'objectives', data.objectiveId),
                 definition: { type: 'http://adlnet.gov/expapi/activities/objective' }
             }];
         }
 
         try {
-            await xapi.sendStatement(statement);
+            await this._cmi5.sendXapiStatement(statement);
             logger.debug(`[Cmi5Driver] Sent interaction statement: ${data.id} (${data.correct ? 'correct' : 'incorrect'})`);
         } catch (error) {
             logger.error('[Cmi5Driver] Failed to send interaction statement:', error);
@@ -470,15 +460,15 @@ export class Cmi5Driver extends HttpDriverBase {
         }
 
         const params = this._cmi5.getLaunchParameters();
-        const xapi = this._cmi5.xapi;
 
         const statement = {
+            actor: params.actor,
             verb: {
                 id: 'http://adlnet.gov/expapi/verbs/completed',
                 display: { 'en-US': 'completed' }
             },
             object: {
-                id: `${params.activityId}/assessments/${data.id}`,
+                id: this._activityObjectId(params.activityId, 'assessments', data.id),
                 definition: {
                     type: 'http://adlnet.gov/expapi/activities/assessment',
                     name: data.name ? { 'en-US': data.name } : { 'en-US': data.id }
@@ -494,15 +484,11 @@ export class Cmi5Driver extends HttpDriverBase {
                 success: data.passed,
                 completion: true
             },
-            context: {
-                registration: params.registration,
-                contextActivities: {
-                    parent: [{ id: params.activityId }]
-                },
+            context: this._buildAllowedStatementContext(params, {
                 extensions: {
                     'https://w3id.org/xapi/cmi5/context/extensions/attemptNumber': data.attemptNumber
                 }
-            }
+            })
         };
 
         if (data.duration) {
@@ -510,7 +496,7 @@ export class Cmi5Driver extends HttpDriverBase {
         }
 
         try {
-            await xapi.sendStatement(statement);
+            await this._cmi5.sendXapiStatement(statement);
             logger.debug(`[Cmi5Driver] Sent assessment statement: ${data.id} (${data.passed ? 'passed' : 'failed'}) attempt ${data.attemptNumber}`);
         } catch (error) {
             logger.error('[Cmi5Driver] Failed to send assessment statement:', error);
@@ -529,26 +515,21 @@ export class Cmi5Driver extends HttpDriverBase {
         }
 
         const params = this._cmi5.getLaunchParameters();
-        const xapi = this._cmi5.xapi;
 
         const statement = {
+            actor: params.actor,
             verb: {
                 id: 'http://adlnet.gov/expapi/verbs/experienced',
                 display: { 'en-US': 'experienced' }
             },
             object: {
-                id: `${params.activityId}/slides/${data.id}`,
+                id: this._activityObjectId(params.activityId, 'slides', data.id),
                 definition: {
                     type: 'http://adlnet.gov/expapi/activities/media',
                     name: data.title ? { 'en-US': data.title } : { 'en-US': data.id }
                 }
             },
-            context: {
-                registration: params.registration,
-                contextActivities: {
-                    parent: [{ id: params.activityId }]
-                }
-            }
+            context: this._buildAllowedStatementContext(params)
         };
 
         if (data.duration) {
@@ -558,7 +539,7 @@ export class Cmi5Driver extends HttpDriverBase {
         }
 
         try {
-            await xapi.sendStatement(statement);
+            await this._cmi5.sendXapiStatement(statement);
             logger.debug(`[Cmi5Driver] Sent slide statement: experienced ${data.id} (${data.duration || 'no duration'})`);
         } catch (error) {
             logger.error('[Cmi5Driver] Failed to send slide statement:', error);
@@ -623,7 +604,7 @@ export class Cmi5Driver extends HttpDriverBase {
             }
         } catch (error) {
             if (error.response?.status !== 404) {
-                logger.warn('[Cmi5Driver] Error fetching suspend_data:', error.message);
+                throw new Error(`Unable to load suspend_data: ${error.message}`);
             }
             this._suspendDataCache = null;
         }
@@ -643,11 +624,15 @@ export class Cmi5Driver extends HttpDriverBase {
                 this._score = bookmarkData.score ?? null;
                 this._sentComplete = bookmarkData.sentComplete || false;
                 this._sentResult = bookmarkData.sentResult || false;
+                this._sentSuccessStatus = bookmarkData.sentSuccessStatus ||
+                    (this._sentResult && ['passed', 'failed'].includes(this._successStatus)
+                        ? this._successStatus
+                        : null);
                 logger.debug('[Cmi5Driver] Loaded bookmark from State API:', this._bookmarkCache);
             }
         } catch (error) {
             if (error.response?.status !== 404) {
-                logger.warn('[Cmi5Driver] Error fetching bookmark:', error.message);
+                throw new Error(`Unable to load bookmark state: ${error.message}`);
             }
         }
     }
@@ -695,7 +680,8 @@ export class Cmi5Driver extends HttpDriverBase {
                     successStatus: this._successStatus,
                     score: this._score,
                     sentComplete: this._sentComplete,
-                    sentResult: this._sentResult
+                    sentResult: this._sentResult,
+                    sentSuccessStatus: this._sentSuccessStatus
                 }
             });
             logger.debug('[Cmi5Driver] Persisted bookmark');
@@ -708,6 +694,114 @@ export class Cmi5Driver extends HttpDriverBase {
     async _persistSentFlags() {
         this._bookmarkDirty = true;
         await this._persistBookmark();
+        this._bookmarkDirty = false;
+    }
+
+    _buildAllowedStatementContext(params, additions = {}) {
+        const launchData = this._cmi5.getLaunchData?.() || {};
+        const template = launchData.contextTemplate || {};
+        const templateActivities = template.contextActivities || {};
+        const additionalActivities = additions.contextActivities || {};
+        const existingParents = [
+            ...(templateActivities.parent || []),
+            ...(additionalActivities.parent || [])
+        ];
+        if (!existingParents.some(activity => activity?.id === params.activityId)) {
+            existingParents.push({ id: params.activityId });
+        }
+
+        return {
+            ...template,
+            ...additions,
+            registration: params.registration,
+            contextActivities: {
+                ...templateActivities,
+                ...additionalActivities,
+                parent: existingParents
+            },
+            extensions: {
+                ...(template.extensions || {}),
+                ...(additions.extensions || {})
+            }
+        };
+    }
+
+    _activityObjectId(activityId, collection, itemId) {
+        const base = String(activityId).replace(/\/$/, '');
+        return `${base}/${collection}/${encodeURIComponent(String(itemId))}`;
+    }
+
+    async _flushOutcomeStatements() {
+        const pendingCompletion = this._completionStatus === 'completed' && !this._sentComplete;
+        const hasResult = ['passed', 'failed'].includes(this._successStatus);
+        const pendingResult = hasResult && (
+            !this._sentResult ||
+            (this._sentSuccessStatus !== null && this._sentSuccessStatus !== this._successStatus)
+        );
+        if (this._mock || !this._cmi5 || (!this._outcomeDirty && !pendingCompletion && !pendingResult)) return;
+
+        const launchMode = this._cmi5.getLaunchData?.()?.launchMode || 'Normal';
+        if (launchMode !== 'Normal') {
+            this._outcomeDirty = false;
+            return;
+        }
+
+        let changed = false;
+        if (this._completionStatus === 'completed' && !this._sentComplete) {
+            await this._cmi5.complete();
+            this._sentComplete = true;
+            changed = true;
+            logger.debug('[Cmi5Driver] Sent Completed statement');
+        }
+
+        if (pendingResult) {
+            const scoreObj = this._score !== null ? { scaled: this._score } : undefined;
+            if (this._successStatus === 'passed') {
+                await this._cmi5.pass(scoreObj);
+                this._sentResult = true;
+                this._sentSuccessStatus = 'passed';
+                changed = true;
+                logger.debug('[Cmi5Driver] Sent Passed statement');
+            } else if (this._successStatus === 'failed') {
+                await this._cmi5.fail(scoreObj);
+                this._sentResult = true;
+                this._sentSuccessStatus = 'failed';
+                changed = true;
+                logger.debug('[Cmi5Driver] Sent Failed statement');
+            }
+        }
+
+        this._outcomeDirty = false;
+        if (changed) await this._persistSentFlags();
+    }
+
+    _sendAuthenticatedKeepalive(url, state, authToken, label) {
+        const authorization = /^(Basic|Bearer)\s/i.test(authToken)
+            ? authToken
+            : `Basic ${authToken}`;
+        fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Authorization': authorization,
+                'X-Experience-API-Version': '1.0.3',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(state),
+            keepalive: true
+        }).then(response => {
+            if (!response.ok) {
+                throw new Error(`${response.status} ${response.statusText || ''}`.trim());
+            }
+            logger.debug(`[Cmi5Driver] Emergency save: ${label} persisted`);
+        }).catch(error => {
+            logger.error(`[Cmi5Driver] Emergency save failed for ${label}`, {
+                domain: 'cmi5',
+                operation: 'emergencySave',
+                label,
+                error: error.message,
+                stack: error.stack
+            });
+        });
     }
 
     // =========================================================================
@@ -726,6 +820,10 @@ export class Cmi5Driver extends HttpDriverBase {
                     this._score = state.score ?? null;
                     this._sentComplete = state.sentComplete || false;
                     this._sentResult = state.sentResult || false;
+                    this._sentSuccessStatus = state.sentSuccessStatus ||
+                        (this._sentResult && ['passed', 'failed'].includes(this._successStatus)
+                            ? this._successStatus
+                            : null);
                 }
                 this._mockState.suspendData = this._devApi.getState('suspend_data') || null;
                 return;
@@ -741,6 +839,10 @@ export class Cmi5Driver extends HttpDriverBase {
                 this._score = parsed.score ?? null;
                 this._sentComplete = parsed.sentComplete || false;
                 this._sentResult = parsed.sentResult || false;
+                this._sentSuccessStatus = parsed.sentSuccessStatus ||
+                    (this._sentResult && ['passed', 'failed'].includes(this._successStatus)
+                        ? this._successStatus
+                        : null);
             }
         } catch (_e) {
             this._mockState = {};
@@ -756,7 +858,8 @@ export class Cmi5Driver extends HttpDriverBase {
                 successStatus: this._successStatus,
                 score: this._score,
                 sentComplete: this._sentComplete,
-                sentResult: this._sentResult
+                sentResult: this._sentResult,
+                sentSuccessStatus: this._sentSuccessStatus
             };
 
             if (this._devApi) {

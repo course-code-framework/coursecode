@@ -44,10 +44,15 @@ export function deepClone(obj) {
     }
     
     const clonedObj = {};
-    for (const key in obj) {
-        if (obj.hasOwnProperty(key)) {
-            clonedObj[key] = deepClone(obj[key]);
-        }
+    for (const key of Object.keys(obj)) {
+        // defineProperty avoids invoking Object.prototype.__proto__ when state
+        // originated from JSON containing that literal key.
+        Object.defineProperty(clonedObj, key, {
+            value: deepClone(obj[key]),
+            enumerable: true,
+            configurable: true,
+            writable: true
+        });
     }
     return clonedObj;
 }
@@ -241,7 +246,7 @@ export function waitFor(condition, timeout = 5000, interval = 100) {
  * @returns {Object} The merged target object
  */
 export function deepMerge(target, ...sources) {
-    if (!target || typeof target !== 'object' || Array.isArray(target)) {
+    if (!isPlainObject(target)) {
         throw new Error('deepMerge: target must be a plain object');
     }
 
@@ -251,27 +256,34 @@ export function deepMerge(target, ...sources) {
 
     const source = sources.shift();
 
-    if (source && typeof source === 'object' && !Array.isArray(source)) {
-        for (const key in source) {
-            if (source.hasOwnProperty(key)) {
-                const sourceValue = source[key];
-                const targetValue = target[key];
+    if (isPlainObject(source)) {
+        for (const key of Object.keys(source)) {
+            if (key === '__proto__' || key === 'prototype' || key === 'constructor') {
+                throw new Error(`deepMerge: unsafe key "${key}" is not allowed`);
+            }
 
-                if (sourceValue && typeof sourceValue === 'object' && !Array.isArray(sourceValue)) {
-                    // Recursive merge for plain objects
-                    if (!targetValue || typeof targetValue !== 'object' || Array.isArray(targetValue)) {
-                        target[key] = {};
-                    }
-                    deepMerge(target[key], sourceValue);
-                } else {
-                    // Direct assignment for primitives, arrays, and other types
-                    target[key] = sourceValue;
+            const sourceValue = source[key];
+            const targetValue = target[key];
+
+            if (isPlainObject(sourceValue)) {
+                if (!isPlainObject(targetValue)) {
+                    target[key] = {};
                 }
+                deepMerge(target[key], sourceValue);
+            } else {
+                // Direct assignment for primitives, arrays, and non-plain objects
+                target[key] = sourceValue;
             }
         }
     }
 
     return deepMerge(target, ...sources);
+}
+
+function isPlainObject(value) {
+    if (value === null || typeof value !== 'object') return false;
+    const prototype = Object.getPrototypeOf(value);
+    return prototype === Object.prototype || prototype === null;
 }
 
 /**

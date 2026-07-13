@@ -21,6 +21,8 @@ import {
     registerModals,
     registerInteractiveImage,
     registerLightbox,
+    registerInteractiveImages,
+    registerLightboxes,
     registerFlipCard,
     trackTabView,
     trackAccordionPanel,
@@ -67,8 +69,10 @@ function makeSlideState(overrides = {}) {
             modalsViewed: [],
             interactiveImageHotspotsTotal: 0,
             interactiveImageHotspotsViewed: [],
+            interactiveImageHotspotsRegistered: [],
             lightboxesTotal: 0,
             lightboxesViewed: [],
+            lightboxesRegistered: [],
             interactionsCompleted: {},
             scrollDepth: 0,
             audioComplete: false,
@@ -155,6 +159,32 @@ describe('Incremental registration methods', () => {
         const ctx = createMockContext({ 'slide-1': makeSlideState() });
         registerLightbox.call(ctx, 'slide-1', ['lb1']);
         expect(ctx._getState()['slide-1'].tracked.lightboxesTotal).toBe(1);
+    });
+
+    it('deduplicates registrations when a view is initialized again', () => {
+        const ctx = createMockContext({ 'slide-1': makeSlideState() });
+        registerInteractiveImage.call(ctx, 'slide-1', ['h1', 'h2']);
+        registerInteractiveImage.call(ctx, 'slide-1', ['h1', 'h2']);
+        registerLightbox.call(ctx, 'slide-1', ['lb1']);
+        registerLightbox.call(ctx, 'slide-1', ['lb1']);
+
+        const tracked = ctx._getState()['slide-1'].tracked;
+        expect(tracked.interactiveImageHotspotsTotal).toBe(2);
+        expect(tracked.lightboxesTotal).toBe(1);
+    });
+
+    it('batch registration prunes removed component IDs', () => {
+        const state = makeSlideState({
+            interactiveImageHotspotsViewed: ['h1', 'removed'],
+            lightboxesViewed: ['lb1', 'removed']
+        });
+        const ctx = createMockContext({ 'slide-1': state });
+
+        registerInteractiveImages.call(ctx, 'slide-1', ['h1', 'h2']);
+        registerLightboxes.call(ctx, 'slide-1', ['lb1']);
+
+        expect(state.tracked.interactiveImageHotspotsViewed).toEqual(['h1']);
+        expect(state.tracked.lightboxesViewed).toEqual(['lb1']);
     });
 
     it('initializes viewed array on first call', () => {

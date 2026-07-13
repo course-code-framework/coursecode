@@ -121,14 +121,20 @@ export class HttpDriverBase {
         } else if (raw !== undefined) {
             this._score = raw / 100;
         }
+        this._bookmarkDirty = true;
+        if (this._mock) this._saveMockState();
     }
 
     reportCompletion(status) {
         this._completionStatus = status;
+        this._bookmarkDirty = true;
+        if (this._mock) this._saveMockState();
     }
 
     reportSuccess(status) {
         this._successStatus = status;
+        this._bookmarkDirty = true;
+        if (this._mock) this._saveMockState();
     }
 
     reportProgress(_measure) {

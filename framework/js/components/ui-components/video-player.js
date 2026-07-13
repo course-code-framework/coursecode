@@ -54,6 +54,8 @@ import engagementManager from '../../engagement/engagement-manager.js';
 import * as NavigationState from '../../navigation/NavigationState.js';
 import { logger } from '../../utilities/logger.js';
 import { iconManager } from '../../utilities/icons.js';
+import { normalizeCompletionThreshold } from '../../utilities/media-utils.js';
+import { resolvePortableAssetUrl } from '../../utilities/portable-assets.js';
 
 /** @type {Map<string, VideoPlayer>} Active player instances */
 const playerInstances = new Map();
@@ -131,10 +133,12 @@ function detectExternalVideo(url) {
  * @returns {string} Resolved path
  */
 function resolvePath(src) {
+    const portableSrc = resolvePortableAssetUrl(src);
+    if (portableSrc !== src) return portableSrc;
     if (src.startsWith('http') || src.startsWith('/') || src.startsWith('./')) {
         return src;
     }
-    return `./course/assets/${src}`;
+    return resolvePortableAssetUrl(`./course/assets/${src}`);
 }
 
 /**
@@ -148,7 +152,7 @@ class VideoPlayer {
         this.posterSrc = container.dataset.videoPoster;
         this.captionsSrc = container.dataset.videoCaptions;
         this.required = container.dataset.videoRequired === 'true';
-        this.threshold = parseFloat(container.dataset.videoThreshold) || 0.95;
+        this.threshold = normalizeCompletionThreshold(container.dataset.videoThreshold);
         this.autoplay = container.dataset.videoAutoplay === 'true';
 
         if (!this.videoId) {
@@ -167,6 +171,18 @@ class VideoPlayer {
         this.iframe = null;     // External video iframe
         this.elements = {};
         this.eventHandlers = {};
+        this.domEventHandlers = {
+            click: this._handleClick.bind(this),
+            progressKeydown: this._handleProgressKeydown.bind(this),
+            progressMousedown: this._handleProgressMousedown.bind(this),
+            fullscreenChange: this._handleFullscreenChange.bind(this),
+            videoDoubleClick: () => this._toggleFullscreen(),
+            overlayClick: (event) => {
+                event.stopPropagation();
+                this._togglePlayPause();
+            }
+        };
+        this.dragCleanup = null;
         this.isFullscreen = false;
 
         this._render();
@@ -311,35 +327,32 @@ class VideoPlayer {
         // External videos use platform's native controls
         if (this.isExternal) {
             // Only fullscreen detection for wrapper
-            document.addEventListener('fullscreenchange', this._handleFullscreenChange.bind(this));
-            document.addEventListener('webkitfullscreenchange', this._handleFullscreenChange.bind(this));
+            document.addEventListener('fullscreenchange', this.domEventHandlers.fullscreenChange);
+            document.addEventListener('webkitfullscreenchange', this.domEventHandlers.fullscreenChange);
             return;
         }
 
         // Control bar click delegation
-        this.container.addEventListener('click', this._handleClick.bind(this));
+        this.container.addEventListener('click', this.domEventHandlers.click);
 
         // Progress bar interactions
         if (this.elements.progressBar) {
-            this.elements.progressBar.addEventListener('keydown', this._handleProgressKeydown.bind(this));
-            this.elements.progressBar.addEventListener('mousedown', this._handleProgressMousedown.bind(this));
+            this.elements.progressBar.addEventListener('keydown', this.domEventHandlers.progressKeydown);
+            this.elements.progressBar.addEventListener('mousedown', this.domEventHandlers.progressMousedown);
         }
 
         // Fullscreen change detection
-        document.addEventListener('fullscreenchange', this._handleFullscreenChange.bind(this));
-        document.addEventListener('webkitfullscreenchange', this._handleFullscreenChange.bind(this));
+        document.addEventListener('fullscreenchange', this.domEventHandlers.fullscreenChange);
+        document.addEventListener('webkitfullscreenchange', this.domEventHandlers.fullscreenChange);
 
         // Double-click video to toggle fullscreen
         if (this.video) {
-            this.video.addEventListener('dblclick', () => this._toggleFullscreen());
+            this.video.addEventListener('dblclick', this.domEventHandlers.videoDoubleClick);
         }
 
         // Click overlay to play
         if (this.elements.overlay) {
-            this.elements.overlay.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this._togglePlayPause();
-            });
+            this.elements.overlay.addEventListener('click', this.domEventHandlers.overlayClick);
         }
     }
 
@@ -447,8 +460,11 @@ class VideoPlayer {
     _handleProgressMousedown(event) {
         if (!this.video || !this.video.duration) return;
 
+        this.dragCleanup?.();
+
         const progressBar = this.elements.progressBar;
         const rect = progressBar.getBoundingClientRect();
+        if (rect.width <= 0) return;
 
         const seek = (clientX) => {
             const pct = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
@@ -458,15 +474,19 @@ class VideoPlayer {
         seek(event.clientX);
 
         const onMouseMove = (e) => seek(e.clientX);
-        const onMouseUp = () => {
+        const cleanupDrag = () => {
             document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
+            document.removeEventListener('mouseup', cleanupDrag);
             progressBar.classList.remove('dragging');
+            if (this.dragCleanup === cleanupDrag) {
+                this.dragCleanup = null;
+            }
         };
 
         progressBar.classList.add('dragging');
         document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
+        document.addEventListener('mouseup', cleanupDrag);
+        this.dragCleanup = cleanupDrag;
     }
 
     _attachToManager() {
@@ -605,6 +625,8 @@ class VideoPlayer {
     }
 
     destroy() {
+        this.dragCleanup?.();
+
         // Unsubscribe from events
         eventBus.off('video:loaded', this.eventHandlers.loaded);
         eventBus.off('video:play', this.eventHandlers.play);
@@ -616,11 +638,15 @@ class VideoPlayer {
         // Detach from manager
         if (this.video) {
             videoManager.detachVideo(this.video);
+            this.video.removeEventListener('dblclick', this.domEventHandlers.videoDoubleClick);
         }
 
-        // Remove fullscreen listeners
-        document.removeEventListener('fullscreenchange', this._handleFullscreenChange);
-        document.removeEventListener('webkitfullscreenchange', this._handleFullscreenChange);
+        this.container.removeEventListener('click', this.domEventHandlers.click);
+        this.elements.progressBar?.removeEventListener('keydown', this.domEventHandlers.progressKeydown);
+        this.elements.progressBar?.removeEventListener('mousedown', this.domEventHandlers.progressMousedown);
+        this.elements.overlay?.removeEventListener('click', this.domEventHandlers.overlayClick);
+        document.removeEventListener('fullscreenchange', this.domEventHandlers.fullscreenChange);
+        document.removeEventListener('webkitfullscreenchange', this.domEventHandlers.fullscreenChange);
 
         playerInstances.delete(this.videoId);
         logger.debug(`[VideoPlayer] Destroyed: ${this.videoId}`);

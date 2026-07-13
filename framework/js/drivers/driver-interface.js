@@ -25,7 +25,7 @@
  * @property {function(): Promise<boolean>} terminate - Terminate connection
  * @property {function(): Promise<boolean>} commit - Commit buffered writes
  * @property {function(): DriverCapabilities} getCapabilities - Declare format capabilities
- * @property {function(): 'scorm2004'|'scorm1.2'|'cmi5'|'lti'} getFormat - Get format identifier
+ * @property {function(): 'standalone'|'scorm2004'|'scorm1.2'|'cmi5'|'lti'} getFormat - Get format identifier
  * @property {function(): boolean} isConnected - Check if driver is connected
  * @property {function(): boolean} isTerminated - Check if driver is terminated
  *

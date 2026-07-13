@@ -6,7 +6,7 @@
 
 import { logger } from './logger.js';
 import { getComponentInit, getComponentStyles, isComponentRegistered, getRegisteredComponentTypes } from '../core/component-catalog.js';
-import { init as initNotificationTriggers } from '../components/ui-components/notifications.js';
+import { initNotificationTriggers } from '../components/ui-components/notifications.js';
 
 
 import engagementManager from '../engagement/engagement-manager.js';
@@ -14,6 +14,11 @@ import * as NavigationState from '../navigation/NavigationState.js';
 
 // Track which custom component styles have been injected
 const injectedStyles = new Set();
+
+// Component initializers may return an object with destroy(), or a cleanup
+// function directly. Keep those handles with the rendered view so ViewManager
+// can release document-level listeners and other resources before removing it.
+const componentCleanups = new WeakMap();
 
 /**
  * Inject custom component styles into the document head
@@ -39,7 +44,14 @@ export function initializeDeclarativeComponents(container) {
         return;
     }
 
-    const components = container.querySelectorAll('[data-component]');
+    // Re-initializing the same rendered view should not stack event listeners.
+    cleanupDeclarativeComponents(container);
+
+    const components = [
+        ...(container.matches?.('[data-component]') ? [container] : []),
+        ...container.querySelectorAll('[data-component]')
+    ];
+    const cleanups = [];
 
     components.forEach(element => {
         const componentName = element.dataset.component;
@@ -59,7 +71,12 @@ export function initializeDeclarativeComponents(container) {
         const initializer = getComponentInit(componentName);
         if (initializer && typeof initializer === 'function') {
             try {
-                initializer(element);
+                const instance = initializer(element);
+                if (typeof instance === 'function') {
+                    cleanups.push(instance);
+                } else if (instance && typeof instance.destroy === 'function') {
+                    cleanups.push(() => instance.destroy());
+                }
             } catch (error) {
                 logger.error(`[UI-Initializer] Failed to initialize '${componentName}' component: ${error.message}`, { domain: 'ui', operation: 'initializeComponent', stack: error.stack, component: componentName });
             }
@@ -77,13 +94,48 @@ export function initializeDeclarativeComponents(container) {
     // This must happen AFTER all modal triggers are initialized
     registerModalsForEngagement(container);
 
+    // Register hotspots across every interactive image in the rendered view as
+    // one batch so revisiting a slide cannot inflate engagement totals.
+    registerInteractiveImagesForEngagement(container);
+
     // Initialize declarative notification triggers (event delegation pattern)
-    initNotificationTriggers(container);
+    const notificationInstance = initNotificationTriggers(container);
+    if (notificationInstance && typeof notificationInstance.destroy === 'function') {
+        cleanups.push(() => notificationInstance.destroy());
+    }
 
 
     // Register lightbox triggers with engagement manager (batch registration)
     // This must happen AFTER all lightbox triggers are initialized by the catalog
     registerLightboxesForEngagement(container);
+
+    if (cleanups.length > 0) {
+        componentCleanups.set(container, cleanups);
+    }
+}
+
+/**
+ * Destroys declarative component instances associated with a rendered view.
+ * Cleanup is best-effort so one faulty component cannot prevent the rest from
+ * releasing their resources.
+ * @param {HTMLElement} container - The rendered view that was initialized.
+ */
+export function cleanupDeclarativeComponents(container) {
+    const cleanups = componentCleanups.get(container);
+    if (!cleanups) return;
+
+    componentCleanups.delete(container);
+    for (const cleanup of [...cleanups].reverse()) {
+        try {
+            cleanup();
+        } catch (error) {
+            logger.error(`[UI-Initializer] Component cleanup failed: ${error.message}`, {
+                domain: 'ui',
+                operation: 'cleanupComponent',
+                stack: error.stack
+            });
+        }
+    }
 }
 
 /**
@@ -125,6 +177,28 @@ function registerModalsForEngagement(container) {
 }
 
 /**
+ * Registers every interactive-image hotspot in the rendered view as one batch.
+ * @param {HTMLElement} container - The container to scan for hotspots
+ */
+function registerInteractiveImagesForEngagement(container) {
+    const hotspots = container.querySelectorAll(
+        '[data-component="interactive-image"] [data-hotspot-id]'
+    );
+    if (!hotspots.length) return;
+
+    const currentSlideId = NavigationState.getCurrentSlideId();
+    if (!currentSlideId) return;
+
+    const hotspotIds = Array.from(hotspots)
+        .map(hotspot => hotspot.dataset.hotspotId)
+        .filter(Boolean);
+    if (hotspotIds.length > 0) {
+        engagementManager.registerInteractiveImages(currentSlideId, hotspotIds);
+        logger.debug(`[UI-Initializer] Registered ${hotspotIds.length} interactive-image hotspots for engagement tracking`);
+    }
+}
+
+/**
  * Registers all lightbox triggers in the container with the engagement manager.
  * This batch registration ensures lightboxesTotal is set correctly after all triggers are found.
  * @param {HTMLElement} container - The container to scan for lightbox triggers
@@ -140,7 +214,7 @@ function registerLightboxesForEngagement(container) {
         .map(trigger => trigger.id || trigger.dataset.lightboxId)
         .filter(Boolean);
     if (lightboxIds.length > 0) {
-        engagementManager.registerLightbox(currentSlideId, lightboxIds);
+        engagementManager.registerLightboxes(currentSlideId, lightboxIds);
         logger.debug(`[UI-Initializer] Registered ${lightboxIds.length} lightboxes for engagement tracking`);
     }
 }

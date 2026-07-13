@@ -74,7 +74,18 @@ describe('BUG PROBE: allAssessmentsMeetRequirements with missing assessmentId', 
             }
         }];
 
-        expect(() => allAssessmentsMeetRequirements(slides)).toThrow('assessmentId is required');
+        expect(() => allAssessmentsMeetRequirements(slides))
+            .toThrow('assessment slide requires assessmentId or id');
+    });
+
+    it('falls back to the documented slide id', () => {
+        setDomainState('final-exam', { summary: { submitted: true } });
+        const slides = [{
+            id: 'final-exam',
+            assessment: { completionRequirements: { requireSubmission: true } }
+        }];
+
+        expect(allAssessmentsMeetRequirements(slides)).toBe(true);
     });
 });
 

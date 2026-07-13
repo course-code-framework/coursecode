@@ -54,8 +54,10 @@ function makeSlideState(overrides = {}) {
             modalsViewed: [],
             interactiveImageHotspotsTotal: 0,
             interactiveImageHotspotsViewed: [],
+            interactiveImageHotspotsRegistered: [],
             lightboxesTotal: 0,
             lightboxesViewed: [],
+            lightboxesRegistered: [],
             interactionsCompleted: {},
             scrollDepth: 0,
             audioComplete: false,
@@ -73,8 +75,8 @@ function makeSlideState(overrides = {}) {
 // the total is reset to the new count but viewed stays stale.
 // This creates an inconsistent state where viewed > total.
 
-describe('BUG PROBE: re-registration creates viewed > total inconsistency', () => {
-    it('registerTabs: double registration with fewer tabs creates impossible progress', () => {
+describe('re-registration reconciles persisted progress', () => {
+    it('registerTabs preserves views that still exist and prunes removed tabs', () => {
         const ctx = createMockContext({ 'slide-1': makeSlideState() });
 
         // First render: 5 tabs
@@ -90,15 +92,14 @@ describe('BUG PROBE: re-registration creates viewed > total inconsistency', () =
         expect(tracked.tabsViewed).toHaveLength(5);
         expect(tracked.tabsTotal).toBe(5);
 
-        // Re-render with only 3 tabs — total resets, but viewed stays at 5
+        // Re-render with only 3 tabs.
         registerTabs.call(ctx, 'slide-1', ['a', 'b', 'c']);
 
-        // FIXED: Re-registration now resets the viewed array
         expect(tracked.tabsTotal).toBe(3);
-        expect(tracked.tabsViewed).toHaveLength(0); // Reset on re-registration
+        expect(tracked.tabsViewed).toEqual(['a', 'b', 'c']);
     });
 
-    it('registerAccordion: re-registration resets viewed array', () => {
+    it('registerAccordion preserves valid viewed panels', () => {
         const ctx = createMockContext({ 'slide-1': makeSlideState() });
 
         registerAccordion.call(ctx, 'slide-1', ['p1', 'p2', 'p3']);
@@ -110,9 +111,8 @@ describe('BUG PROBE: re-registration creates viewed > total inconsistency', () =
         registerAccordion.call(ctx, 'slide-1', ['p1']);
 
         const tracked = ctx._getState()['slide-1'].tracked;
-        // FIXED: viewed is reset on re-registration
         expect(tracked.accordionPanelsTotal).toBe(1);
-        expect(tracked.accordionPanelsViewed).toHaveLength(0);
+        expect(tracked.accordionPanelsViewed).toEqual(['p1']);
     });
 });
 
@@ -184,25 +184,20 @@ describe('BUG PROBE: completion queries with invalid slideId', () => {
 // typeof NaN === 'number' is true in JS. The guard `typeof percentage !== 'number'`
 // does NOT catch NaN.
 
-describe('BUG PROBE: trackScrollDepth with NaN', () => {
-    it('NaN passes the type guard but fails comparison', () => {
+describe('trackScrollDepth rejects non-finite values', () => {
+    it('ignores NaN', () => {
         const ctx = createMockContext({ 'slide-1': makeSlideState({ scrollDepth: 0 }) });
 
-        // NaN passes typeof check: typeof NaN === 'number' is true
-        // But NaN > 0 is false, so no update happens
         trackScrollDepth.call(ctx, 'slide-1', NaN);
         expect(ctx._setState).not.toHaveBeenCalled();
-        // This is accidentally safe but the guard is wrong
     });
 
-    it('Infinity passes the type guard and clamps to 100', () => {
+    it('ignores Infinity instead of treating it as complete', () => {
         const ctx = createMockContext({ 'slide-1': makeSlideState({ scrollDepth: 0 }) });
 
-        // Infinity is typeof 'number', Infinity > 0 is true
         trackScrollDepth.call(ctx, 'slide-1', Infinity);
-
-        // Math.min(100, Math.max(0, Infinity)) === 100
-        expect(ctx._getState()['slide-1'].tracked.scrollDepth).toBe(100);
+        expect(ctx._getState()['slide-1'].tracked.scrollDepth).toBe(0);
+        expect(ctx._setState).not.toHaveBeenCalled();
     });
 });
 
@@ -212,26 +207,23 @@ describe('BUG PROBE: trackScrollDepth with NaN', () => {
 // ═════════════════════════════════════════════════════════════════════
 // The function stores whatever you pass — no validation.
 
-describe('BUG PROBE: trackInteraction with non-boolean values', () => {
-    it('stores string values without validation', () => {
+describe('trackInteraction rejects non-boolean state', () => {
+    it('ignores string values', () => {
         const ctx = createMockContext({ 'slide-1': makeSlideState() });
 
         trackInteraction.call(ctx, 'slide-1', 'q1', 'yes', 'maybe');
 
-        const interaction = ctx._getState()['slide-1'].tracked.interactionsCompleted['q1'];
-        // These should be booleans but anything is accepted
-        expect(interaction.completed).toBe('yes');
-        expect(interaction.correct).toBe('maybe');
+        expect(ctx._getState()['slide-1'].tracked.interactionsCompleted).not.toHaveProperty('q1');
+        expect(ctx._setState).not.toHaveBeenCalled();
     });
 
-    it('stores null values without validation', () => {
+    it('ignores null values', () => {
         const ctx = createMockContext({ 'slide-1': makeSlideState() });
 
         trackInteraction.call(ctx, 'slide-1', 'q1', null, null);
 
-        const interaction = ctx._getState()['slide-1'].tracked.interactionsCompleted['q1'];
-        expect(interaction.completed).toBeNull();
-        expect(interaction.correct).toBeNull();
+        expect(ctx._getState()['slide-1'].tracked.interactionsCompleted).not.toHaveProperty('q1');
+        expect(ctx._setState).not.toHaveBeenCalled();
     });
 });
 

@@ -18,6 +18,10 @@
 import { eventBus } from '../core/event-bus.js';
 import stateManager from '../state/index.js';
 import { logger } from '../utilities/logger.js';
+import {
+    DEFAULT_MEDIA_COMPLETION_THRESHOLD,
+    normalizeCompletionThreshold
+} from '../utilities/media-utils.js';
 
 /**
  * @typedef {Object} VideoState
@@ -44,9 +48,6 @@ import { logger } from '../utilities/logger.js';
  * @property {number} [completionThreshold=0.95] - Percentage (0-1) required for completion
  */
 
-/** Default completion threshold (95%) */
-const DEFAULT_COMPLETION_THRESHOLD = 0.95;
-
 class VideoManager {
     constructor() {
         /** @type {boolean} */
@@ -63,7 +64,7 @@ class VideoManager {
             duration: 0,
             volume: 1,
             required: false,
-            completionThreshold: DEFAULT_COMPLETION_THRESHOLD,
+            completionThreshold: DEFAULT_MEDIA_COMPLETION_THRESHOLD,
             isCompleted: false
         };
 
@@ -78,6 +79,9 @@ class VideoManager {
 
         /** @type {number|null} */
         this.updateInterval = null;
+
+        /** @type {HTMLVideoElement|null} */
+        this.activeVideo = null;
     }
 
     /**
@@ -116,39 +120,76 @@ class VideoManager {
             throw new Error('VideoManager.attachVideo: contextId is required');
         }
 
-        // Save position of current context before switching
-        if (this.state.contextId && this.state.contextId !== contextId) {
-            this._savePosition();
-        }
-
-        // Update state
-        this.state.currentSrc = config.src;
-        this.state.contextId = contextId;
-        this.state.contextType = config.contextType || 'standalone';
-        this.state.duration = 0;
-        this.state.isPlaying = false;
-        this.state.position = 0;
-        this.state.required = config.required || false;
-        this.state.completionThreshold = config.completionThreshold ?? DEFAULT_COMPLETION_THRESHOLD;
-        this.maxPositionReached = 0;
-
-        // Check if already completed (from previous session)
-        this.state.isCompleted = this._isContextCompleted(contextId);
-
-        // Check for saved position
         const savedPosition = this._getSavedPosition(contextId);
+
+        video._videoManagerState = {
+            currentSrc: config.src,
+            contextId,
+            contextType: config.contextType || 'standalone',
+            duration: 0,
+            position: 0,
+            required: config.required || false,
+            completionThreshold: normalizeCompletionThreshold(config.completionThreshold),
+            isCompleted: this._isContextCompleted(contextId),
+            maxPositionReached: savedPosition
+        };
 
         // Set up event listeners
         this._setupVideoListeners(video, contextId, savedPosition);
 
+        if (!this.activeVideo) {
+            this._activateVideo(video);
+        }
+
         // Emit loadStart event
         eventBus.emit('video:loadStart', {
             contextId,
-            contextType: this.state.contextType,
+            contextType: video._videoManagerState.contextType,
             src: config.src
         });
 
         logger.debug(`[VideoManager] Attached video: ${contextId}`);
+    }
+
+    /**
+     * Activates a rendered video, pausing and saving the previous context so
+     * playback and completion events cannot be attributed to another player.
+     * @private
+     * @param {HTMLVideoElement} video
+     */
+    _activateVideo(video) {
+        const localState = video?._videoManagerState;
+        if (!localState || this.activeVideo === video) return;
+
+        const previousVideo = this.activeVideo;
+        if (previousVideo) {
+            if (Number.isFinite(previousVideo.currentTime)) {
+                this.state.position = previousVideo.currentTime;
+            }
+            this._savePosition();
+            if (!previousVideo.paused) {
+                previousVideo.pause();
+            }
+        }
+
+        this._stopPositionUpdates();
+        this.activeVideo = video;
+        this.maxPositionReached = localState.maxPositionReached;
+        this.state = {
+            currentSrc: localState.currentSrc,
+            contextId: localState.contextId,
+            contextType: localState.contextType,
+            position: video.currentTime || localState.position || 0,
+            isPlaying: !video.paused,
+            isMuted: video.muted,
+            duration: Number.isFinite(video.duration) && video.duration > 0
+                ? video.duration
+                : localState.duration,
+            volume: video.volume,
+            required: localState.required,
+            completionThreshold: localState.completionThreshold,
+            isCompleted: localState.isCompleted
+        };
     }
 
     /**
@@ -164,50 +205,66 @@ class VideoManager {
         video._videoManagerListeners = {};
 
         const listeners = video._videoManagerListeners;
+        const localState = video._videoManagerState;
 
         listeners.loadedmetadata = () => {
-            if (isFinite(video.duration) && video.duration > 0) {
-                this.state.duration = video.duration;
+            if (Number.isFinite(video.duration) && video.duration > 0) {
+                localState.duration = video.duration;
             }
 
             // Restore position if we have one saved
             if (savedPosition > 0 && savedPosition < video.duration) {
                 video.currentTime = savedPosition;
-                this.state.position = savedPosition;
-                this.maxPositionReached = savedPosition;
+                localState.position = savedPosition;
+                localState.maxPositionReached = savedPosition;
+            }
+
+            if (this.activeVideo === video) {
+                this.state.duration = localState.duration;
+                this.state.position = localState.position;
+                this.maxPositionReached = localState.maxPositionReached;
             }
 
             eventBus.emit('video:loaded', {
-                src: this.state.currentSrc,
-                duration: this.state.duration,
+                src: localState.currentSrc,
+                duration: localState.duration,
                 contextId,
-                contextType: this.state.contextType
+                contextType: localState.contextType
             });
         };
 
         listeners.play = () => {
+            this._activateVideo(video);
             this.state.isPlaying = true;
             this._startPositionUpdates(video);
             eventBus.emit('video:play', {
                 contextId,
-                contextType: this.state.contextType
+                contextType: localState.contextType
             });
         };
 
         listeners.pause = () => {
-            this.state.isPlaying = false;
-            this._stopPositionUpdates();
-            this._savePosition();
+            localState.position = video.currentTime;
+            if (this.activeVideo === video) {
+                this.state.position = video.currentTime;
+                this.state.isPlaying = false;
+                this._stopPositionUpdates();
+                this._savePosition();
+            }
             eventBus.emit('video:pause', {
                 contextId,
-                contextType: this.state.contextType,
-                position: this.state.position
+                contextType: localState.contextType,
+                position: localState.position
             });
         };
 
         listeners.ended = () => {
+            this._activateVideo(video);
+            localState.position = video.duration;
+            localState.maxPositionReached = video.duration;
             this.state.isPlaying = false;
             this.state.position = video.duration;
+            this.maxPositionReached = video.duration;
             this._stopPositionUpdates();
 
             // Mark as completed when video ends
@@ -217,31 +274,38 @@ class VideoManager {
         };
 
         listeners.timeupdate = () => {
-            this.state.position = video.currentTime;
+            localState.position = video.currentTime;
 
             // Track max position for completion calculation
-            if (video.currentTime > this.maxPositionReached) {
-                this.maxPositionReached = video.currentTime;
+            if (video.currentTime > localState.maxPositionReached) {
+                localState.maxPositionReached = video.currentTime;
             }
 
-            // Check for completion threshold during playback
-            this._checkAndMarkCompleted();
+            if (this.activeVideo === video) {
+                this.state.position = video.currentTime;
+                this.maxPositionReached = localState.maxPositionReached;
+                this._checkAndMarkCompleted();
+            }
         };
 
         listeners.volumechange = () => {
-            this.state.volume = video.volume;
-            this.state.isMuted = video.muted;
-            this._persistMuteState();
+            if (this.activeVideo === video) {
+                this.state.volume = video.volume;
+                this.state.isMuted = video.muted;
+                this._persistMuteState();
+            }
         };
 
         listeners.error = () => {
             const error = video.error;
             const errorMessage = error ? `${error.code}: ${error.message}` : 'Unknown error';
 
-            this.state.isPlaying = false;
-            this._stopPositionUpdates();
+            if (this.activeVideo === video) {
+                this.state.isPlaying = false;
+                this._stopPositionUpdates();
+            }
 
-            logger.error(`[VideoManager] Video playback error: ${errorMessage}`, { domain: 'video', operation: 'playback', src: this.state.currentSrc, contextId });
+            logger.error(`[VideoManager] Video playback error: ${errorMessage}`, { domain: 'video', operation: 'playback', src: localState.currentSrc, contextId });
         };
 
         // Attach all listeners
@@ -260,8 +324,14 @@ class VideoManager {
     detachVideo(video) {
         if (!video || !video._videoManagerListeners) return;
 
+        const localState = video._videoManagerState;
+        const wasActive = this.activeVideo === video;
+
         // Save position before detaching
-        if (video._videoManagerContextId === this.state.contextId) {
+        if (wasActive) {
+            this.state.position = Number.isFinite(video.currentTime)
+                ? video.currentTime
+                : this.state.position;
             this._savePosition();
         }
 
@@ -272,30 +342,36 @@ class VideoManager {
 
         delete video._videoManagerListeners;
         delete video._videoManagerContextId;
-
-        this._stopPositionUpdates();
+        delete video._videoManagerState;
 
         // Clear state if this was the active video
-        if (video._videoManagerContextId === this.state.contextId) {
-            const wasMuted = this.state.isMuted;
-            this.state = {
-                currentSrc: null,
-                contextId: null,
-                contextType: 'standalone',
-                position: 0,
-                isPlaying: false,
-                isMuted: wasMuted,
-                duration: 0,
-                volume: this.state.volume,
-                required: false,
-                completionThreshold: DEFAULT_COMPLETION_THRESHOLD,
-                isCompleted: false
-            };
-            this.maxPositionReached = 0;
+        if (wasActive) {
+            this._stopPositionUpdates();
+            this.activeVideo = null;
+            this._resetActiveState();
         }
 
-        eventBus.emit('video:unloaded', { contextType: this.state.contextType });
+        eventBus.emit('video:unloaded', { contextType: localState?.contextType || 'standalone' });
         logger.debug('[VideoManager] Detached video');
+    }
+
+    /** @private */
+    _resetActiveState() {
+        const { isMuted, volume } = this.state;
+        this.state = {
+            currentSrc: null,
+            contextId: null,
+            contextType: 'standalone',
+            position: 0,
+            isPlaying: false,
+            isMuted,
+            duration: 0,
+            volume,
+            required: false,
+            completionThreshold: DEFAULT_MEDIA_COMPLETION_THRESHOLD,
+            isCompleted: false
+        };
+        this.maxPositionReached = 0;
     }
 
     /**
@@ -404,6 +480,9 @@ class VideoManager {
 
         if (completionPercentage >= this.state.completionThreshold) {
             this.state.isCompleted = true;
+            if (this.activeVideo?._videoManagerState) {
+                this.activeVideo._videoManagerState.isCompleted = true;
+            }
             this._markContextCompleted(this.state.contextId);
 
             logger.debug(`[VideoManager] Video completed: ${this.state.contextId}`);
@@ -421,7 +500,7 @@ class VideoManager {
      * @private
      */
     _savePosition() {
-        if (!this.state.contextId || !this.state.position) return;
+        if (!this.state.contextId || !Number.isFinite(this.state.position)) return;
 
         this.positionCache.set(this.state.contextId, this.state.position);
         this._persistPositions();

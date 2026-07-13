@@ -24,6 +24,7 @@ const completionFeedbackTemplate = `
 
 // Store the active rating interaction instance
 let activeRatingInteraction = null;
+const isStandaloneRuntime = document.querySelector('meta[name="lms-format"]')?.content === 'standalone';
 
 const MODAL_DEFINITIONS = {
     exit: {
@@ -45,8 +46,9 @@ const MODAL_DEFINITIONS = {
         title: 'Course Complete!',
         body: `
             <p><strong>Congratulations!</strong> You have successfully completed this course.</p>
-            <p>Your completion status and final score have been recorded in the Learning Management System.</p>
-            <p>When you click "Complete & Exit" below, this window will close and you will be returned to the LMS.</p>
+            ${isStandaloneRuntime
+                ? '<p>Your completion status and final score have been saved in this browser.</p><p>When you click "Complete & Exit" below, the session will finish. You can close the file or reopen it later.</p>'
+                : '<p>Your completion status and final score have been recorded in the Learning Management System.</p><p>When you click "Complete & Exit" below, this window will close and you will be returned to the LMS.</p>'}
             ${completionFeedbackTemplate}
         `,
         footer: `
@@ -61,8 +63,9 @@ const MODAL_DEFINITIONS = {
     postExit: {
         title: 'Session Closed',
         body: `
-            <p>Your progress has been saved in the LMS. It is now safe to close this window.</p>
-            <p>If this window does not close automatically, please close it manually and return to the LMS.</p>
+            ${isStandaloneRuntime
+                ? '<p>Your progress has been saved in this browser. It is now safe to close this file.</p><p>Open the HTML file again to resume later.</p>'
+                : '<p>Your progress has been saved in the LMS. It is now safe to close this window.</p><p>If this window does not close automatically, please close it manually and return to the LMS.</p>'}
         `,
         footer: '',
         config: {

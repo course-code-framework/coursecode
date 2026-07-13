@@ -107,6 +107,7 @@ export class StateValidator {
         return {
             _meta: {
                 schemaVersion: STATE_SCHEMA_VERSION,
+                courseVersion: this._validationConfig?.courseVersion || null,
                 createdAt: new Date().toISOString()
             }
         };
@@ -162,8 +163,9 @@ export class StateValidator {
             return loadedState;
         }
 
-        const { slideIds, objectiveIds: _objectiveIds } = this._validationConfig;
+        const { slideIds, objectiveIds: _objectiveIds, courseVersion } = this._validationConfig;
         const storedSchemaVersion = loadedState._meta?.schemaVersion || 0;
+        const storedCourseVersion = loadedState._meta?.courseVersion || null;
 
         logger.debug(`[StateManager] Validating state: stored schema v${storedSchemaVersion}, current v${STATE_SCHEMA_VERSION}`);
 
@@ -182,32 +184,63 @@ export class StateValidator {
             loadedState = this._runMigrations(loadedState, storedSchemaVersion, STATE_SCHEMA_VERSION);
         }
 
-        const validatedState = { ...loadedState };
+        let validatedState = { ...loadedState };
+
+        if (storedCourseVersion && courseVersion && storedCourseVersion !== courseVersion) {
+            validatedState = this._invalidateVersionSensitiveState(validatedState);
+            logger.warn(
+                `[StateManager] Course version changed from ${storedCourseVersion} to ${courseVersion}; ` +
+                'cleared in-progress assessment responses and authored interaction responses while preserving earned summaries.'
+            );
+            eventBus.emit('state:recovered', {
+                domain: '_meta',
+                message: `Course version changed from ${storedCourseVersion} to ${courseVersion}`,
+                context: { storedCourseVersion, courseVersion },
+                action: 'invalidated_version_sensitive_state'
+            });
+        }
 
         validatedState._meta = {
-            ...loadedState._meta,
+            ...validatedState._meta,
             schemaVersion: STATE_SCHEMA_VERSION,
+            courseVersion,
             lastValidatedAt: new Date().toISOString()
         };
 
-        if (loadedState.navigation) {
-            validatedState.navigation = this._validateNavigationState(loadedState.navigation, slideIds);
+        if (validatedState.navigation) {
+            validatedState.navigation = this._validateNavigationState(validatedState.navigation, slideIds);
         }
-        if (loadedState.engagement) {
-            validatedState.engagement = this._validateEngagementState(loadedState.engagement, slideIds);
+        if (validatedState.engagement) {
+            validatedState.engagement = this._validateEngagementState(validatedState.engagement, slideIds);
         }
-        if (loadedState.interactionResponses) {
-            validatedState.interactionResponses = this._validateInteractionResponsesState(loadedState.interactionResponses);
+        if (validatedState.interactionResponses) {
+            validatedState.interactionResponses = this._validateInteractionResponsesState(validatedState.interactionResponses);
         }
 
-        for (const key of Object.keys(loadedState)) {
+        for (const key of Object.keys(validatedState)) {
             if (key.startsWith('assessment_')) {
                 const assessmentId = key.replace('assessment_', '');
-                validatedState[key] = this._validateAssessmentState(loadedState[key], assessmentId);
+                validatedState[key] = this._validateAssessmentState(validatedState[key], assessmentId);
             }
         }
 
         return validatedState;
+    }
+
+    _invalidateVersionSensitiveState(state) {
+        const recovered = { ...state };
+        delete recovered.interactionResponses;
+
+        for (const key of Object.keys(recovered)) {
+            if (!key.startsWith('assessment_')) continue;
+            const assessment = recovered[key];
+            if (!assessment || typeof assessment !== 'object' || !assessment.session) continue;
+
+            recovered[key] = { ...assessment };
+            delete recovered[key].session;
+        }
+
+        return recovered;
     }
 
     _runMigrations(state, fromVersion, toVersion) {

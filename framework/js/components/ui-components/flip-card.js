@@ -218,13 +218,19 @@ export function init(element) {
         announceToScreenReader(action);
     };
 
-    // Click listener
-    element.addEventListener('click', toggleFlip);
-
-    // Keyboard listener (Enter or Space)
-    element.addEventListener('keydown', (e) => {
+    const handleKeydown = (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
             toggleFlip(e);
         }
-    });
+    };
+
+    element.addEventListener('click', toggleFlip);
+    element.addEventListener('keydown', handleKeydown);
+
+    return {
+        destroy: () => {
+            element.removeEventListener('click', toggleFlip);
+            element.removeEventListener('keydown', handleKeydown);
+        }
+    };
 }

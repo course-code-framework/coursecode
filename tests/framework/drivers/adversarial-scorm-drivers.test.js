@@ -34,13 +34,63 @@ vi.mock('../../../framework/js/utilities/logger.js', () => ({
 vi.mock('lz-string', () => ({
     default: {
         compressToUTF16: vi.fn(s => s),
-        decompressFromUTF16: vi.fn(s => s)
+        decompressFromUTF16: vi.fn(s => s),
+        compressToEncodedURIComponent: vi.fn(s => s),
+        decompressFromEncodedURIComponent: vi.fn(s => s)
     }
 }));
 
-import { mapStatusTo12, mapStatusTo2004, convertTimeFormat2004To12 } from '../../../framework/js/drivers/scorm-12-driver.js';
+import {
+    Scorm12Driver,
+    mapStatusTo12,
+    mapStatusTo2004,
+    mapObjectiveStatusTo12,
+    convertTimeFormat2004To12,
+    createScorm12DietState,
+    expandScorm12DietState
+} from '../../../framework/js/drivers/scorm-12-driver.js';
+import { Scorm2004Driver } from '../../../framework/js/drivers/scorm-2004-driver.js';
+import { serializeInteractionForScorm12 } from '../../../framework/js/validation/scorm-validators.js';
 
 describe('SCORM Driver Utilities', () => {
+
+    it('serializes SCORM 2004 interaction syntax into strict SCORM 1.2 vocabulary', () => {
+        expect(serializeInteractionForScorm12({
+            id: 'q-é',
+            type: 'matching',
+            learner_response: 'a[.]b[,]c[.]d',
+            correct_responses: ['a[.]b[,]c[.]d'],
+            result: 'incorrect'
+        })).toMatchObject({
+            id: 'q-\\u00e9',
+            type: 'matching',
+            learner_response: 'a.b,c.d',
+            correct_responses: ['a.b,c.d'],
+            result: 'wrong'
+        });
+
+        expect(serializeInteractionForScorm12({
+            id: 'tf', type: 'true-false', learner_response: 'true', result: 'correct'
+        }).learner_response).toBe('t');
+    });
+
+    it('maps objective success even when completion is not separately supplied', () => {
+        expect(mapObjectiveStatusTo12(undefined, 'passed')).toBe('passed');
+        expect(mapObjectiveStatusTo12(undefined, 'failed')).toBe('failed');
+    });
+
+    it('round-trips all SCORM 1.2 progress domains without diet-mode loss', () => {
+        const state = {
+            _meta: { schemaVersion: 1, courseVersion: '2.0.0' },
+            objectives: { obj1: { completion_status: 'completed' } },
+            engagement: { slide1: { complete: false, tracked: { tabs: ['a'] } } },
+            interactionResponses: { slide1: { q1: 'answer' }, slide2: { q2: 'answer' } },
+            assessment_exam: { summary: { attempts: 2 }, session: { responses: { 0: 'a' } } },
+            extensionDomain: { preserved: true }
+        };
+
+        expect(expandScorm12DietState(createScorm12DietState(state, 'slide1'))).toEqual(state);
+    });
 
     describe('mapStatusTo12', () => {
         it('maps completed + passed → passed', () => {
@@ -133,62 +183,165 @@ describe('SCORM Driver Utilities', () => {
     });
 });
 
-describe('SCORM 2004 Driver: parseFloat NaN in cache', () => {
-    let driver;
-
-    beforeEach(async () => {
-        vi.clearAllMocks();
-
-        // Import and instantiate the SCORM 2004 driver
-        const { Scorm2004Driver } = await import('../../../framework/js/drivers/scorm-2004-driver.js');
-        driver = new Scorm2004Driver();
-
-        // Simulate initialized state
-        driver._isConnected = true;
-    });
-
-    it('BUG: parseFloat on non-numeric score produces NaN in objective cache', () => {
-        // Simulate what _populateCache does when scoreRaw is non-numeric
-        const scoreRaw = 'not-a-number';
-        const parsedScore = parseFloat(scoreRaw);
-        expect(parsedScore).toBeNaN();
-    });
-
-    it('BUG: parseFloat on non-numeric weighting produces NaN in interaction cache', () => {
-        const weighting = 'abc';
-        const parsedWeighting = parseFloat(weighting);
-        expect(parsedWeighting).toBeNaN();
-    });
-
-    it('reportObjective sends NaN score to LMS when cache has NaN', () => {
-        // Set up cache with NaN score
-        const objective = {
-            id: 'obj1',
-            score: NaN,
-            success_status: 'passed',
-            completion_status: 'completed'
+describe('SCORM 2004 Driver: malformed LMS numeric values', () => {
+    it('falls back when optional score fields are malformed', () => {
+        const driver = new Scorm2004Driver();
+        const values = {
+            'cmi.score.scaled': '0.75',
+            'cmi.score.raw': '75garbage',
+            'cmi.score.min': 'invalid',
+            'cmi.score.max': 'invalid'
         };
+        driver._getValueOptional = vi.fn(key => values[key] ?? null);
 
-        // The reportObjective method calculates scaledScore = rawScore / 100
-        // If score is NaN, scaledScore = NaN / 100 = NaN, which gets set to CMI
-        const rawScore = objective.score;
-        const scaledScore = rawScore / 100;
-        expect(scaledScore).toBeNaN();
+        expect(driver.getScore()).toEqual({ scaled: 0.75, raw: 75, min: 0, max: 100 });
     });
+
+    it('ignores malformed objective scores and interaction weights during hydration', () => {
+        const driver = new Scorm2004Driver();
+        const values = {
+            'cmi.entry': 'resume',
+            'cmi.objectives._count': '1',
+            'cmi.objectives.0.id': 'objective-1',
+            'cmi.objectives.0.score.raw': 'not-a-number',
+            'cmi.interactions._count': '1',
+            'cmi.interactions.0.id': 'interaction-1',
+            'cmi.interactions.0.type': 'choice',
+            'cmi.interactions.0.weighting': 'not-a-number'
+        };
+        driver._getValue = vi.fn(key => values[key] ?? '');
+        driver._getValueOptional = vi.fn(key => values[key] ?? null);
+
+        driver._populateCache();
+
+        expect(driver._cmiCache.objectives['objective-1'].score).toBeNull();
+        expect(driver._cmiCache.interactions[0]).not.toHaveProperty('weighting');
+    });
+
+    it('never overwrites an LMS objective when one existing ID cannot be hydrated', () => {
+        const driver = new Scorm2004Driver();
+        const values = {
+            'cmi.entry': 'resume',
+            'cmi.objectives._count': '2',
+            'cmi.objectives.0.id': 'objective-1',
+            'cmi.objectives.1.id': '',
+            'cmi.interactions._count': '0'
+        };
+        driver._getValue = vi.fn(key => values[key] ?? '');
+        driver._getValueOptional = vi.fn(key => values[key] ?? null);
+        driver._setValue = vi.fn();
+        driver._populateCache();
+
+        driver.reportObjective({ id: 'objective-new', completion_status: 'completed' });
+
+        expect(driver._setValue).toHaveBeenCalledWith('cmi.objectives.2.id', 'objective-new');
+        expect(driver._setValue).not.toHaveBeenCalledWith('cmi.objectives.1.id', 'objective-new');
+    });
+
+    it.each(['not-a-number', '-1', '1.5', '2garbage'])(
+        'normalizes invalid interaction count %s to zero',
+        (count) => {
+            const driver = new Scorm2004Driver();
+            const values = {
+                'cmi.entry': 'resume',
+                'cmi.objectives._count': '0',
+                'cmi.interactions._count': count
+            };
+            driver._getValue = vi.fn(key => values[key] ?? '');
+            driver._getValueOptional = vi.fn(key => values[key] ?? null);
+
+            driver._populateCache();
+
+            expect(driver._cmiCache.interactionsCount).toBe(0);
+        }
+    );
 });
 
-describe('SCORM 1.2 Driver: parseInt NaN on interactions count', () => {
-    it('BUG: parseInt on non-numeric _count produces NaN, corrupting interaction indices', () => {
-        // Simulate what _populateCache does when _count returns garbage
-        const countValue = 'not-a-number';
-        const parsed = parseInt(countValue, 10);
-        expect(parsed).toBeNaN();
+describe('SCORM 1.2 Driver: malformed LMS numeric values', () => {
+    it('falls back when optional score bounds are malformed', () => {
+        const driver = new Scorm12Driver();
+        const values = {
+            'cmi.core.score.raw': '80',
+            'cmi.core.score.min': 'invalid',
+            'cmi.core.score.max': '100garbage'
+        };
+        driver._scorm = { get: vi.fn(key => values[key] ?? '') };
 
-        // NaN corrupts all subsequent operations
-        const nextIndex = parsed; // used as index for next interaction
-        expect(nextIndex).toBeNaN();
+        expect(driver.getScore()).toEqual({ scaled: 0.8, raw: 80, min: 0, max: 100 });
+    });
 
-        const incrementedIndex = parsed + 1; // NaN + 1 = NaN
-        expect(incrementedIndex).toBeNaN();
+    it.each(['not-a-number', '-1', '1.5', '2garbage'])(
+        'normalizes invalid interaction count %s to zero',
+        (count) => {
+            const driver = new Scorm12Driver();
+            const values = { 'cmi.interactions._count': count };
+            driver._scorm = { get: vi.fn(key => values[key] ?? '') };
+
+            driver._populateCache();
+
+            expect(driver._cache.interactionsCount).toBe(0);
+        }
+    );
+
+    it('reuses objective indices hydrated from the LMS and writes unscored status', () => {
+        const values = {
+            'cmi._children': 'core,objectives,interactions',
+            'cmi.core.score._children': 'raw,min,max',
+            'cmi.objectives._count': '1',
+            'cmi.objectives.0.id': 'objective-1'
+        };
+        const driver = new Scorm12Driver();
+        driver._scorm = {
+            get: vi.fn(key => values[key] ?? ''),
+            set: vi.fn(() => true)
+        };
+        driver._populateCache();
+
+        driver.reportObjective({
+            id: 'objective-1',
+            completion_status: 'completed',
+            success_status: 'passed'
+        });
+
+        expect(driver._scorm.set).toHaveBeenCalledWith('cmi.objectives.0.status', 'passed');
+        expect(driver._scorm.set).not.toHaveBeenCalledWith('cmi.objectives.1.id', expect.anything());
+    });
+
+    it('converts SCORM 2004 interaction timing fields to SCORM 1.2 formats', () => {
+        const driver = new Scorm12Driver();
+        driver._scorm = { set: vi.fn(() => true) };
+        driver._supportsInteractions = true;
+
+        driver.reportInteraction({
+            id: 'q1',
+            type: 'choice',
+            timestamp: '2026-07-12T12:34:56Z',
+            latency: 'PT2M3S'
+        });
+
+        expect(driver._scorm.set).toHaveBeenCalledWith('cmi.interactions.0.time', '12:34:56');
+        expect(driver._scorm.set).toHaveBeenCalledWith('cmi.interactions.0.latency', '0000:02:03');
+    });
+
+    it('refuses suspend data that cannot fit the SCORM 1.2 limit', () => {
+        const driver = new Scorm12Driver();
+        driver._scorm = { set: vi.fn(() => true) };
+
+        expect(() => driver.setSuspendData({ flags: { huge: 'x'.repeat(5000) } }))
+            .toThrow(/4096-character limit/);
+        expect(driver._scorm.set).not.toHaveBeenCalled();
+    });
+
+    it('fails closed when the LMS rejects the suspend_data read', () => {
+        const driver = new Scorm12Driver();
+        driver._scorm = {
+            get: vi.fn(() => ''),
+            debug: {
+                getCode: vi.fn(() => 101),
+                getInfo: vi.fn(() => 'General exception')
+            }
+        };
+
+        expect(() => driver.getSuspendData()).toThrow(/General exception/);
     });
 });

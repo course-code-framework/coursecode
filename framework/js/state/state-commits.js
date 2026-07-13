@@ -10,6 +10,7 @@ import { classifyLmsError } from './lms-error-utils.js';
 
 // Auto-batch debounce delay in milliseconds
 const AUTO_BATCH_DELAY_MS = 500;
+const MAX_RETRY_DELAY_MS = 60000;
 
 export class CommitScheduler {
     /**
@@ -26,6 +27,7 @@ export class CommitScheduler {
         this._autoBatchDirty = false;
         this._autoBatchSuspendDirty = false;
         this._inFlightCommit = null;
+        this._retryDelayMs = AUTO_BATCH_DELAY_MS;
     }
 
     /**
@@ -43,7 +45,7 @@ export class CommitScheduler {
         }
 
         this._autoBatchTimer = setTimeout(() => {
-            this._executeCommit();
+            void this._executeCommit(false);
         }, AUTO_BATCH_DELAY_MS);
 
         logger.debug(`[StateManager] Auto-batch scheduled (${AUTO_BATCH_DELAY_MS}ms debounce)`);
@@ -60,7 +62,7 @@ export class CommitScheduler {
 
         if (this._autoBatchDirty) {
             logger.debug('[StateManager] Force-flushing pending writes (critical action)');
-            await this._executeCommit();
+            await this._executeCommit(true);
             return;
         }
 
@@ -148,7 +150,7 @@ export class CommitScheduler {
 
     // --- Private ---
 
-    async _executeCommit() {
+    async _executeCommit(propagateError = false) {
         this._autoBatchTimer = null;
 
         if (!this._autoBatchDirty) return;
@@ -175,6 +177,7 @@ export class CommitScheduler {
             await this._inFlightCommit;
 
             logger.debug('[StateManager] Auto-batch committed');
+            this._retryDelayMs = AUTO_BATCH_DELAY_MS;
             eventBus.emit('state:commitSuccess');
             eventBus.emit('state:committed');
         } catch (error) {
@@ -186,14 +189,16 @@ export class CommitScheduler {
             }
             logger.error('[StateManager] Auto-batch commit failed:', { domain: 'state', operation: 'autoBatchCommit', stack: error.stack });
             eventBus.emit('state:commitFailed', { error: error.message, classification });
+            this._retryDelayMs = Math.min(this._retryDelayMs * 2, MAX_RETRY_DELAY_MS);
+            if (propagateError) throw error;
         } finally {
             this._inFlightCommit = null;
 
             // If writes happened during commit, schedule follow-up commit.
             if (this._autoBatchDirty && !this._autoBatchTimer) {
                 this._autoBatchTimer = setTimeout(() => {
-                    this._executeCommit();
-                }, AUTO_BATCH_DELAY_MS);
+                    void this._executeCommit(false);
+                }, this._retryDelayMs);
             }
         }
     }

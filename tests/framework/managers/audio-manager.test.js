@@ -73,4 +73,18 @@ describe('AudioManager load cancellation', () => {
         expect(audioManager._pendingLoadCleanup).toBeNull();
         expect(audioManager._pendingLoadCancel).toBeNull();
     });
+
+    it('rejects a non-finite seek position', () => {
+        expect(() => audioManager.seek(NaN)).toThrow('position must be a finite number');
+    });
+
+    it('persists a zero position so an older resume point is cleared', () => {
+        audioManager.state.contextId = 'slide-1';
+        audioManager.state.position = 0;
+        audioManager.positionCache.set('slide-1', 42);
+
+        audioManager._savePosition();
+
+        expect(audioManager.positionCache.get('slide-1')).toBe(0);
+    });
 });

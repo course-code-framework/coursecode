@@ -11,6 +11,18 @@
  */
 
 import { logger } from '../utilities/logger.js';
+import LZString from 'lz-string';
+import {
+    mapStatusTo12,
+    mapObjectiveStatusTo12,
+    convertTimeFormat2004To12,
+    convertTimestamp2004To12,
+    createScorm12DietState,
+    expandScorm12DietState,
+    encodeScorm12SuspendState,
+    decodeScorm12SuspendState
+} from './scorm-12-driver.js';
+import { serializeInteractionForScorm12 } from '../validation/scorm-validators.js';
 
 // Message timeout (ms) — if proxy doesn't respond, something is wrong
 const MESSAGE_TIMEOUT = 5000;
@@ -25,6 +37,7 @@ export class ProxyDriver {
         this._isTerminated = false;
         this._msgId = 0;
         this._pending = new Map(); // id -> { resolve, reject, timeout }
+        this._pendingWrites = [];
 
         // Origin of the parent proxy frame (set during initialize)
         // Used for postMessage origin validation
@@ -39,12 +52,19 @@ export class ProxyDriver {
             completion: 'unknown',
             success: 'unknown'
         };
+        this._scoreCache = null;
+        this._objectiveIdToIndex = new Map();
+        this._objectivesCount = 0;
+        this._interactionsCount = 0;
+        this._supportsObjectives = this._baseFormat === 'scorm2004';
+        this._supportsInteractions = this._baseFormat === 'scorm2004';
+        this._scoreChildren = new Set(['raw']);
+        this._handshake = null;
 
         this._suspendDataCache = null;
 
-        // Listen for responses from proxy bridge
         this._handleMessage = this._handleMessage.bind(this);
-        window.addEventListener('message', this._handleMessage);
+        this._isListening = false;
     }
 
     // =========================================================================
@@ -67,10 +87,10 @@ export class ProxyDriver {
         // Mirror base format capabilities, but note async commit
         const isScorm2004 = this._baseFormat === 'scorm2004';
         return {
-            supportsObjectives: true,
-            supportsInteractions: true,
+            supportsObjectives: this._supportsObjectives,
+            supportsInteractions: this._supportsInteractions,
             supportsComments: isScorm2004,
-            supportsEmergencySave: false,
+            supportsEmergencySave: true,
             maxSuspendDataBytes: isScorm2004 ? 65536 : 4096,
             asyncCommit: true // postMessage is inherently async
         };
@@ -87,24 +107,22 @@ export class ProxyDriver {
             throw new Error('ProxyDriver: Not running in iframe - proxy mode requires parent frame');
         }
 
-        // Derive expected parent origin from document.referrer
-        // The referrer is the LMS/proxy page that loaded this iframe
+        // Referrer is only a target-origin optimization. Some real LMSs use a
+        // no-referrer policy, so identity is established with a nonce handshake
+        // bound to window.parent and then locked to the response origin.
+        let handshakeTarget = '*';
         try {
             if (document.referrer) {
                 const referrerUrl = new URL(document.referrer);
-                this._parentOrigin = referrerUrl.origin;
-                logger.debug('ProxyDriver: Parent origin from referrer:', this._parentOrigin);
+                handshakeTarget = referrerUrl.origin;
             } else if (window.location.ancestorOrigins?.[0]) {
-                this._parentOrigin = new URL(window.location.ancestorOrigins[0]).origin;
+                handshakeTarget = new URL(window.location.ancestorOrigins[0]).origin;
             }
-        } catch {
-            this._parentOrigin = null;
-        }
-        if (!this._parentOrigin) {
-            throw new Error('ProxyDriver: Cannot determine parent origin; refusing insecure wildcard postMessage transport');
-        }
+        } catch { /* Handshake safely discovers the parent origin. */ }
 
+        this._startListening();
         try {
+            await this._establishHandshake(handshakeTarget);
             const result = await this._sendMessage('Initialize');
             if (result === true || result === 'true') {
                 this._isConnected = true;
@@ -117,6 +135,8 @@ export class ProxyDriver {
             }
             throw new Error('ProxyDriver: Initialize returned false');
         } catch (error) {
+            this._isConnected = false;
+            this._stopListening('initialization failed');
             logger.error('ProxyDriver: Initialize failed', error);
             throw error;
         }
@@ -134,16 +154,18 @@ export class ProxyDriver {
         }
 
         try {
+            await this._flushPendingWrites();
             const result = await this._sendMessage('Terminate');
+            if (result !== true && result !== 'true') {
+                throw new Error('ProxyDriver: LMS Terminate returned false');
+            }
             this._isTerminated = true;
             this._isConnected = false;
-            window.removeEventListener('message', this._handleMessage);
+            this._stopListening('session terminated');
             logger.info('ProxyDriver: Terminated');
-            return result === true || result === 'true';
+            return true;
         } catch (error) {
             logger.error('ProxyDriver: Terminate failed', error);
-            this._isTerminated = true;
-            this._isConnected = false;
             throw error;
         }
     }
@@ -151,8 +173,12 @@ export class ProxyDriver {
     async commit() {
         this._ensureConnected();
         try {
+            await this._flushPendingWrites();
             const result = await this._sendMessage('Commit');
-            return result === true || result === 'true';
+            if (result !== true && result !== 'true') {
+                throw new Error('ProxyDriver: LMS Commit returned false');
+            }
+            return true;
         } catch (error) {
             logger.error('ProxyDriver: Commit failed', error);
             throw error;
@@ -161,8 +187,29 @@ export class ProxyDriver {
 
     ping() {
         if (this._isConnected && !this._isTerminated) {
-            this._sendMessage('GetValue', 'cmi.learner_id').catch(() => {
+            const key = this._baseFormat === 'scorm1.2' ? 'cmi.core.student_id' : 'cmi.learner_id';
+            this._sendMessage('GetValue', key).catch(() => {
                 // Ignore ping errors
+            });
+        }
+    }
+
+    emergencySave() {
+        if (!this._isConnected || this._isTerminated || !this._parentOrigin) return;
+        try {
+            window.parent.postMessage({
+                type: 'scorm-proxy-request',
+                id: null,
+                method: 'EmergencySave',
+                args: []
+            }, this._parentOrigin);
+        } catch (error) {
+            logger.error('ProxyDriver: Emergency save message failed', {
+                domain: 'scorm-proxy',
+                operation: 'emergencySave',
+                format: this.getFormat(),
+                error: error.message,
+                stack: error.stack
             });
         }
     }
@@ -187,6 +234,10 @@ export class ProxyDriver {
         return this._cache.success;
     }
 
+    getScore() {
+        return this._scoreCache ? { ...this._scoreCache } : null;
+    }
+
     getLearnerInfo() {
         return {
             id: this._cache.learnerId,
@@ -207,18 +258,34 @@ export class ProxyDriver {
     reportScore({ raw, scaled, min, max }) {
         const prefix = this._baseFormat === 'scorm1.2' ? 'cmi.core.score' : 'cmi.score';
         if (raw !== undefined) this._sendSetValue(`${prefix}.raw`, String(raw));
-        if (min !== undefined) this._sendSetValue(`${prefix}.min`, String(min));
-        if (max !== undefined) this._sendSetValue(`${prefix}.max`, String(max));
+        if (min !== undefined && (!this._isScorm12() || this._scoreChildren.has('min'))) {
+            this._sendSetValue(`${prefix}.min`, String(min));
+        }
+        if (max !== undefined && (!this._isScorm12() || this._scoreChildren.has('max'))) {
+            this._sendSetValue(`${prefix}.max`, String(max));
+        }
         if (scaled !== undefined && this._baseFormat === 'scorm2004') {
             this._sendSetValue('cmi.score.scaled', String(scaled));
+        }
+        const resolvedRaw = raw ?? (scaled !== undefined ? scaled * 100 : null);
+        const resolvedScaled = scaled ?? (raw !== undefined ? raw / 100 : null);
+        if (resolvedRaw !== null || resolvedScaled !== null) {
+            this._scoreCache = {
+                raw: resolvedRaw,
+                scaled: resolvedScaled,
+                min: min ?? 0,
+                max: max ?? 100
+            };
         }
     }
 
     reportCompletion(status) {
         this._cache.completion = status;
         if (this._baseFormat === 'scorm1.2') {
-            // SCORM 1.2 uses combined lesson_status — proxy bridge handles mapping
-            this._sendSetValue('cmi.completion_status', status);
+            this._sendSetValue(
+                'cmi.core.lesson_status',
+                mapStatusTo12(this._cache.completion, this._cache.success)
+            );
         } else {
             this._sendSetValue('cmi.completion_status', status);
         }
@@ -227,7 +294,10 @@ export class ProxyDriver {
     reportSuccess(status) {
         this._cache.success = status;
         if (this._baseFormat === 'scorm1.2') {
-            this._sendSetValue('cmi.success_status', status);
+            this._sendSetValue(
+                'cmi.core.lesson_status',
+                mapStatusTo12(this._cache.completion, this._cache.success)
+            );
         } else {
             this._sendSetValue('cmi.success_status', status);
         }
@@ -241,8 +311,7 @@ export class ProxyDriver {
 
     reportSessionTime(duration) {
         if (this._baseFormat === 'scorm1.2') {
-            // Proxy bridge will handle time format conversion
-            this._sendSetValue('cmi.session_time', duration);
+            this._sendSetValue('cmi.core.session_time', convertTimeFormat2004To12(duration));
         } else {
             this._sendSetValue('cmi.session_time', duration);
         }
@@ -250,13 +319,74 @@ export class ProxyDriver {
 
     reportObjective(objective) {
         if (!objective || !objective.id) return;
-        // Objectives are stored in suspend_data, not via CMI in proxy mode
-        // The proxy bridge doesn't relay complex array writes reliably
+        if (!this._supportsObjectives) return;
+        const index = this._getOrCreateObjectiveIndex(objective.id);
+
+        if (this._baseFormat === 'scorm1.2') {
+            if (objective.score !== null && objective.score !== undefined) {
+                this._sendSetValue(`cmi.objectives.${index}.score.raw`, String(objective.score));
+                this._sendSetValue(`cmi.objectives.${index}.score.min`, '0');
+                this._sendSetValue(`cmi.objectives.${index}.score.max`, '100');
+            }
+            if (objective.completion_status !== undefined || objective.success_status !== undefined) {
+                this._sendSetValue(
+                    `cmi.objectives.${index}.status`,
+                    mapObjectiveStatusTo12(objective.completion_status, objective.success_status)
+                );
+            }
+            return;
+        }
+
+        if (objective.success_status) this._sendSetValue(`cmi.objectives.${index}.success_status`, objective.success_status);
+        if (objective.completion_status) this._sendSetValue(`cmi.objectives.${index}.completion_status`, objective.completion_status);
+        if (objective.score !== null && objective.score !== undefined) {
+            this._sendSetValue(`cmi.objectives.${index}.score.raw`, String(objective.score));
+            this._sendSetValue(`cmi.objectives.${index}.score.scaled`, String(objective.score / 100));
+            this._sendSetValue(`cmi.objectives.${index}.score.min`, '0');
+            this._sendSetValue(`cmi.objectives.${index}.score.max`, '100');
+        }
+        if (objective.progress_measure !== null && objective.progress_measure !== undefined) {
+            this._sendSetValue(`cmi.objectives.${index}.progress_measure`, String(objective.progress_measure));
+        }
+        if (objective.description) this._sendSetValue(`cmi.objectives.${index}.description`, objective.description);
     }
 
     reportInteraction(interaction) {
-        if (!interaction || !interaction.id) return;
-        // Interactions are stored in suspend_data, not via CMI in proxy mode
+        if (!interaction || !interaction.id || !interaction.type) return;
+        if (!this._supportsInteractions) {
+            return { ...interaction, _index: null, nativeCmiSkipped: true };
+        }
+        const index = this._interactionsCount++;
+        const is12 = this._baseFormat === 'scorm1.2';
+        const reported = is12 ? serializeInteractionForScorm12(interaction) : interaction;
+        const prefix = `cmi.interactions.${index}`;
+
+        this._sendSetValue(`${prefix}.id`, reported.id);
+        this._sendSetValue(`${prefix}.type`, reported.type);
+        if (reported.learner_response !== undefined && reported.learner_response !== null && reported.learner_response !== '') {
+            this._sendSetValue(`${prefix}.${is12 ? 'student_response' : 'learner_response'}`, reported.learner_response);
+        }
+        if (reported.result) this._sendSetValue(`${prefix}.result`, reported.result);
+        if (interaction.timestamp) {
+            this._sendSetValue(
+                `${prefix}.${is12 ? 'time' : 'timestamp'}`,
+                is12 ? convertTimestamp2004To12(interaction.timestamp) : interaction.timestamp
+            );
+        }
+        if (!is12 && interaction.description) this._sendSetValue(`${prefix}.description`, interaction.description);
+        if (interaction.weighting !== undefined && interaction.weighting !== null) {
+            this._sendSetValue(`${prefix}.weighting`, String(interaction.weighting));
+        }
+        if (interaction.latency) {
+            this._sendSetValue(`${prefix}.latency`, is12 ? convertTimeFormat2004To12(interaction.latency) : interaction.latency);
+        }
+        reported.correct_responses?.forEach((item, patternIndex) => {
+            const pattern = typeof item === 'object' && item !== null && 'pattern' in item ? item.pattern : item;
+            this._sendSetValue(`${prefix}.correct_responses.${patternIndex}.pattern`, pattern);
+        });
+        reported.objectives?.forEach((objectiveId, objectiveIndex) => {
+            this._sendSetValue(`${prefix}.objectives.${objectiveIndex}.id`, objectiveId);
+        });
     }
 
     setExitMode(mode) {
@@ -275,7 +405,16 @@ export class ProxyDriver {
 
     setSuspendData(data) {
         this._ensureConnected();
-        const value = JSON.stringify(data);
+        const state = this._baseFormat === 'scorm1.2'
+            ? createScorm12DietState(data, this._cache.bookmark || null)
+            : data;
+        const value = this._isScorm12()
+            ? encodeScorm12SuspendState(state)
+            : LZString.compressToUTF16(JSON.stringify(state));
+        const limit = this._baseFormat === 'scorm1.2' ? 4096 : 64000;
+        if (value.length > limit) {
+            throw new Error(`${this.getFormat()} suspend_data exceeds the ${limit}-character limit (${value.length})`);
+        }
         this._sendSetValue('cmi.suspend_data', value);
         this._suspendDataCache = data;
         return true;
@@ -299,7 +438,14 @@ export class ProxyDriver {
             learnerId: 'cmi.core.student_id',
             learnerName: 'cmi.core.student_name',
             status: 'cmi.core.lesson_status',
-            suspendData: 'cmi.suspend_data'
+            suspendData: 'cmi.suspend_data',
+            scoreRaw: 'cmi.core.score.raw',
+            scoreMin: 'cmi.core.score.min',
+            scoreMax: 'cmi.core.score.max',
+            objectivesCount: 'cmi.objectives._count',
+            interactionsCount: 'cmi.interactions._count',
+            children: 'cmi._children',
+            scoreChildren: 'cmi.core.score._children'
         } : {
             entry: 'cmi.entry',
             bookmark: 'cmi.location',
@@ -307,15 +453,27 @@ export class ProxyDriver {
             learnerName: 'cmi.learner_name',
             completion: 'cmi.completion_status',
             success: 'cmi.success_status',
-            suspendData: 'cmi.suspend_data'
+            suspendData: 'cmi.suspend_data',
+            scoreScaled: 'cmi.score.scaled',
+            scoreRaw: 'cmi.score.raw',
+            scoreMin: 'cmi.score.min',
+            scoreMax: 'cmi.score.max',
+            objectivesCount: 'cmi.objectives._count',
+            interactionsCount: 'cmi.interactions._count'
         };
 
         // Fire all reads in parallel
         const results = {};
+        const requiredFields = new Set(is12
+            ? ['entry', 'bookmark', 'learnerId', 'learnerName', 'status', 'suspendData']
+            : ['entry', 'bookmark', 'learnerId', 'learnerName', 'completion', 'success', 'suspendData']);
         const promises = Object.entries(keys).map(async ([fieldName, cmiKey]) => {
             try {
                 results[fieldName] = await this._sendMessage('GetValue', cmiKey);
-            } catch {
+            } catch (error) {
+                if (requiredFields.has(fieldName)) {
+                    throw new Error(`ProxyDriver: Cannot read required LMS value ${cmiKey}: ${error.message}`);
+                }
                 results[fieldName] = '';
             }
         });
@@ -344,18 +502,55 @@ export class ProxyDriver {
                 this._cache.success = 'unknown';
             }
             this._cache.entry = results.entry || '';
+            const supported = new Set(String(results.children || '').split(',').map(value => value.trim()));
+            this._supportsObjectives = supported.has('objectives');
+            this._supportsInteractions = supported.has('interactions');
+            this._scoreChildren = new Set([
+                'raw',
+                ...String(results.scoreChildren || '').split(',').map(value => value.trim()).filter(Boolean)
+            ]);
         } else {
             this._cache.completion = results.completion || 'unknown';
             this._cache.success = results.success || 'unknown';
             this._cache.entry = results.entry || '';
         }
 
+        const parseOptionalNumber = value => {
+            if (value === '' || value === null || value === undefined) return NaN;
+            return Number(value);
+        };
+        const raw = parseOptionalNumber(results.scoreRaw);
+        const scaled = is12 ? raw / 100 : parseOptionalNumber(results.scoreScaled);
+        if (Number.isFinite(raw) || Number.isFinite(scaled)) {
+            this._scoreCache = {
+                raw: Number.isFinite(raw) ? raw : scaled * 100,
+                scaled: Number.isFinite(scaled) ? scaled : raw / 100,
+                min: Number.isFinite(parseOptionalNumber(results.scoreMin)) ? Number(results.scoreMin) : 0,
+                max: Number.isFinite(parseOptionalNumber(results.scoreMax)) ? Number(results.scoreMax) : 100
+            };
+        }
+
+        this._objectivesCount = this._supportsObjectives ? this._parseCount(results.objectivesCount) : 0;
+        this._interactionsCount = this._supportsInteractions ? this._parseCount(results.interactionsCount) : 0;
+        this._objectiveIdToIndex.clear();
+        for (let i = 0; i < this._objectivesCount; i++) {
+            try {
+                const id = await this._sendMessage('GetValue', `cmi.objectives.${i}.id`);
+                if (id) this._objectiveIdToIndex.set(id, i);
+            } catch {
+                // Keep the LMS count authoritative even if one row cannot be read.
+            }
+        }
+
         // Parse suspend_data
         if (results.suspendData) {
             try {
-                this._suspendDataCache = JSON.parse(results.suspendData);
-            } catch {
-                this._suspendDataCache = null;
+                const parsed = is12
+                    ? decodeScorm12SuspendState(results.suspendData)
+                    : JSON.parse(LZString.decompressFromUTF16(results.suspendData));
+                this._suspendDataCache = is12 ? expandScorm12DietState(parsed) : parsed;
+            } catch (error) {
+                throw new Error(`ProxyDriver: Resume state cannot be safely restored: ${error.message}`);
             }
         }
 
@@ -370,6 +565,30 @@ export class ProxyDriver {
     // Private: postMessage Transport
     // =========================================================================
 
+    _startListening() {
+        if (this._isListening) return;
+        window.addEventListener('message', this._handleMessage);
+        this._isListening = true;
+    }
+
+    _stopListening(reason) {
+        if (this._isListening) {
+            window.removeEventListener('message', this._handleMessage);
+            this._isListening = false;
+        }
+
+        for (const pending of this._pending.values()) {
+            clearTimeout(pending.timeout);
+            pending.reject(new Error(`ProxyDriver: Request cancelled because ${reason}`));
+        }
+        this._pending.clear();
+        if (this._handshake) {
+            clearTimeout(this._handshake.timeout);
+            this._handshake.reject(new Error(`ProxyDriver: Handshake cancelled because ${reason}`));
+            this._handshake = null;
+        }
+    }
+
     _ensureConnected() {
         if (!this._isConnected) {
             throw new Error('ProxyDriver: Not connected');
@@ -379,13 +598,70 @@ export class ProxyDriver {
         }
     }
 
+    _parseCount(value) {
+        const parsed = Number(value);
+        return Number.isInteger(parsed) && parsed >= 0 ? parsed : 0;
+    }
+
+    _isScorm12() {
+        return this._baseFormat === 'scorm1.2';
+    }
+
+    _establishHandshake(targetOrigin) {
+        return new Promise((resolve, reject) => {
+            const nonce = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            const timeout = setTimeout(() => {
+                this._handshake = null;
+                reject(new Error('ProxyDriver: Timeout waiting for secure proxy handshake'));
+            }, MESSAGE_TIMEOUT);
+
+            this._handshake = { nonce, resolve, reject, timeout };
+            try {
+                window.parent.postMessage({
+                    type: 'scorm-proxy-handshake',
+                    nonce,
+                    baseFormat: this._baseFormat
+                }, targetOrigin);
+            } catch (error) {
+                clearTimeout(timeout);
+                this._handshake = null;
+                reject(error);
+            }
+        });
+    }
+
+    _getOrCreateObjectiveIndex(objectiveId) {
+        if (this._objectiveIdToIndex.has(objectiveId)) {
+            return this._objectiveIdToIndex.get(objectiveId);
+        }
+        const index = this._objectivesCount++;
+        this._objectiveIdToIndex.set(objectiveId, index);
+        this._sendSetValue(`cmi.objectives.${index}.id`, objectiveId);
+        return index;
+    }
+
     /**
      * Fire-and-forget setValue to proxy bridge.
      */
     _sendSetValue(key, value) {
-        this._sendMessage('SetValue', key, String(value)).catch(err => {
-            logger.error(`ProxyDriver: SetValue failed for ${key}`, err);
-        });
+        const write = this._sendMessage('SetValue', key, String(value))
+            .then(result => {
+                if (result !== true && result !== 'true') {
+                    throw new Error(`ProxyDriver: LMS rejected SetValue('${key}')`);
+                }
+                return true;
+            })
+            .catch(error => ({ error }));
+        this._pendingWrites.push(write);
+        return write;
+    }
+
+    async _flushPendingWrites() {
+        const writes = this._pendingWrites.splice(0);
+        if (writes.length === 0) return;
+        const results = await Promise.all(writes);
+        const failure = results.find(result => result?.error);
+        if (failure) throw failure.error;
     }
 
     /**
@@ -402,12 +678,18 @@ export class ProxyDriver {
 
             this._pending.set(id, { resolve, reject, timeout });
 
-            window.parent.postMessage({
-                type: 'scorm-proxy-request',
-                id,
-                method,
-                args
-            }, this._parentOrigin);
+            try {
+                window.parent.postMessage({
+                    type: 'scorm-proxy-request',
+                    id,
+                    method,
+                    args
+                }, this._parentOrigin);
+            } catch (error) {
+                clearTimeout(timeout);
+                this._pending.delete(id);
+                reject(error);
+            }
         });
     }
 
@@ -416,6 +698,22 @@ export class ProxyDriver {
      */
     _handleMessage(event) {
         const { data } = event;
+
+        if (data?.type === 'scorm-proxy-handshake-response') {
+            if (event.source !== window.parent || !this._handshake || data.nonce !== this._handshake.nonce) return;
+            const handshake = this._handshake;
+            clearTimeout(handshake.timeout);
+            this._handshake = null;
+            if (data.baseFormat !== this._baseFormat) {
+                handshake.reject(new Error(
+                    `ProxyDriver: Proxy package format ${data.baseFormat} does not match course format ${this._baseFormat}`
+                ));
+                return;
+            }
+            this._parentOrigin = event.origin;
+            handshake.resolve(true);
+            return;
+        }
 
         if (!data || data.type !== 'scorm-proxy-response') {
             return;

@@ -210,6 +210,28 @@ describe('StateValidator', () => {
             const result = validator.validateAndMigrateState(state);
             expect(logger.fatal).toHaveBeenCalled();
         });
+
+        it('invalidates only version-sensitive in-progress data after a course update', () => {
+            validator.setCourseValidationConfig({
+                version: '2.0.0',
+                structure: [{ id: 'slide-1' }]
+            });
+            const state = {
+                _meta: { schemaVersion: validator.schemaVersion, courseVersion: '1.0.0' },
+                interactionResponses: { 'slide-1': { q1: 'old-answer' } },
+                'assessment_exam': {
+                    summary: { attempts: 1, lastResults: { passed: true, score: 80 } },
+                    session: { responses: { 0: 'stale-answer' }, selectedQuestions: ['q1'] }
+                }
+            };
+
+            const result = validator.validateAndMigrateState(state);
+
+            expect(result._meta.courseVersion).toBe('2.0.0');
+            expect(result.interactionResponses).toBeUndefined();
+            expect(result.assessment_exam.session).toBeUndefined();
+            expect(result.assessment_exam.summary.lastResults.score).toBe(80);
+        });
     });
 
     // ─── _validateInteractionResponsesState ─────────────────────────

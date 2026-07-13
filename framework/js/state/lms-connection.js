@@ -327,21 +327,33 @@ class LMSConnection {
         window.addEventListener('pagehide', () => {
             if (this.isTerminated) return;
 
-            // Startup Guard: Ignore pagehide events < 2s after startup
-            if (Date.now() - this.sessionStartTime < 2000) {
-                logger.debug('[LMSConnection] Page unload detected immediately after startup (< 2s). Ignoring.');
-                return;
-            }
-
             logger.debug('[LMSConnection] Page unload detected. Attempting emergency save...');
 
-            // Use emergencySave() for any driver that supports it (sendBeacon guaranteed delivery)
+            try {
+                stateManager.prepareEmergencySave();
+            } catch (error) {
+                logger.error('[LMSConnection] Failed to stage emergency state', {
+                    domain: 'state',
+                    operation: 'prepareEmergencySave',
+                    format: this.format,
+                    error: error.message,
+                    stack: error.stack
+                });
+            }
+
+            // Use the driver's best-effort unload transport when available.
             if (this.driver?.emergencySave) {
                 try {
                     this.driver.emergencySave();
-                    logger.debug('[LMSConnection] Emergency save completed via sendBeacon');
-                } catch (e) {
-                    logger.debug('[LMSConnection] Emergency save failed:', e.message);
+                    logger.debug('[LMSConnection] Emergency save staged via driver transport');
+                } catch (error) {
+                    logger.error('[LMSConnection] Driver emergency save failed', {
+                        domain: 'lms',
+                        operation: 'emergencySave',
+                        format: this.format,
+                        error: error.message,
+                        stack: error.stack
+                    });
                 }
                 return;
             }
@@ -351,12 +363,24 @@ class LMSConnection {
                 // Delegate to StateManager to save exit status
                 const exitPromise = stateManager.exitCourseWithSuspend();
                 if (exitPromise && typeof exitPromise.catch === 'function') {
-                    exitPromise.catch(e => {
-                        logger.debug('[LMSConnection] Best-effort save during unload did not complete:', e.message);
+                    exitPromise.catch(error => {
+                        logger.error('[LMSConnection] Best-effort unload save did not complete', {
+                            domain: 'lms',
+                            operation: 'exitCourseWithSuspend',
+                            format: this.format,
+                            error: error.message,
+                            stack: error.stack
+                        });
                     });
                 }
-            } catch (e) {
-                logger.debug('[LMSConnection] Best-effort save during unload did not complete:', e.message);
+            } catch (error) {
+                logger.error('[LMSConnection] Best-effort unload save did not start', {
+                    domain: 'lms',
+                    operation: 'exitCourseWithSuspend',
+                    format: this.format,
+                    error: error.message,
+                    stack: error.stack
+                });
             }
         });
     }
@@ -368,8 +392,8 @@ class LMSConnection {
     _startKeepAlive() {
         this._stopKeepAlive();
 
-        // Only SCORM formats need keep-alive (cmi5/LTI use stateless HTTP)
-        if (this.format.startsWith('cmi5') || this.format === 'lti') {
+        // Only SCORM formats need keep-alive (HTTP and standalone drivers do not)
+        if (this.format.startsWith('cmi5') || this.format === 'lti' || this.format === 'standalone') {
             return;
         }
 
@@ -402,6 +426,7 @@ class LMSConnection {
         if (this.format === 'scorm1.2') return 'strict-scorm12';
         if (this.format === 'scorm2004') return 'conservative-scorm2004';
         if (this.format.startsWith('cmi5') || this.format === 'lti') return 'modern-http';
+        if (this.format === 'standalone') return 'balanced';
         return 'balanced';
     }
 

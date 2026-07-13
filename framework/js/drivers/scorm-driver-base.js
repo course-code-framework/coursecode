@@ -109,4 +109,16 @@ export class ScormDriverBase {
 
         return true;
     }
+
+    /**
+     * Synchronous best-effort commit for pagehide. StateManager writes the
+     * latest suspend_data and exit mode immediately before this call.
+     */
+    emergencySave() {
+        if (!this._isConnected || this._isTerminated) return;
+        const success = this._scorm.save();
+        if (!success) {
+            throw new Error(`[${this.constructor.name}] SCORM emergency commit failed`);
+        }
+    }
 }

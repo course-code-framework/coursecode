@@ -223,7 +223,13 @@ coursecode deploy --repair-binding
 coursecode build
 ```
 
-**Share for review**: Export a standalone preview for stakeholders. Deploy to GitHub Pages, Netlify, or any static host:
+**Share one file with no server**: Create a portable HTML course that recipients can double-click. Local progress restore is best effort and stays in that browser:
+
+```bash
+coursecode export html
+```
+
+**Share a hosted review preview**: Export the preview shell for GitHub Pages, Netlify, or another static host:
 
 ```bash
 coursecode preview --export
@@ -238,6 +244,7 @@ coursecode preview --export
 | `coursecode create <name>` | Create a new course project; `create .` derives a title-cased course title and hyphenated npm name from the current folder |
 | `coursecode init [name]` | Initialize the current directory, optionally with a course title |
 | `coursecode preview` | Preview your course locally |
+| `coursecode export html` | Create one shareable course file that opens without an LMS or server |
 | `coursecode convert` | Convert PDFs, Word, PowerPoint to markdown |
 | `coursecode mcp` | Start the MCP server for AI integration |
 | `coursecode lint` | Validate course structure and content |

@@ -204,6 +204,9 @@ async function computeDerived() {
             if (!slideId) {
                 throw new Error('Slide is missing an id');
             }
+            if (Object.prototype.hasOwnProperty.call(indexById, slideId)) {
+                throw new Error(`[CourseHelpers] Duplicate slide ID '${slideId}' found. Each slide must have a unique ID.`);
+            }
 
             let component;
             let assessmentId = null;
@@ -416,5 +419,3 @@ function normalizeComponentPath(path) {
 
     return normalized;
 }
-
-

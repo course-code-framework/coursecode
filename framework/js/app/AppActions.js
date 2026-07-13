@@ -107,40 +107,39 @@ export async function checkCompletion() {
         return false;
     }
 
-    // If already marked as completed, no need to re-evaluate.
-    if (currentCompletionStatus === 'completed') {
-        eventBus.emit('course:statusChanged', {
-            completionStatus: 'completed',
-            successStatus: stateManager.getSuccess() || 'unknown',
-            isOnLastSlide: true
-        });
-        return true;
-    }
-
-    // On a completion slide, so evaluate final status.
+    // Always re-evaluate on a completion slide. Completion and success are
+    // independent: a learner can complete a first attempt with a failed
+    // success status, then pass a permitted retake later in the same or a
+    // resumed session.
     const assessmentSlides = await CourseHelpers.getSlidesByType('assessment');
     const assessmentConfigs = await CourseHelpers.getAssessmentConfigs();
 
     // Completion is based on submission requirements.
     const assessmentsRequiringSubmission = assessmentSlides.filter(s =>
-        assessmentConfigs.get(s.assessmentId)?.completionRequirements?.requireSubmission
+        assessmentConfigs.get(AssessmentManager.resolveAssessmentId(s))?.completionRequirements?.requireSubmission
     );
 
     const allSubmitted = assessmentsRequiringSubmission.every(s =>
-        AssessmentManager.meetsCompletionRequirements(s.assessmentId, { requireSubmission: true })
+        AssessmentManager.meetsCompletionRequirements(
+            AssessmentManager.resolveAssessmentId(s),
+            { requireSubmission: true }
+        )
     );
 
     const completionStatus = allSubmitted ? 'completed' : 'incomplete';
 
     // Success is based on passing requirements.
     const assessmentsRequiringPass = assessmentSlides.filter(s =>
-        assessmentConfigs.get(s.assessmentId)?.completionRequirements?.requirePass
+        assessmentConfigs.get(AssessmentManager.resolveAssessmentId(s))?.completionRequirements?.requirePass
     );
 
     let successStatus = 'unknown';
     if (assessmentsRequiringPass.length > 0) {
         const allPassed = assessmentsRequiringPass.every(s =>
-            AssessmentManager.meetsCompletionRequirements(s.assessmentId, { requirePass: true })
+            AssessmentManager.meetsCompletionRequirements(
+                AssessmentManager.resolveAssessmentId(s),
+                { requirePass: true }
+            )
         );
         successStatus = allPassed ? 'passed' : 'failed';
         // Note: Course score reporting is handled by ScoreManager (configure in course-config.js)
@@ -188,14 +187,9 @@ function _finalizeCurrentSlideProgress() {
     if (currentSlideId) {
         NavigationState.addVisitedSlide(currentSlideId);
 
-        // Update progress measure one final time before exit
-        const slides = NavigationActions.getAllSlides();
-        if (slides) {
-            const totalSequentialSlides = slides.filter(s =>
-                s.navigation?.sequence?.included !== false
-            ).length;
-            stateManager.updateProgressMeasure(totalSequentialSlides);
-        }
+        // Update progress one final time using the same dynamic sequence rules
+        // as navigation (conditional/remedial slides must not inflate it).
+        NavigationActions.syncProgressMeasure();
     }
 }
 

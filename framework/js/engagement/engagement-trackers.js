@@ -16,34 +16,49 @@ import { logger } from '../utilities/logger.js';
 /**
  * Creates a batch registration function that sets tracked[totalField] = ids.length.
  */
-function makeRegister(totalField, label) {
+function makeRegister(totalField, label, registeredField = null) {
     // Derive the viewed field name from the total field (e.g., 'tabsTotal' → 'tabsViewed')
     const viewedField = totalField.replace('Total', 'Viewed');
     return function (slideId, ids) {
         if (!slideId || !Array.isArray(ids)) return;
         const state = this._getState();
         if (!state[slideId]) return;
-        state[slideId].tracked[totalField] = ids.length;
-        // Reset viewed array on re-registration to prevent viewed > total inconsistency
-        state[slideId].tracked[viewedField] = [];
+        const tracked = state[slideId].tracked;
+        const registeredIds = [...new Set(ids.filter(Boolean))];
+        const registeredIdSet = new Set(registeredIds);
+
+        tracked[totalField] = registeredIds.length;
+        if (registeredField) {
+            tracked[registeredField] = registeredIds;
+        }
+        // Views render fresh during navigation. Preserve valid persisted progress
+        // while pruning IDs that no longer exist in the authored content.
+        tracked[viewedField] = [...new Set(tracked[viewedField] || [])]
+            .filter(id => registeredIdSet.has(id));
         this._setState(state);
-        logger.debug(`[EngagementManager] Registered ${ids.length} ${label}: ${slideId}`);
+        logger.debug(`[EngagementManager] Registered ${registeredIds.length} ${label}: ${slideId}`);
         this._checkAndEmitProgress(slideId);
     };
 }
 
 /**
- * Creates an incremental registration function that adds to total and inits viewed array.
+ * Creates a deduplicating incremental registration function for components
+ * that can register independently within the same rendered view.
  */
-function makeRegisterIncremental(totalField, viewedField, label) {
+function makeRegisterIncremental(totalField, registeredField, label) {
+    const viewedField = totalField.replace('Total', 'Viewed');
     return function (slideId, ids) {
         if (!slideId || !Array.isArray(ids)) return;
         const state = this._getState();
         if (!state[slideId]) return;
-        state[slideId].tracked[totalField] = (state[slideId].tracked[totalField] || 0) + ids.length;
-        if (!state[slideId].tracked[viewedField]) {
-            state[slideId].tracked[viewedField] = [];
+        const tracked = state[slideId].tracked;
+        if (!Array.isArray(tracked[viewedField])) {
+            tracked[viewedField] = [];
         }
+        const registeredIds = new Set(tracked[registeredField] || []);
+        ids.filter(Boolean).forEach(id => registeredIds.add(id));
+        tracked[registeredField] = [...registeredIds];
+        tracked[totalField] = registeredIds.size;
         this._setState(state);
         logger.debug(`[EngagementManager] Registered ${ids.length} ${label}: ${slideId}`);
         this._checkAndEmitProgress(slideId);
@@ -101,10 +116,16 @@ export const registerTimeline = makeRegister('timelineEventsTotal', 'timeline ev
 export const registerModals = makeRegister('modalsTotal', 'modals');
 
 export const registerInteractiveImage = makeRegisterIncremental(
-    'interactiveImageHotspotsTotal', 'interactiveImageHotspotsViewed', 'hotspots'
+    'interactiveImageHotspotsTotal', 'interactiveImageHotspotsRegistered', 'hotspots'
 );
 export const registerLightbox = makeRegisterIncremental(
-    'lightboxesTotal', 'lightboxesViewed', 'lightboxes'
+    'lightboxesTotal', 'lightboxesRegistered', 'lightboxes'
+);
+export const registerInteractiveImages = makeRegister(
+    'interactiveImageHotspotsTotal', 'hotspots', 'interactiveImageHotspotsRegistered'
+);
+export const registerLightboxes = makeRegister(
+    'lightboxesTotal', 'lightboxes', 'lightboxesRegistered'
 );
 
 // =========================================================================
@@ -153,6 +174,10 @@ export const trackSlideVideoComplete = makeBoolTracker('videoComplete', 'Slide v
 /** Interaction tracking — uses object map keyed by interactionId, not array. */
 export function trackInteraction(slideId, interactionId, completed, correct) {
     if (!slideId || !interactionId) return;
+    if (typeof completed !== 'boolean' || typeof correct !== 'boolean') {
+        logger.warn(`[EngagementManager] Ignoring invalid interaction state for ${interactionId}; completed and correct must be booleans`);
+        return;
+    }
     const state = this._getState();
     if (!state[slideId]) return;
     state[slideId].tracked.interactionsCompleted[interactionId] = { completed, correct };
@@ -163,7 +188,7 @@ export function trackInteraction(slideId, interactionId, completed, correct) {
 
 /** Scroll depth — numeric high-water mark, not array/boolean. */
 export function trackScrollDepth(slideId, percentage) {
-    if (!slideId || typeof percentage !== 'number') return;
+    if (!slideId || !Number.isFinite(percentage)) return;
     const state = this._getState();
     if (!state[slideId]) return;
     const currentDepth = state[slideId].tracked.scrollDepth;

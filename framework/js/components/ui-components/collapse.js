@@ -90,11 +90,12 @@ export function init(container) {
     };
 
     // Handle transition end to set display: none for accessibility and performance
-    panel.addEventListener('transitionend', () => {
+    const handleTransitionEnd = () => {
         if (trigger.getAttribute('aria-expanded') === 'false') {
             panel.style.display = 'none';
         }
-    });
+    };
+    panel.addEventListener('transitionend', handleTransitionEnd);
     
     // Ensure panel is correctly displayed or hidden on init
     if (trigger.getAttribute('aria-expanded') === 'false') {
@@ -109,6 +110,7 @@ export function init(container) {
     return {
         destroy: () => {
             trigger.removeEventListener('click', toggle);
+            panel.removeEventListener('transitionend', handleTransitionEnd);
         }
     };
 }

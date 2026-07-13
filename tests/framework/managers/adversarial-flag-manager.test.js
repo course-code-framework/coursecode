@@ -64,4 +64,18 @@ describe('BUG PROBE: Flag Manager Reference Leaks', () => {
 
         expect(flagManager.flags.complex.active).toBe(true);
     });
+
+    it('can remove a flag named hasOwnProperty', () => {
+        flagManager.isInitialized = true;
+        flagManager.setFlag('hasOwnProperty', true);
+
+        expect(() => flagManager.removeFlag('hasOwnProperty')).not.toThrow();
+        expect(flagManager.getFlag('hasOwnProperty')).toBeUndefined();
+    });
+
+    it('rejects keys that can mutate an object prototype', () => {
+        flagManager.isInitialized = true;
+        expect(() => flagManager.setFlag('__proto__', { polluted: true })).toThrow('reserved flag key');
+        expect({}.polluted).toBeUndefined();
+    });
 });

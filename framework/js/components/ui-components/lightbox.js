@@ -65,7 +65,7 @@ export const schema = {
 export const metadata = {
     category: 'ui-component',
     cssFile: 'components/lightbox.css',
-    engagementTracking: 'viewAllLightbox',
+    engagementTracking: 'viewAllLightboxes',
     emitsEvents: ['lightbox:opened', 'lightbox:closed']
 };
 
@@ -75,6 +75,7 @@ import { logger } from '../../utilities/logger.js';
 import { escapeHTML } from '../../utilities/utilities.js';
 import { fetchAndRenderMarkdown } from '../../utilities/markdown-renderer.js';
 import engagementManager from '../../engagement/engagement-manager.js';
+import { resolvePortableAssetUrl } from '../../utilities/portable-assets.js';
 
 // Lightbox state
 let lightboxElement = null;
@@ -91,6 +92,8 @@ let currentMediaType = 'image'; // 'image' | 'video' | 'markdown' | 'pdf'
  */
 function _resolvePath(src) {
     if (!src) return src;
+    const portableSrc = resolvePortableAssetUrl(src);
+    if (portableSrc !== src) return portableSrc;
     // Already absolute URL or protocol-relative
     if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('//')) {
         return src;
@@ -104,7 +107,7 @@ function _resolvePath(src) {
         return src;
     }
     // Otherwise, assume relative to course/ directory
-    return `./course/${src}`;
+    return resolvePortableAssetUrl(`./course/${src}`);
 }
 
 /**
@@ -129,6 +132,7 @@ function getTriggerSrc(trigger) {
  */
 function detectPDF(url) {
     if (!url) return null;
+    if (url.startsWith('data:application/pdf')) return { type: 'pdf' };
     if (/\.pdf($|\?|#)/i.test(url)) return { type: 'pdf' };
     return null;
 }
@@ -140,6 +144,7 @@ function detectPDF(url) {
  */
 function detectMarkdown(url) {
     if (!url) return null;
+    if (url.startsWith('data:text/markdown')) return { type: 'markdown' };
     if (/\.md($|\?|#)/i.test(url)) return { type: 'markdown' };
     return null;
 }
@@ -182,6 +187,7 @@ function detectVimeo(url) {
  */
 function detectNativeVideo(url) {
     if (!url) return null;
+    if (url.startsWith('data:video/')) return { type: 'native' };
     const videoExtensions = /\.(mp4|webm|ogg|mov|m4v)($|\?)/i;
     if (videoExtensions.test(url)) return { type: 'native' };
     return null;
@@ -211,10 +217,11 @@ export function init(element) {
         createLightboxElement();
     }
 
-    element.addEventListener('click', (e) => {
+    const handleClick = (e) => {
         e.preventDefault();
         openFromTrigger(element);
-    });
+    };
+    element.addEventListener('click', handleClick);
 
     const src = getTriggerSrc(element);
     const mediaType = getMediaType(src);
@@ -239,6 +246,14 @@ export function init(element) {
     if (subtitle) {
         wrapTriggerWithSubtitle(element, subtitle);
     }
+
+    return {
+        destroy: () => {
+            element.removeEventListener('click', handleClick);
+            delete element.dataset.lightboxInitialized;
+            if (isOpen) close();
+        }
+    };
 }
 
 /**
@@ -649,4 +664,3 @@ function navigate(direction) {
 export function isVisible() {
     return isOpen;
 }
-

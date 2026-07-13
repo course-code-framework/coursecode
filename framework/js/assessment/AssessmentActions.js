@@ -70,7 +70,7 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
         await stateManager.setAttemptNumber(attemptNumber);
 
         _manageFooterVisibility('question');
-        uiManager.showView('question');
+        await uiManager.showView('question');
     }
 
     async function handlePrev() {
@@ -79,7 +79,7 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
         const currentIndex = stateManager.getCurrentQuestionIndex();
         if (currentIndex > 0) {
             await stateManager.setCurrentQuestionIndex(currentIndex - 1);
-            uiManager.showView('question');
+            await uiManager.showView('question');
         }
     }
 
@@ -94,7 +94,7 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
                 await stateManager.updateSession({ reviewReached: true });
                 await stateManager.setCurrentView('review');
                 _manageFooterVisibility('review');
-                uiManager.showView('review');
+                await uiManager.showView('review');
             } else {
                 // FIX: Route through handleSubmit to ensure unanswered checks are performed
                 // previously called submitAssessment() directly, bypassing validation
@@ -102,7 +102,7 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
             }
         } else {
             await stateManager.setCurrentQuestionIndex(currentIndex + 1);
-            uiManager.showView('question');
+            await uiManager.showView('question');
         }
     }
 
@@ -119,21 +119,21 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
         await stateManager.setCurrentView('question');
         await stateManager.setCurrentQuestionIndex(index);
         _manageFooterVisibility('question');
-        uiManager.showView('question');
+        await uiManager.showView('question');
     }
 
     async function handleBackToQuestions() {
         await _forceSaveCurrentResponse();
         await stateManager.setCurrentView('question');
         _manageFooterVisibility('question');
-        uiManager.showView('question');
+        await uiManager.showView('question');
     }
 
     async function handleJumpToReview() {
         await _forceSaveCurrentResponse();
         await stateManager.setCurrentView('review');
         _manageFooterVisibility('review');
-        uiManager.showView('review');
+        await uiManager.showView('review');
     }
 
     async function handleSubmit() {
@@ -242,14 +242,14 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
             // This will cause slide to create NEW assessment instance
             const currentSlideId = getCurrentSlideId();
             if (currentSlideId) {
-                goToSlide(currentSlideId, { refreshAssessment: true });
+                await goToSlide(currentSlideId, { refreshAssessment: true });
                 return; // Exit - new instance will be created
             }
         }
 
         // Simple reset - same questions
         _manageFooterVisibility('intro');
-        uiManager.showView('intro');
+        await uiManager.showView('intro');
     }
 
     function handleRestartCourse() {
@@ -353,7 +353,7 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
             throw new Error(errorMessage);
         }
 
-        goToSlide(firstRemedialSlide, {
+        await goToSlide(firstRemedialSlide, {
             fromAssessment: config.id,
             remedialReview: true
         });
@@ -413,11 +413,6 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
         const displayData = _prepareResultsDisplayData(finalResults);
 
         await stateManager.setCurrentView('results');
-        _manageFooterVisibility('results');
-        uiManager.showView('results', displayData);
-
-        // Keep full results in memory for this session only (not persisted)
-        // This allows detailed review immediately after submission
 
         // Automatically set linked objective if configured
         if (config.assessmentObjective) {
@@ -445,6 +440,12 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
         // Flush critical assessment data + score to LMS immediately
         // Assessment submission is a critical action - don't rely on debounce
         await globalStateManager.flush();
+
+        // Only transition the UI after the assessment outcome, objective, and
+        // course score are durably committed. A rendering failure must never
+        // prevent the LMS from receiving the learner's submitted result.
+        _manageFooterVisibility('results');
+        await uiManager.showView('results', displayData);
 
         if (typeof config.onComplete === 'function') {
             config.onComplete(finalResults);

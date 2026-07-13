@@ -99,8 +99,12 @@ describe('BUG PROBE: setSuccessStatus score bypass', () => {
         const manager = await createFreshManager();
         manager.initialize([{ id: 'obj-1' }]);
 
+        mockStateManager.setDomainState.mockClear();
+
         // FIXED: setSuccessStatus now routes score through setScore validation
         expect(() => manager.setSuccessStatus('obj-1', 'passed', NaN)).toThrow('Score must be a number between 0 and 100');
+        expect(mockStateManager.setDomainState).not.toHaveBeenCalled();
+        expect(manager.getObjective('obj-1').success_status).toBe('unknown');
     });
 });
 
@@ -123,6 +127,25 @@ describe('BUG PROBE: invalid status values accepted', () => {
 
         // FIXED: validated against allowed values
         expect(() => manager.setCompletionStatus('obj-1', 'sorta')).toThrow('Invalid completion_status');
+    });
+
+    it.each(['not attempted', 'unknown'])('accepts SCORM completion status %s', async (status) => {
+        const manager = await createFreshManager();
+        manager.initialize([{ id: 'obj-1' }]);
+
+        manager.setCompletionStatus('obj-1', status);
+
+        expect(manager.getObjective('obj-1').completion_status).toBe(status);
+    });
+
+    it('setObjective rejects invalid status values directly', async () => {
+        const manager = await createFreshManager();
+        manager.initialize([{ id: 'obj-1' }]);
+
+        expect(() => manager.setObjective({ id: 'obj-1', success_status: 'maybe' }))
+            .toThrow('Invalid success_status');
+        expect(() => manager.setObjective({ id: 'obj-1', completion_status: '' }))
+            .toThrow('Invalid completion_status');
     });
 });
 

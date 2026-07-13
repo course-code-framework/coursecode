@@ -247,6 +247,7 @@ describe('SCORM 1.2 Spec: Data Model Element Names', () => {
         driver._rawSet = (key, value) => { writes.push({ key, value }); };
         driver._cache = { bookmark: 'slide-1', interactionsCount: 0, objectiveIdToIndex: new Map(), objectivesCount: 0 };
         driver._statusCache = { completion: 'unknown', success: 'unknown' };
+        driver._scoreChildren = new Set(['raw', 'min', 'max']);
         driver._isConnected = true;
     });
 
@@ -302,6 +303,7 @@ describe('SCORM 1.2 Spec: Interaction Element Names', () => {
         driver._rawSet = (key, value) => { writes.push({ key, value }); };
         driver._cache = { bookmark: 'slide-1', interactionsCount: 0, objectiveIdToIndex: new Map(), objectivesCount: 0 };
         driver._isConnected = true;
+        driver._supportsInteractions = true;
     });
 
     it('uses "student_response" NOT "learner_response" (1.2 vs 2004)', () => {
@@ -333,6 +335,7 @@ describe('SCORM 1.2 Spec: Objective Element Names', () => {
         driver._rawSet = (key, value) => { writes.push({ key, value }); };
         driver._cache = { bookmark: 'slide-1', interactionsCount: 0, objectiveIdToIndex: new Map(), objectivesCount: 0 };
         driver._isConnected = true;
+        driver._supportsObjectives = true;
     });
 
     it('uses single .status (NOT .completion_status + .success_status)', () => {
@@ -387,12 +390,12 @@ describe('SCORM 1.2: Diet State Roundtrip (4KB constraint)', () => {
         expect(expanded.engagement.s2.complete).toBe(false);
     });
 
-    it('drops tracked details (intentional for 4KB limit)', () => {
+    it('preserves tracked details needed to resume partial engagement', () => {
         const full = {
             engagement: { 's1': { complete: true, tracked: { scrollDepth: 100, videoProgress: 0.8 } } }
         };
         const expanded = driver._expandDietState(driver._createDietState(full));
-        expect(expanded.engagement.s1.tracked).toEqual({});
+        expect(expanded.engagement.s1.tracked).toEqual({ scrollDepth: 100, videoProgress: 0.8 });
     });
 
     it('round-trips assessment state', () => {

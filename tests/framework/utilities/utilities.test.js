@@ -42,6 +42,21 @@ describe('deepClone', () => {
         const cloned = deepClone(original);
         expect(cloned.date).toEqual(original.date);
     });
+
+    it('clones objects that shadow hasOwnProperty', () => {
+        const original = { hasOwnProperty: 'value', nested: { ok: true } };
+        expect(deepClone(original)).toEqual(original);
+    });
+
+    it('clones a literal __proto__ data property without changing the clone prototype', () => {
+        const original = JSON.parse('{"__proto__":{"polluted":true},"safe":1}');
+        const cloned = deepClone(original);
+
+        expect(Object.getPrototypeOf(cloned)).toBe(Object.prototype);
+        expect(Object.hasOwn(cloned, '__proto__')).toBe(true);
+        expect(cloned.__proto__).toEqual({ polluted: true });
+        expect({}.polluted).toBeUndefined();
+    });
 });
 
 // ─── generateId ─────────────────────────────────────────────────────
@@ -130,6 +145,18 @@ describe('deepMerge', () => {
     it('source arrays replace target arrays', () => {
         const result = deepMerge({ arr: [1, 2] }, { arr: [3] });
         expect(result.arr).toEqual([3]);
+    });
+
+    it('replaces non-plain objects instead of flattening them', () => {
+        const date = new Date('2026-07-12T00:00:00Z');
+        const result = deepMerge({ value: {} }, { value: date });
+        expect(result.value).toBe(date);
+    });
+
+    it('rejects prototype-polluting keys', () => {
+        const source = JSON.parse('{"__proto__":{"polluted":true}}');
+        expect(() => deepMerge({}, source)).toThrow('unsafe key');
+        expect({}.polluted).toBeUndefined();
     });
 });
 

@@ -39,4 +39,16 @@ describe('external hosting access configuration', () => {
             accessControl: { clients: { acme: { token: 'secret' } } }
         })).toThrow(/enforcement/);
     });
+
+    it.each([
+        'relative/course',
+        'http://cdn.example.com/course',
+        'https://cdn.example.com/course#launch'
+    ])('rejects unsafe external URL %s', (externalUrl) => {
+        expect(() => validateExternalHostingConfig({
+            lmsFormat: 'scorm1.2-proxy',
+            externalUrl,
+            accessControl: { enforcement: 'server', clients: { acme: { token: 'secret' } } }
+        })).toThrow(/externalUrl|HTTPS|fragment/);
+    });
 });

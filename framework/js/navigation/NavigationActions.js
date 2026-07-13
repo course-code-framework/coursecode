@@ -698,8 +698,7 @@ async function _performNavigation(slideId, context = {}, updateBookmark = true) 
 
     // Update progress measure to reflect slide visit
     // Count only sequential slides (excludes remedial/conditional slides)
-    const totalSequentialSlides = slides.filter(s => isSlideInSequence(s, stateManager, assessmentConfigs)).length;
-    stateManager.updateProgressMeasure(totalSequentialSlides);
+    syncProgressMeasure();
 
     // Set bookmark as FINAL step after successful navigation
     // We use slide ID as the bookmark value (unique, stable, human-readable)
@@ -880,13 +879,14 @@ export function sync() {
         const hasBeenVisited = visitedSlides.includes(slide.id);
 
         if (slide.type === 'assessment') {
-            const config = assessmentConfigs.get(slide.assessmentId);
+            const assessmentId = AssessmentManager.resolveAssessmentId(slide);
+            const config = assessmentConfigs.get(assessmentId);
             const requirements = config?.completionRequirements;
             let requirementsMet = false;
 
             // Only check requirements if they are defined in the assessment's config
             if (requirements) {
-                requirementsMet = AssessmentManager.meetsCompletionRequirements(slide.assessmentId, requirements);
+                requirementsMet = AssessmentManager.meetsCompletionRequirements(assessmentId, requirements);
             }
 
             // Mark as "visited" (i.e., show checkmark) only if visited AND requirements are met.
@@ -1069,6 +1069,20 @@ export function getPreviousSequentialSlideInfo() {
 export function getAllSlides() {
     _requireInitialized();
     return slides;
+}
+
+/**
+ * Recalculates LMS progress using only slides in the learner's active sequence.
+ * Remedial and currently excluded conditional slides must not inflate the
+ * numerator or allow progress_measure to reach 100% early.
+ */
+export function syncProgressMeasure() {
+    _requireInitialized();
+    const activeSlides = slides.filter(slide => isSlideInSequence(slide, stateManager, assessmentConfigs));
+    return stateManager.updateProgressMeasure(
+        activeSlides.length,
+        activeSlides.map(slide => slide.id)
+    );
 }
 
 /**

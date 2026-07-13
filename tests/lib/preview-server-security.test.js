@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
     hasValidPreviewMutationToken,
+    parsePreviewPort,
     requiresPreviewMutationToken
 } from '../../lib/preview-server.js';
 
@@ -24,4 +25,15 @@ describe('preview mutation authorization', () => {
         expect(hasValidPreviewMutationToken({ 'x-coursecode-preview-token': 'wrong' }, 'right')).toBe(false);
         expect(hasValidPreviewMutationToken({}, 'right')).toBe(false);
     });
+});
+
+describe('preview port validation', () => {
+    it.each([4173, '4199', 65535])('accepts valid port %s', (value) => {
+        expect(parsePreviewPort(value)).toBe(Number(value));
+    });
+
+    it.each([0, -1, 65536, '4199garbage', 'not-a-port', 1.5])(
+        'rejects invalid port %s',
+        (value) => expect(() => parsePreviewPort(value)).toThrow('Preview port must be an integer')
+    );
 });

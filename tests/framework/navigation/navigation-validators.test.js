@@ -8,7 +8,8 @@ vi.mock('../../../framework/js/navigation/navigation-helpers.js', () => ({
 }));
 
 vi.mock('../../../framework/js/managers/assessment-manager.js', () => ({
-    meetsCompletionRequirements: vi.fn(() => false)
+    meetsCompletionRequirements: vi.fn(() => false),
+    resolveAssessmentId: vi.fn(slide => slide?.assessmentId || slide?.id)
 }));
 
 import { evaluateGatingCondition, shouldBypassGating } from '../../../framework/js/navigation/navigation-helpers.js';

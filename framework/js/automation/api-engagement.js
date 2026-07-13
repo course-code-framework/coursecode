@@ -61,7 +61,7 @@ export function createEngagementMethods(logTrace) {
             if (!slideId) {
                 throw new Error('CourseCodeAutomation: No active slide');
             }
-            if (typeof percentage !== 'number' || percentage < 0 || percentage > 100) {
+            if (!Number.isFinite(percentage) || percentage < 0 || percentage > 100) {
                 throw new Error('CourseCodeAutomation: Scroll depth must be a number between 0 and 100');
             }
             engagementManager.trackScrollDepth(slideId, percentage);
@@ -143,7 +143,7 @@ export function createEngagementMethods(logTrace) {
             const currentSlideId = NavigationState.getCurrentSlideId();
 
             if (state.duration > 0) {
-                const targetPosition = state.duration * (state.completionThreshold || 0.95);
+                const targetPosition = state.duration * state.completionThreshold;
                 audioManager.seek(targetPosition);
             }
 
@@ -163,7 +163,10 @@ export function createEngagementMethods(logTrace) {
                 case 'tab':
                 case 'standalone':
                     if (currentSlideId) {
-                        engagementManager.trackStandaloneAudioComplete(currentSlideId, state.contextId);
+                        const audioId = state.contextType === 'standalone'
+                            ? state.contextId.replace(/^standalone-/, '')
+                            : state.contextId;
+                        engagementManager.trackStandaloneAudioComplete(currentSlideId, audioId);
                     }
                     break;
             }

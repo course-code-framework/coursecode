@@ -127,7 +127,7 @@ export function init(root, options = {}) {
     });
 
     // Delegated event listener for the entire dropdown
-    dropdown.addEventListener('click', (event) => {
+    const handleClick = (event) => {
         const actionTarget = event.target.closest('[data-action]');
         if (!actionTarget) return;
 
@@ -145,13 +145,17 @@ export function init(root, options = {}) {
                 selectDropdownItem(dropdownId, itemIndex);
             }
         }
-    });
+    };
 
     // Keyboard navigation for the menu
-    menu.addEventListener('keydown', (event) => handleDropdownKeyboard(dropdownId, event));
+    const handleKeydown = (event) => handleDropdownKeyboard(dropdownId, event);
+    dropdown.addEventListener('click', handleClick);
+    menu.addEventListener('keydown', handleKeydown);
 
     return {
         destroy: () => {
+            dropdown.removeEventListener('click', handleClick);
+            menu.removeEventListener('keydown', handleKeydown);
             dropdowns.delete(dropdownId);
         }
     };

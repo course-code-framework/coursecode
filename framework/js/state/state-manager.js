@@ -149,6 +149,12 @@ class StateManager {
         }
         this._assertInitialized();
 
+        // Validate semantic domains before mutating suspend-data state. This
+        // prevents a failed LMS write from first persisting invalid CMI data.
+        if (domain === 'objectives' && value) {
+            this._assertValidObjectives(value);
+        }
+
         const result = this._domains.setDomainState(domain, value, meta);
 
         // Report to driver for format-specific handling
@@ -172,7 +178,28 @@ class StateManager {
         this._assertInitialized();
         this._assertNotTerminated('Cannot clear data after termination.');
 
-        logger.debug('[StateManager] Clearing all suspend data for course restart');
+        logger.debug('[StateManager] Resetting learner progress for course restart');
+
+        // Native CMI arrays are append-only and cannot be deleted, but their
+        // objective status can be returned to a neutral state. Historical
+        // interaction rows remain as an LMS audit trail and no longer affect
+        // the freshly cleared CourseCode state.
+        const objectives = this._domains.getDomainState('objectives') || {};
+        for (const id of Object.keys(objectives)) {
+            lmsConnection.reportObjective({
+                id,
+                completion_status: 'incomplete',
+                success_status: 'unknown',
+                score: 0,
+                progress_measure: 0
+            });
+        }
+
+        lmsConnection.setBookmark('');
+        lmsConnection.reportCompletion('incomplete');
+        lmsConnection.reportSuccess('unknown');
+        lmsConnection.reportScore({ raw: 0, scaled: 0, min: 0, max: 100 });
+        lmsConnection.reportProgress(0);
         this._domains.clearState();
         await this._commits.commitToLMS();
         eventBus.emit('state:cleared', { reason: 'course restart' });
@@ -213,24 +240,28 @@ class StateManager {
             throw new Error('StateManager: bookmark exceeds maximum length (1024)');
         }
         lmsConnection.setBookmark(slideId);
+        this._commits.scheduleCommit(false);
     }
 
     /** @param {{raw: number, scaled: number, min: number, max: number}} score */
     reportScore(score) {
         this._assertValidScore(score);
         lmsConnection.reportScore(score);
+        this._commits.scheduleCommit(false);
     }
 
     /** @param {string} status - 'completed' | 'incomplete' */
     reportCompletion(status) {
         this._assertValidCompletionStatus(status);
         lmsConnection.reportCompletion(status);
+        this._commits.scheduleCommit(false);
     }
 
     /** @param {string} status - 'passed' | 'failed' | 'unknown' */
     reportSuccess(status) {
         this._assertValidSuccessStatus(status);
         lmsConnection.reportSuccess(status);
+        this._commits.scheduleCommit(false);
     }
 
     /** @returns {string} Current completion status */
@@ -304,6 +335,18 @@ class StateManager {
     }
 
     /**
+     * Synchronously stages the newest in-memory state for an unload handler.
+     * No Promise is used because browsers do not wait for asynchronous work
+     * during pagehide.
+     */
+    prepareEmergencySave() {
+        if (!this.isInitialized || this.isTerminated) return;
+        this._reportSessionTime();
+        lmsConnection.setExitMode('suspend');
+        lmsConnection.setSuspendData(this._domains.state);
+    }
+
+    /**
      * Terminates the LMS connection with a final commit.
      */
     async terminate() {
@@ -346,8 +389,9 @@ class StateManager {
     /**
      * Updates progress_measure based on visited slides.
      * @param {number} totalSlides - Total sequential slides
+     * @param {string[]|null} eligibleSlideIds - Active-sequence slide IDs
      */
-    updateProgressMeasure(totalSlides) {
+    updateProgressMeasure(totalSlides, eligibleSlideIds = null) {
         this._assertInitialized();
         this._assertNotTerminated('Cannot update progress after termination.');
         if (!totalSlides || totalSlides <= 0) {
@@ -357,13 +401,18 @@ class StateManager {
         try {
             const navigationState = this.getDomainState('navigation') || {};
             const visitedSlides = navigationState.visitedSlides || [];
-            const visitedCount = visitedSlides.length;
+            const eligible = Array.isArray(eligibleSlideIds) ? new Set(eligibleSlideIds) : null;
+            const eligibleVisitedSlides = eligible
+                ? visitedSlides.filter(slideId => eligible.has(slideId))
+                : visitedSlides;
+            const visitedCount = eligibleVisitedSlides.length;
 
             let progressMeasure = Math.min(visitedCount / totalSlides, 1.0);
             progressMeasure = Math.max(0, Math.min(1, progressMeasure));
             progressMeasure = Math.round(progressMeasure * 100) / 100;
 
             lmsConnection.reportProgress(progressMeasure);
+            this._commits.scheduleCommit(false);
 
             logger.debug(`[StateManager] Progress measure updated: ${progressMeasure} (${(progressMeasure * 100).toFixed(0)}%)`);
             logger.debug(`  - Slides visited: ${visitedCount}/${totalSlides}`);
@@ -439,8 +488,16 @@ class StateManager {
     _reportObjectivesToDriver(objectives) {
         if (!objectives || typeof objectives !== 'object') return;
         for (const [id, objective] of Object.entries(objectives)) {
-            this._assertValidObjective({ id, ...objective });
             lmsConnection.reportObjective({ id, ...objective });
+        }
+    }
+
+    _assertValidObjectives(objectives) {
+        if (!objectives || typeof objectives !== 'object' || Array.isArray(objectives)) {
+            throw new Error('StateManager: objectives must be an object keyed by objective ID');
+        }
+        for (const [id, objective] of Object.entries(objectives)) {
+            this._assertValidObjective({ id, ...objective });
         }
     }
 
@@ -510,6 +567,16 @@ class StateManager {
             if (!Number.isFinite(objective.progress_measure) || objective.progress_measure < 0 || objective.progress_measure > 1) {
                 throw new Error(`StateManager: objective.progress_measure must be between 0 and 1, got ${objective.progress_measure}`);
             }
+        }
+
+
+        if (objective.completion_status !== undefined &&
+            !VALID_COMPLETION_STATUSES.has(objective.completion_status)) {
+            throw new Error(`StateManager: invalid objective completion status "${objective.completion_status}"`);
+        }
+        if (objective.success_status !== undefined &&
+            !VALID_SUCCESS_STATUSES.has(objective.success_status)) {
+            throw new Error(`StateManager: invalid objective success status "${objective.success_status}"`);
         }
     }
 }

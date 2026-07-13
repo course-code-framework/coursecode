@@ -100,10 +100,24 @@ class ScoreManager {
             throw new Error('[ScoreManager] Configuration must include non-empty "sources" array');
         }
 
+        const sourceIds = config.sources.map(source =>
+            typeof source === 'string' ? source : source?.id
+        );
+        const invalidSourceId = sourceIds.find(sourceId =>
+            typeof sourceId !== 'string' || !/^(assessment|objective):.+/.test(sourceId)
+        );
+        if (invalidSourceId !== undefined) {
+            throw new Error(`[ScoreManager] Invalid source ID "${invalidSourceId}". Use "assessment:<id>" or "objective:<id>".`);
+        }
+        if (new Set(sourceIds).size !== sourceIds.length) {
+            throw new Error('[ScoreManager] Scoring source IDs must be unique');
+        }
+
         // Validate weighted sources
         if (config.type === 'weighted') {
             const hasInvalidSources = config.sources.some(source => 
-                typeof source !== 'object' || !source.id || typeof source.weight !== 'number'
+                !source || typeof source !== 'object' || !source.id ||
+                !Number.isFinite(source.weight) || source.weight < 0 || source.weight > 1
             );
             if (hasInvalidSources) {
                 throw new Error('[ScoreManager] Weighted scoring requires sources with {id, weight} format');
@@ -167,7 +181,7 @@ class ScoreManager {
                 // Load objective score from ObjectiveManager
                 try {
                     const objective = objectiveManager.getObjective(id);
-                    if (objective && typeof objective.score === 'number') {
+                    if (objective && Number.isFinite(objective.score) && objective.score >= 0 && objective.score <= 100) {
                         this.cachedScores[sourceId] = objective.score;
                     }
                 } catch (_error) {
@@ -179,7 +193,10 @@ class ScoreManager {
                     const domainKey = `assessment_${id}`;
                     const assessmentState = stateManager.getDomainState(domainKey);
                     const summary = assessmentState?.summary;
-                    if (summary && summary.lastResults && typeof summary.lastResults.scorePercentage === 'number') {
+                    if (summary && summary.lastResults &&
+                        Number.isFinite(summary.lastResults.scorePercentage) &&
+                        summary.lastResults.scorePercentage >= 0 &&
+                        summary.lastResults.scorePercentage <= 100) {
                         this.cachedScores[sourceId] = summary.lastResults.scorePercentage;
                     }
                 } catch (_error) {
@@ -200,6 +217,10 @@ class ScoreManager {
     _updateSourceScore(sourceId, score) {
         if (!this.isInitialized) return;
 
+        if (!Number.isFinite(score) || score < 0 || score > 100) {
+            throw new Error(`[ScoreManager] Source score ${score} is out of range [0-100].`);
+        }
+
         // Check if this source is configured
         const sourceIds = this.config.sources.map(source => 
             typeof source === 'string' ? source : source.id
@@ -213,7 +234,7 @@ class ScoreManager {
         const oldScore = this.cachedScores[sourceId];
         this.cachedScores[sourceId] = score;
         
-        logger.debug(`[ScoreManager] Score updated: ${sourceId} = ${score} (was ${oldScore || 'none'})`);
+        logger.debug(`[ScoreManager] Score updated: ${sourceId} = ${score} (was ${oldScore ?? 'none'})`);
 
         // Recalculate and report course score
         this._calculateAndReportScore();
@@ -234,7 +255,7 @@ class ScoreManager {
         }
 
         // Validate score range
-        if (calculatedScore < 0 || calculatedScore > 100 || isNaN(calculatedScore)) {
+        if (!Number.isFinite(calculatedScore) || calculatedScore < 0 || calculatedScore > 100) {
             throw new Error(`[ScoreManager] Calculated score ${calculatedScore} is out of range [0-100]. This indicates a bug in the scoring calculation.`);
         }
 
@@ -381,7 +402,7 @@ class ScoreManager {
                 return null;
             }
 
-            if (typeof result !== 'number' || isNaN(result)) {
+            if (!Number.isFinite(result)) {
                 throw new Error(`[ScoreManager] Custom calculate function must return a number or null. Got: ${typeof result}`);
             }
 

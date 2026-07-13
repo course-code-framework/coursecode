@@ -129,14 +129,9 @@ describe('BUG: initialScore: 0 silently dropped', () => {
         expect(obj.score).toBe(0);
     });
 
-    it('should preserve initialCompletion of empty string', () => {
-        objectiveManager.initialize([
+    it('rejects an empty initialCompletion instead of persisting invalid CMI state', () => {
+        expect(() => objectiveManager.initialize([
             { id: 'obj-empty', initialCompletion: '' }
-        ]);
-
-        const obj = objectiveManager.getObjective('obj-empty');
-        // With ?? fix, empty string is preserved (it's a valid SCORM value: not_attempted)
-        // This is intentional — '' is a valid input, should not be replaced by 'incomplete'
-        expect(obj.completion_status).toBe('');
+        ])).toThrow('Invalid completion_status');
     });
 });

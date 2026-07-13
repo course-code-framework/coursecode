@@ -35,6 +35,8 @@ export class LtiDriver extends HttpDriverBase {
 
         // Host state endpoint for suspend_data persistence
         this._stateEndpoint = null;
+        this._gradeDirty = false;
+        this._gradeFingerprint = null;
     }
 
     // =========================================================================
@@ -131,7 +133,7 @@ export class LtiDriver extends HttpDriverBase {
 
         try {
             await this._persistState();
-            await this._postScore();
+            await this._flushGrade();
 
             this._isTerminated = true;
             logger.debug('[LtiDriver] Session terminated');
@@ -139,9 +141,30 @@ export class LtiDriver extends HttpDriverBase {
 
         } catch (error) {
             logger.error('[LtiDriver] Terminate failed:', error);
-            this._isTerminated = true;
             throw new Error(`[LtiDriver] Termination failed: ${error.message}`);
         }
+    }
+
+    async commit() {
+        const result = await super.commit();
+        if (!result || this._mock) return result;
+        await this._flushGrade();
+        return true;
+    }
+
+    reportScore(score) {
+        super.reportScore(score);
+        this._gradeDirty = true;
+    }
+
+    reportCompletion(status) {
+        super.reportCompletion(status);
+        this._gradeDirty = true;
+    }
+
+    reportSuccess(status) {
+        super.reportSuccess(status);
+        this._gradeDirty = true;
     }
 
     /**
@@ -186,7 +209,9 @@ export class LtiDriver extends HttpDriverBase {
                     location: this._bookmarkCache,
                     completionStatus: this._completionStatus,
                     successStatus: this._successStatus,
-                    score: this._score
+                    score: this._score,
+                    gradePending: this._gradeDirty,
+                    gradeFingerprint: this._currentGradeFingerprint()
                 }
             };
             const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
@@ -350,7 +375,13 @@ export class LtiDriver extends HttpDriverBase {
     _getStateKey() {
         if (this._claims) {
             const resourceLink = this._claims['https://purl.imsglobal.org/spec/lti/claim/resource_link']?.id;
-            return `${resourceLink}:${this._claims.sub}`;
+            const deploymentId = this._claims['https://purl.imsglobal.org/spec/lti/claim/deployment_id'];
+            return JSON.stringify({
+                issuer: this._claims.iss,
+                deploymentId,
+                resourceLinkId: resourceLink,
+                userId: this._claims.sub
+            });
         }
         return null;
     }
@@ -365,23 +396,34 @@ export class LtiDriver extends HttpDriverBase {
         const stateKey = this._getStateKey();
         if (!stateKey) return;
 
-        try {
-            const response = await fetch(`${this._stateEndpoint}?key=${encodeURIComponent(stateKey)}`, {
-                credentials: 'same-origin'
-            });
-
-            if (response.ok) {
-                const state = await response.json();
-                this._suspendDataCache = state.suspendData || null;
-                this._bookmarkCache = state.bookmark || null;
-                this._completionStatus = state.completionStatus || 'unknown';
-                this._successStatus = state.successStatus || 'unknown';
-                this._score = state.score ?? null;
-                logger.debug('[LtiDriver] State pre-fetched');
-            }
-        } catch (error) {
-            logger.warn('[LtiDriver] Failed to prefetch state:', error.message);
+        const response = await fetch(`${this._stateEndpoint}?key=${encodeURIComponent(stateKey)}`, {
+            credentials: 'same-origin'
+        });
+        if (response.status === 404) return;
+        if (!response.ok) {
+            throw new Error(`State prefetch failed: ${response.status} ${response.statusText || ''}`.trim());
         }
+
+        const state = await response.json();
+        this._suspendDataCache = state.suspendData || null;
+        this._bookmarkCache = state.bookmark || null;
+        this._completionStatus = state.completionStatus || 'unknown';
+        this._successStatus = state.successStatus || 'unknown';
+        this._score = state.score ?? null;
+        this._gradeFingerprint = state.gradeFingerprint || null;
+        if (typeof state.gradePending === 'boolean') {
+            this._gradeDirty = state.gradePending;
+        } else if (this._agsProxyEndpoint && (
+            this._score !== null ||
+            this._completionStatus === 'completed' ||
+            this._successStatus !== 'unknown'
+        )) {
+            // Upgrade recovery for launches saved before the persistent grade
+            // outbox existed. Re-sending an idempotent latest score is safer
+            // than permanently missing the grade.
+            this._gradeDirty = true;
+        }
+        logger.debug('[LtiDriver] State pre-fetched');
     }
 
     async _persistState() {
@@ -390,7 +432,7 @@ export class LtiDriver extends HttpDriverBase {
         const stateKey = this._getStateKey();
         if (!stateKey) return;
 
-        const dirty = this._suspendDataDirty || this._bookmarkDirty;
+        const dirty = this._suspendDataDirty || this._bookmarkDirty || this._gradeDirty;
         if (!dirty) return;
 
         const payload = {
@@ -399,7 +441,9 @@ export class LtiDriver extends HttpDriverBase {
             bookmark: this._bookmarkCache,
             completionStatus: this._completionStatus,
             successStatus: this._successStatus,
-            score: this._score
+            score: this._score,
+            gradePending: this._gradeDirty,
+            gradeFingerprint: this._currentGradeFingerprint()
         };
 
         const response = await fetch(this._stateEndpoint, {
@@ -425,39 +469,60 @@ export class LtiDriver extends HttpDriverBase {
     // =========================================================================
 
     async _postScore() {
-        if (!this._agsProxyEndpoint || this._score === null) {
+        if (!this._agsProxyEndpoint) {
+            return false;
+        }
+
+        const scorePayload = {
+            userId: this._claims.sub,
+            comment: '',
+            timestamp: new Date().toISOString(),
+            activityProgress: this._completionStatus === 'completed' ? 'Completed' : 'InProgress',
+            gradingProgress: this._successStatus !== 'unknown' ? 'FullyGraded' : 'NotReady'
+        };
+        if (this._score !== null) {
+            scorePayload.scoreGiven = this._score * 100;
+            scorePayload.scoreMaximum = 100;
+        }
+
+        const response = await fetch(this._agsProxyEndpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/vnd.ims.lis.v1.score+json'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify(scorePayload)
+        });
+
+        if (!response.ok) {
+            throw new Error(`AGS proxy rejected score: ${response.status} ${response.statusText || ''}`.trim());
+        }
+
+        logger.debug('[LtiDriver] Score posted to AGS:', this._score);
+        return true;
+    }
+
+    async _flushGrade() {
+        if (!this._gradeDirty) return;
+        if (!this._agsProxyEndpoint) {
+            this._gradeDirty = false;
             return;
         }
+        await this._postScore();
+        this._gradeDirty = false;
+        this._gradeFingerprint = this._currentGradeFingerprint();
+        // Acknowledge the outbox only after AGS accepts the score. If this
+        // persistence fails, the next launch safely retries the latest grade.
+        this._bookmarkDirty = true;
+        await this._persistState();
+    }
 
-        try {
-            const scorePayload = {
-                userId: this._claims.sub,
-                scoreGiven: this._score * 100,
-                scoreMaximum: 100,
-                comment: '',
-                timestamp: new Date().toISOString(),
-                activityProgress: this._completionStatus === 'completed' ? 'Completed' : 'InProgress',
-                gradingProgress: this._successStatus !== 'unknown' ? 'FullyGraded' : 'NotReady'
-            };
-
-            const response = await fetch(this._agsProxyEndpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/vnd.ims.lis.v1.score+json'
-                },
-                credentials: 'same-origin',
-                body: JSON.stringify(scorePayload)
-            });
-
-            if (!response.ok) {
-                throw new Error(`AGS proxy rejected score: ${response.status} ${response.statusText || ''}`.trim());
-            }
-
-            logger.debug('[LtiDriver] Score posted to AGS:', this._score);
-
-        } catch (error) {
-            logger.error('[LtiDriver] Failed to post score to AGS:', error.message);
-        }
+    _currentGradeFingerprint() {
+        return JSON.stringify({
+            score: this._score,
+            completionStatus: this._completionStatus,
+            successStatus: this._successStatus
+        });
     }
 
     // =========================================================================

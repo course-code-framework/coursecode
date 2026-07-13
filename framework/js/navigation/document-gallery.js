@@ -16,6 +16,7 @@
 import { iconManager } from '../utilities/icons.js';
 import { logger } from '../utilities/logger.js';
 import { open as openLightbox } from '../components/ui-components/lightbox.js';
+import { resolvePortableAssetUrl } from '../utilities/portable-assets.js';
 
 /** @type {HTMLElement|null} */
 let galleryContainer = null;
@@ -69,14 +70,18 @@ export async function init(courseConfig) {
  */
 async function _fetchManifest() {
     try {
-        const response = await fetch('./_gallery-manifest.json');
+        const response = await fetch(resolvePortableAssetUrl('./_gallery-manifest.json'));
         if (!response.ok) {
             // Manifest doesn't exist yet (dev mode or no docs) — not an error
             logger.debug('[DocumentGallery] No gallery manifest found (this is normal in dev mode)');
             return null;
         }
         const manifest = await response.json();
-        return manifest.items || [];
+        return (manifest.items || []).map(item => ({
+            ...item,
+            src: resolvePortableAssetUrl(item.src),
+            thumbnail: resolvePortableAssetUrl(item.thumbnail)
+        }));
     } catch (_error) {
         logger.debug('[DocumentGallery] Could not load gallery manifest');
         return null;

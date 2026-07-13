@@ -322,13 +322,16 @@ describe('LTI 1.3 Spec: AGS Score Payload', () => {
         expect(new Date(ts).toISOString()).toBe(ts);
     });
 
-    it('does not post score when no score is set', async () => {
+    it('posts completion progress even when no numeric score is set', async () => {
         driver._score = null;
         driver._completionStatus = 'completed';
 
         await driver._postScore();
 
-        expect(capturedRequests).toHaveLength(0);
+        expect(capturedRequests).toHaveLength(1);
+        expect(capturedRequests[0].body.activityProgress).toBe('Completed');
+        expect(capturedRequests[0].body).not.toHaveProperty('scoreGiven');
+        expect(capturedRequests[0].body).not.toHaveProperty('scoreMaximum');
     });
 
     it('does not post score when no AGS endpoint configured', async () => {
@@ -343,10 +346,73 @@ describe('LTI 1.3 Spec: AGS Score Payload', () => {
     it('treats a non-2xx AGS proxy response as a failed score write', async () => {
         globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 401, statusText: 'Unauthorized' });
         driver._score = 0.85;
-        await driver._postScore();
-        // _postScore is non-blocking for the learner, but the failure must not
-        // be logged as a success or escape observability.
+        await expect(driver._postScore()).rejects.toThrow(/AGS proxy rejected score/);
         expect(globalThis.fetch).toHaveBeenCalledOnce();
+    });
+
+    it('posts a dirty grade during commit and clears the retry flag only on success', async () => {
+        driver._stateEndpoint = null;
+        driver.reportScore({ scaled: 0.85 });
+        expect(driver._gradeDirty).toBe(true);
+
+        await driver.commit();
+
+        expect(capturedRequests).toHaveLength(1);
+        expect(driver._gradeDirty).toBe(false);
+    });
+
+    it('keeps a failed grade dirty and leaves the session retryable', async () => {
+        globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 503, statusText: 'Unavailable' });
+        driver._stateEndpoint = null;
+        driver.reportScore({ scaled: 0.85 });
+
+        await expect(driver.terminate()).rejects.toThrow(/AGS proxy rejected score/);
+
+        expect(driver._gradeDirty).toBe(true);
+        expect(driver.isTerminated()).toBe(false);
+    });
+
+    it('does not silently replace learner state after a failed state read', async () => {
+        driver._stateEndpoint = '/api/lti/state';
+        driver._claims = {
+            iss: 'https://platform.example.com',
+            sub: 'user-123',
+            [LTI_SPEC.claims.deploymentId]: 'deployment-1',
+            [LTI_SPEC.claims.resourceLink]: { id: 'resource-1' }
+        };
+        globalThis.fetch = vi.fn().mockResolvedValue({
+            ok: false,
+            status: 503,
+            statusText: 'Unavailable'
+        });
+
+        await expect(driver._prefetchState()).rejects.toThrow(/State prefetch failed/);
+    });
+
+    it('restores a pending grade outbox on the next launch', async () => {
+        driver._stateEndpoint = '/api/lti/state';
+        driver._claims = {
+            iss: 'https://platform.example.com',
+            sub: 'user-123',
+            [LTI_SPEC.claims.deploymentId]: 'deployment-1',
+            [LTI_SPEC.claims.resourceLink]: { id: 'resource-1' }
+        };
+        globalThis.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => ({
+                completionStatus: 'completed',
+                successStatus: 'passed',
+                score: 0.9,
+                gradePending: true,
+                gradeFingerprint: 'pending-grade'
+            })
+        });
+
+        await driver._prefetchState();
+
+        expect(driver._gradeDirty).toBe(true);
+        expect(driver._score).toBe(0.9);
     });
 });
 
@@ -430,6 +496,23 @@ describe('LTI Driver: Cloud-Hosted Detection', () => {
         globalThis.window = { location: { origin: 'https://tool.example.com' } };
         expect(() => driver._resolveTrustedSameOriginEndpoint('https://evil.example/state', 'state')).toThrow(/same-origin/);
         expect(driver._resolveTrustedSameOriginEndpoint('/api/lti/state', 'state')).toBe('https://tool.example.com/api/lti/state');
+    });
+
+    it('namespaces learner state by platform, deployment, resource, and user', () => {
+        driver._claims = {
+            iss: 'https://platform.example.com',
+            sub: 'user-123',
+            [LTI_SPEC.claims.deploymentId]: 'deployment-1',
+            [LTI_SPEC.claims.resourceLink]: { id: 'resource-1' }
+        };
+        const stateKey = JSON.parse(driver._getStateKey());
+
+        expect(stateKey).toEqual({
+            issuer: driver._claims.iss,
+            deploymentId: driver._claims[LTI_SPEC.claims.deploymentId],
+            resourceLinkId: driver._claims[LTI_SPEC.claims.resourceLink].id,
+            userId: driver._claims.sub
+        });
     });
 
     it('_resolveCloudAgsEndpoint reads from meta tag', () => {

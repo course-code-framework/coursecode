@@ -51,6 +51,12 @@ import { initErrorReporter } from './utilities/error-reporter.js';
 import { initDataReporter, reportData } from './utilities/data-reporter.js';
 import { initCourseChannel } from './utilities/course-channel.js';
 import { canvasSlide } from './utilities/canvas-slide.js';
+import { hydratePortableAssetObject } from './utilities/portable-assets.js';
+
+// Portable exports inject their asset map before this module runs. Hydrating
+// config here covers branding and programmatic media sources before managers
+// cache any paths. This is a no-op in LMS and preview builds.
+hydratePortableAssetObject(courseConfig);
 
 // Expose framework modules globally IMMEDIATELY for bundled course slides
 // This MUST happen before any slide code executes (which happens during glob import)

@@ -18,6 +18,11 @@
 import { eventBus } from '../core/event-bus.js';
 import stateManager from '../state/index.js';
 import { logger } from '../utilities/logger.js';
+import { resolvePortableAssetUrl } from '../utilities/portable-assets.js';
+import {
+    DEFAULT_MEDIA_COMPLETION_THRESHOLD,
+    normalizeCompletionThreshold
+} from '../utilities/media-utils.js';
 
 /**
  * @typedef {Object} AudioState
@@ -42,9 +47,6 @@ import { logger } from '../utilities/logger.js';
  * @property {number} [completionThreshold=0.95] - Percentage (0-1) required for completion
  */
 
-/** Default completion threshold (95%) */
-const DEFAULT_COMPLETION_THRESHOLD = 0.95;
-
 class AudioManager {
     constructor() {
         /** @type {HTMLAudioElement|null} */
@@ -61,7 +63,7 @@ class AudioManager {
             duration: 0,
             volume: 1,
             required: false,
-            completionThreshold: DEFAULT_COMPLETION_THRESHOLD,
+            completionThreshold: DEFAULT_MEDIA_COMPLETION_THRESHOLD,
             isCompleted: false
         };
         
@@ -265,7 +267,7 @@ class AudioManager {
         this.state.isPlaying = false;  // Reset - new audio isn't playing
         this.state.position = 0;       // Reset position for new audio
         this.state.required = config.required || false;
-        this.state.completionThreshold = config.completionThreshold ?? DEFAULT_COMPLETION_THRESHOLD;
+        this.state.completionThreshold = normalizeCompletionThreshold(config.completionThreshold);
         this.maxPositionReached = 0;
         
         // Check if already completed (from previous session)
@@ -469,6 +471,10 @@ class AudioManager {
      */
     seek(position) {
         this._requireInitialized();
+
+        if (!Number.isFinite(position)) {
+            throw new Error(`AudioManager.seek: position must be a finite number, got ${position}`);
+        }
         
         if (!this.state.currentSrc || !this.audio.duration) {
             return;
@@ -580,7 +586,7 @@ class AudioManager {
             duration: 0,
             volume: this.state.volume,
             required: false,
-            completionThreshold: DEFAULT_COMPLETION_THRESHOLD,
+            completionThreshold: DEFAULT_MEDIA_COMPLETION_THRESHOLD,
             isCompleted: false
         };
         this.maxPositionReached = 0;
@@ -704,6 +710,9 @@ class AudioManager {
                 }
             }
         }
+
+        const portableSrc = resolvePortableAssetUrl(resolvedSrc);
+        if (portableSrc !== resolvedSrc) return portableSrc;
         
         // If already a full path or URL, return as-is
         if (resolvedSrc.startsWith('http') || resolvedSrc.startsWith('/') || resolvedSrc.startsWith('./')) {
@@ -785,7 +794,7 @@ class AudioManager {
      * @private
      */
     _savePosition() {
-        if (!this.state.contextId || !this.state.position) return;
+        if (!this.state.contextId || !Number.isFinite(this.state.position)) return;
         
         this.positionCache.set(this.state.contextId, this.state.position);
         this._persistPositions();

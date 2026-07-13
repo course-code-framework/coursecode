@@ -10,10 +10,13 @@ let createStandardPackage;
 let createExternalPackagesForClients;
 let validateExternalHostingConfig;
 let loadExternalAccessConfig;
+let createPortableHtmlPlugin;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname);
-const DIST_DIR = path.join(ROOT_DIR, 'dist');
+const BUILD_OUTPUT = process.env.COURSECODE_OUT_DIR || 'dist';
+const DIST_DIR = path.resolve(ROOT_DIR, BUILD_OUTPUT);
+const PORTABLE_HTML = process.env.COURSECODE_PORTABLE_HTML === 'true';
 const SUPPORTED_BROWSER_TARGETS = ['chrome111', 'edge111', 'firefox114', 'safari16.4'];
 
 function directoryContainsFiles(directory) {
@@ -23,6 +26,14 @@ function directoryContainsFiles(directory) {
   ));
 }
 
+function escapeHtmlAttribute(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 async function loadBuildUtils() {
   if (
     generateManifest &&
@@ -30,7 +41,8 @@ async function loadBuildUtils() {
     createStandardPackage &&
     createExternalPackagesForClients &&
     validateExternalHostingConfig &&
-    loadExternalAccessConfig
+    loadExternalAccessConfig &&
+    createPortableHtmlPlugin
   ) {
     return;
   }
@@ -44,6 +56,7 @@ async function loadBuildUtils() {
       loadExternalAccessConfig
     } = await import('coursecode/build-packaging'));
     ({ default: contentDiscoveryPlugin } = await import('coursecode/vite-plugin-content-discovery'));
+    ({ createPortableHtmlPlugin } = await import('coursecode/portable-html'));
   } catch {
     // Fallback for npm link / local dev — preview-server provides COURSECODE_LIB_DIR
     const libDir = process.env.COURSECODE_LIB_DIR;
@@ -57,6 +70,7 @@ async function loadBuildUtils() {
       loadExternalAccessConfig
     } = await import(toUrl('build-packaging.js')));
     ({ default: contentDiscoveryPlugin } = await import(toUrl('vite-plugin-content-discovery.js')));
+    ({ createPortableHtmlPlugin } = await import(toUrl('portable-html.js')));
   }
 }
 
@@ -75,8 +89,13 @@ function validatePackage(format = 'scorm2004') {
   } else if (format === 'lti') {
     requiredFiles = ['lti-tool-config.json', 'index.html'];
   } else if (format === 'scorm1.2') {
-    requiredFiles = ['imsmanifest.xml', 'index.html'];
-    // SCORM 1.2 schemas are optional for most LMSs
+    requiredFiles = [
+      'imsmanifest.xml',
+      'index.html',
+      'imscp_rootv1p1p2.xsd',
+      'adlcp_rootv1p2.xsd',
+      'ims_xml.xsd'
+    ];
   } else {
     // SCORM 2004 default
     requiredFiles = [
@@ -199,6 +218,7 @@ async function loadCourseConfig() {
     lmsFormat,
     externalUrl: process.env.LTI_EXTERNAL_URL || config.externalUrl || null,
     masteryScore: masteryScore ?? null,
+    moveOn: config.lms?.moveOn || null,
     accessControl: loadExternalAccessConfig(ROOT_DIR, config),
     galleryConfig: config.navigation?.documentGallery || null
   };
@@ -276,7 +296,7 @@ function scormPostBuild(isDev, { isWatchBuild }) {
           // Stamp LMS format meta tag for runtime driver selection
           indexContent = indexContent.replace(
             '<meta charset="UTF-8" />',
-            `<meta charset="UTF-8" />\n  <meta name="lms-format" content="${config.lmsFormat}" />`
+            `<meta charset="UTF-8" />\n  <meta name="lms-format" content="${config.lmsFormat}" />\n  <meta name="coursecode-id" content="${escapeHtmlAttribute(`${config.title}:${config.version}`)}" />`
           );
 
           fs.writeFileSync(indexDest, indexContent, 'utf-8');
@@ -285,6 +305,11 @@ function scormPostBuild(isDev, { isWatchBuild }) {
           if (fs.existsSync(frameworkDir) && fs.readdirSync(frameworkDir).length === 0) {
             fs.rmdirSync(frameworkDir);
           }
+        }
+
+        if (PORTABLE_HTML) {
+          if (!isDev) console.log('✓ Portable runtime assembled (LMS package files omitted)');
+          return;
         }
 
         // Generate manifest using factory
@@ -333,6 +358,17 @@ export default defineConfig(async ({ mode }) => {
   const isDev = mode === 'development';
   const isWatchBuild = process.argv.includes('--watch');
   const courseConfig = await loadCourseConfig();
+  const staticCopyTargets = [
+    ...(!PORTABLE_HTML ? [
+      { src: 'schemas/*.{xml,xsd,dtd}', dest: '.', rename: { stripBase: 1 } },
+      { src: 'schemas/common/*', dest: 'common', rename: { stripBase: 2 } },
+      { src: 'framework/js/vendor/**/*', dest: 'js/vendor', rename: { stripBase: 3 } }
+    ] : []),
+    // Publish runtime assets only. Authoring source stays out of every output.
+    ...(directoryContainsFiles(path.join(ROOT_DIR, 'course', 'assets'))
+      ? [{ src: 'course/assets', dest: 'course', rename: { stripBase: 1 } }]
+      : [])
+  ];
 
   return {
     root: '.',
@@ -356,7 +392,7 @@ export default defineConfig(async ({ mode }) => {
     },
 
     build: {
-      outDir: 'dist',
+      outDir: BUILD_OUTPUT,
       emptyOutDir: !isWatchBuild,
       // Stable browser contract for LMS launches. SCORM defines the LMS API,
       // not an obsolete browser requirement; IE11/SystemJS is unsupported.
@@ -372,9 +408,9 @@ export default defineConfig(async ({ mode }) => {
         // LTI OIDC/JWT validation remains server-side, so no browser crypto
         // verification dependency is required here.
         output: {
-          entryFileNames: 'assets/[name].js',
-          chunkFileNames: 'assets/[name].js',
-          assetFileNames: 'assets/[name].[ext]'
+          entryFileNames: 'assets/[name]-[hash].js',
+          chunkFileNames: 'assets/[name]-[hash].js',
+          assetFileNames: 'assets/[name]-[hash].[ext]'
         }
       }
     },
@@ -383,20 +419,12 @@ export default defineConfig(async ({ mode }) => {
       // Content discovery - generates manifest at build time
       contentDiscoveryPlugin({ galleryConfig: courseConfig.galleryConfig }),
 
-      viteStaticCopy({
-        targets: [
-          { src: 'schemas/*.{xml,xsd,dtd}', dest: '.', rename: { stripBase: 1 } },
-          { src: 'schemas/common/*', dest: 'common', rename: { stripBase: 2 } },
-          // Publish runtime assets only. Never ship authoring references,
-          // configuration source, assessment source, or hidden project files.
-          // A blank course is valid and may not contain any assets yet.
-          ...(directoryContainsFiles(path.join(ROOT_DIR, 'course', 'assets'))
-            ? [{ src: 'course/assets', dest: 'course', rename: { stripBase: 1 } }]
-            : []),
-          { src: 'framework/js/vendor/**/*', dest: 'js/vendor', rename: { stripBase: 3 } }
-        ],
+      ...(PORTABLE_HTML ? [createPortableHtmlPlugin()] : []),
+
+      ...(staticCopyTargets.length > 0 ? [viteStaticCopy({
+        targets: staticCopyTargets,
         watch: isDev ? { rerun: true } : undefined
-      }),
+      })] : []),
 
       scormPostBuild(isDev, { isWatchBuild })
     ]

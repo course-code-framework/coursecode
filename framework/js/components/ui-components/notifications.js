@@ -60,16 +60,21 @@ export function setup() {
  * Initializes declarative notification triggers in a container using event delegation.
  * @param {HTMLElement} container
  */
-export function init(container) {
+export function initNotificationTriggers(container) {
     // Use event delegation to handle dynamically rendered content
-    container.addEventListener('click', (event) => {
+    const handleClick = (event) => {
         const trigger = event.target.closest('[data-action="show-notification"]');
         if (trigger) {
             const type = trigger.dataset.type || 'info';
             const message = trigger.dataset.message || 'Notification';
             showNotification(message, type);
         }
-    });
+    };
+    container.addEventListener('click', handleClick);
+
+    return {
+        destroy: () => container.removeEventListener('click', handleClick)
+    };
 }
 
 export function showNotification(message, type = 'info', duration = 5000, options = {}) {

@@ -67,6 +67,7 @@ async function loadCourseConfig() {
     lmsFormat,
     externalUrl: process.env.LTI_EXTERNAL_URL || config.externalUrl || (lmsFormat === 'lti' ? 'http://localhost:4173' : null),
     masteryScore: masteryScore ?? null,
+    moveOn: config.lms?.moveOn || null,
     accessControl: loadExternalAccessConfig(ROOT_DIR, config),
     galleryConfig: config.navigation?.documentGallery || null
   };
@@ -287,9 +288,9 @@ export default defineConfig(async ({ mode: _mode }) => {
           main: path.resolve(__dirname, 'framework/index.html')
         },
         output: {
-          entryFileNames: 'assets/[name].js',
-          chunkFileNames: 'assets/[name].js',
-          assetFileNames: 'assets/[name].[ext]'
+          entryFileNames: 'assets/[name]-[hash].js',
+          chunkFileNames: 'assets/[name]-[hash].js',
+          assetFileNames: 'assets/[name]-[hash].[ext]'
         }
       }
     },

@@ -8,6 +8,7 @@
  *   coursecode init [name]    - Initialize the current directory
  *   coursecode dev            - Start development server
  *   coursecode build          - Build course package
+ *   coursecode export html    - Create a portable single-file course
  *   coursecode upgrade        - Upgrade framework in current project
  *   coursecode clean          - Remove example files from project
  *   coursecode new <type>     - Create new slide, assessment, or config
@@ -121,6 +122,21 @@ program
   .action(async (options) => {
     const { build } = await import('../lib/build.js');
     await build(options);
+  });
+
+// Standalone export commands
+const exportCommand = program
+  .command('export')
+  .description('Export a course for use outside an LMS');
+
+exportCommand
+  .command('html')
+  .description('Create one shareable HTML file that opens without a server')
+  .option('-o, --output <file>', 'Output HTML file path (defaults to the course title)')
+  .option('--no-lint', 'Skip the course lint step')
+  .action(async (options) => {
+    const { exportPortableHtml } = await import('../lib/portable-html.js');
+    await exportPortableHtml(options);
   });
 
 // Lint command

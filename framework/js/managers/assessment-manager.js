@@ -17,6 +17,21 @@
 import { deepMerge } from '../utilities/utilities.js';
 import stateManager from '../state/index.js';
 import { createAssessmentInstance } from '../assessment/AssessmentFactory.js';
+
+/**
+ * Resolves the runtime assessment ID from a derived slide entry or a raw
+ * course-structure entry. CourseHelpers normally supplies assessmentId from
+ * the assessment module; slide.id is the documented authoring fallback.
+ * @param {object} slide
+ * @returns {string}
+ */
+export function resolveAssessmentId(slide) {
+    const assessmentId = slide?.assessmentId || slide?.id;
+    if (!assessmentId || typeof assessmentId !== 'string') {
+        throw new Error('AssessmentManager: assessment slide requires assessmentId or id');
+    }
+    return assessmentId;
+}
 import { logger } from '../utilities/logger.js';
 
 /**
@@ -190,7 +205,7 @@ export function allAssessmentsMeetRequirements(assessmentSlides = []) {
     }
 
     return assessmentsWithRequirements.every(slide =>
-        meetsCompletionRequirements(slide.assessmentId, slide.assessment.completionRequirements)
+        meetsCompletionRequirements(resolveAssessmentId(slide), slide.assessment.completionRequirements)
     );
 }
 

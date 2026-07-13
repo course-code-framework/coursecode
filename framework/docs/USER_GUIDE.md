@@ -51,6 +51,7 @@ A complete guide to creating interactive e-learning courses with AI assistance. 
 9. [Sharing and Deploying](#sharing-and-deploying)
    - [Sharing Previews](#sharing-previews)
    - [Preview Export Options](#preview-export-options)
+   - [Sharing One File Without a Server](#sharing-one-file-without-a-server)
    - [Understanding LMS Formats](#understanding-lms-formats)
    - [Standard Deployment](#standard-deployment)
    - [CDN Deployment (Advanced)](#cdn-deployment-advanced)
@@ -636,6 +637,19 @@ coursecode preview --export --no-content
 - `--skip-build`: export from existing `dist/` without rebuilding
 - `--nojekyll`: add `.nojekyll` (important for GitHub Pages)
 - `--no-content`: hide the content viewer panel in exported preview
+
+### Sharing One File Without a Server
+
+For training that will be opened directly from email, a shared drive, USB media, or a local computer, export one portable HTML file:
+
+```bash
+coursecode export html
+coursecode export html --output ./Safety_Training.html
+```
+
+The recipient double-clicks the `.html` file and uses it in a modern browser. CourseCode embeds the learner runtime and local course assets, so no LMS, web server, install, or ZIP extraction is required. Progress and resume state are saved locally in the browser when `file://` storage is available. If the browser blocks local storage, the course still works but restore is limited to the current session.
+
+This export is a good fit for informal training, reference material, stakeholder review, offline delivery, and unmanaged kiosks. It does not provide centralized learner records, identity, administrator reporting, cross-device sync, or certified completion evidence. Internet-hosted content such as YouTube still needs a connection, and large audio/video files make the exported HTML correspondingly large.
 
 ### Understanding LMS Formats
 

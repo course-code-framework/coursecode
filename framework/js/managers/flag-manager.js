@@ -48,6 +48,7 @@ class FlagManager {
      * @returns {any} The value of the flag, or undefined if not found.
      */
     getFlag(key) {
+        if (!Object.hasOwn(this.flags, key)) return undefined;
         const val = this.flags[key];
         return (val && typeof val === 'object') ? deepClone(val) : val;
     }
@@ -62,6 +63,9 @@ class FlagManager {
         if (typeof key !== 'string' || key.trim() === '') {
             throw new Error('FlagManager: setFlag requires a non-empty string key.');
         }
+        if (key === '__proto__' || key === 'prototype' || key === 'constructor') {
+            throw new Error(`FlagManager: reserved flag key "${key}" is not allowed.`);
+        }
 
         this.flags[key] = value;
 
@@ -74,7 +78,7 @@ class FlagManager {
      * @param {string} key - The key for the flag to remove.
      */
     removeFlag(key) {
-        if (this.flags.hasOwnProperty(key)) {
+        if (Object.hasOwn(this.flags, key)) {
             delete this.flags[key];
             stateManager.setDomainState(this.DOMAIN_KEY, this.flags, { source: this.SOURCE });
             eventBus.emit('flag:removed', { key });

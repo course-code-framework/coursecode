@@ -15,6 +15,7 @@ vi.mock('../../../framework/js/drivers/driver-factory.js', () => ({
 const { LMSConnection } = await import('../../../framework/js/state/lms-connection.js');
 const { eventBus } = await import('../../../framework/js/core/event-bus.js');
 const { logger } = await import('../../../framework/js/utilities/logger.js');
+const { default: stateManager } = await import('../../../framework/js/state/state-manager.js');
 
 describe('LMSConnection diagnostics and compatibility', () => {
     beforeEach(() => {
@@ -24,6 +25,8 @@ describe('LMSConnection diagnostics and compatibility', () => {
 
     afterEach(() => {
         vi.useRealTimers();
+        vi.unstubAllGlobals();
+        vi.restoreAllMocks();
     });
 
     function createDriverStub(overrides = {}) {
@@ -102,5 +105,60 @@ describe('LMSConnection diagnostics and compatibility', () => {
         await conn.commit();
 
         expect(conn.getDiagnostics().profile).toBe('modern-http');
+    });
+
+    it('reports emergency staging failures with structured production-visible context', () => {
+        const addEventListener = vi.fn();
+        vi.stubGlobal('window', { addEventListener });
+        vi.spyOn(stateManager, 'prepareEmergencySave').mockImplementation(() => {
+            throw new Error('state serialization failed');
+        });
+
+        const conn = new LMSConnection();
+        conn.format = 'scorm1.2';
+        conn.driver = createDriverStub({ emergencySave: vi.fn() });
+        conn.setupLifecycleHandlers();
+
+        const pagehideHandler = addEventListener.mock.calls.find(([event]) => event === 'pagehide')[1];
+        pagehideHandler();
+
+        expect(logger.error).toHaveBeenCalledWith(
+            '[LMSConnection] Failed to stage emergency state',
+            expect.objectContaining({
+                domain: 'state',
+                operation: 'prepareEmergencySave',
+                format: 'scorm1.2',
+                error: 'state serialization failed'
+            })
+        );
+        expect(conn.driver.emergencySave).toHaveBeenCalledOnce();
+    });
+
+    it('reports driver emergency-save failures with structured context', () => {
+        const addEventListener = vi.fn();
+        vi.stubGlobal('window', { addEventListener });
+        vi.spyOn(stateManager, 'prepareEmergencySave').mockImplementation(() => {});
+
+        const conn = new LMSConnection();
+        conn.format = 'scorm2004';
+        conn.driver = createDriverStub({
+            emergencySave: vi.fn(() => {
+                throw new Error('LMS commit rejected');
+            })
+        });
+        conn.setupLifecycleHandlers();
+
+        const pagehideHandler = addEventListener.mock.calls.find(([event]) => event === 'pagehide')[1];
+        pagehideHandler();
+
+        expect(logger.error).toHaveBeenCalledWith(
+            '[LMSConnection] Driver emergency save failed',
+            expect.objectContaining({
+                domain: 'lms',
+                operation: 'emergencySave',
+                format: 'scorm2004',
+                error: 'LMS commit rejected'
+            })
+        );
     });
 });

@@ -116,6 +116,28 @@ describe('ScoreManager: config validation', () => {
         })).toThrow('requires sources with {id, weight}');
     });
 
+    it.each([NaN, Infinity, -0.1, 1.1])('rejects invalid weighted value %s', (weight) => {
+        expect(() => ScoreManager.initialize({
+            type: 'weighted',
+            sources: [
+                { id: 'assessment:q1', weight },
+                { id: 'assessment:q2', weight: 1 }
+            ]
+        })).toThrow('requires sources with {id, weight}');
+    });
+
+    it('rejects malformed source IDs', () => {
+        expect(() => ScoreManager.initialize({
+            type: 'average', sources: ['final-exam']
+        })).toThrow('Invalid source ID');
+    });
+
+    it('rejects duplicate source IDs', () => {
+        expect(() => ScoreManager.initialize({
+            type: 'average', sources: ['assessment:q1', 'assessment:q1']
+        })).toThrow('must be unique');
+    });
+
     it('throws when weighted sources weights do not sum to 1.0', () => {
         expect(() => ScoreManager.initialize({
             type: 'weighted',

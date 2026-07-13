@@ -103,6 +103,7 @@ function createTestableDriver() {
 
     driver._cmi5 = {
         getLaunchParameters: () => ({
+            endpoint: 'https://lrs.example.com/xapi',
             activityId: 'https://example.com/course/test-course',
             registration: 'reg-uuid-1234',
             actor: { mbox: 'mailto:test@example.com' }
@@ -110,12 +111,15 @@ function createTestableDriver() {
         getLaunchData: () => ({
             launchMode: 'Normal',
             moveOn: 'CompletedOrPassed',
-            masteryScore: 0.8
+            masteryScore: 0.8,
+            contextTemplate: {
+                extensions: { 'https://example.com/template': 'preserved' }
+            }
         }),
+        sendXapiStatement: async (stmt) => {
+            sentStatements.push(JSON.parse(JSON.stringify(stmt)));
+        },
         xapi: {
-            sendStatement: async (stmt) => {
-                sentStatements.push(JSON.parse(JSON.stringify(stmt)));
-            },
             setState: async () => {}
         },
         complete: async () => { sentStatements.push({ _lifecycle: 'completed' }); },
@@ -286,6 +290,18 @@ describe('cmi5 Spec: Statement Structure Requirements', () => {
         expect(sentStatements[2].object.id).toBe(`${activityId}/slides/slide1`);
         expect(sentStatements[3].object.id).toBe(`${activityId}/assessments/quiz1`);
     });
+
+    it('encodes learner-content identifiers into valid activity IRIs', async () => {
+        const { driver, sentStatements } = createTestableDriver();
+        await driver.sendInteractionStatement({
+            id: 'question 1/#a', type: 'choice', response: 'a', correct: true,
+            objectiveId: 'objective #1'
+        });
+
+        expect(sentStatements[0].object.id).toContain('/interactions/question%201%2F%23a');
+        expect(sentStatements[0].context.contextActivities.other[0].id)
+            .toContain('/objectives/objective%20%231');
+    });
 });
 
 // ═════════════════════════════════════════════════════════════════════
@@ -362,6 +378,13 @@ describe('cmi5 Spec: Result Fields', () => {
         await driver.sendObjectiveStatement({ id: 'obj-1', verb: 'failed', score: 0.3 });
 
         expect(sentStatements[0].result.success).toBe(false);
+    });
+
+    it('includes completion and success results when an objective has no score or duration', async () => {
+        const { driver, sentStatements } = createTestableDriver();
+        await driver.sendObjectiveStatement({ id: 'obj-1', verb: 'passed' });
+
+        expect(sentStatements[0].result).toEqual({ completion: true, success: true });
     });
 
     it('slide duration is included in result when provided', async () => {
@@ -459,6 +482,21 @@ describe('cmi5 Spec: Lifecycle Statement Order', () => {
         expect(sentStatements[0]._lifecycle).toBe('terminated');
     });
 
+    it('sends Passed after a previously reported Failed result on a successful retake', async () => {
+        const { driver, sentStatements } = createTestableDriver();
+        driver._sentComplete = true;
+        driver.reportSuccess('failed');
+        driver.reportScore({ scaled: 0.4 });
+        await driver.commit();
+
+        driver.reportSuccess('passed');
+        driver.reportScore({ scaled: 0.9 });
+        await driver.commit();
+
+        expect(sentStatements.filter(statement => statement._lifecycle).map(statement => statement._lifecycle))
+            .toEqual(['failed', 'passed']);
+    });
+
     it('terminate sends score with Passed statement', async () => {
         const { driver, sentStatements } = createTestableDriver();
         driver._completionStatus = 'completed';
@@ -471,5 +509,48 @@ describe('cmi5 Spec: Lifecycle Statement Order', () => {
 
         expect(sentStatements[0]._lifecycle).toBe('passed');
         expect(sentStatements[0].score).toEqual({ scaled: 0.85 });
+    });
+});
+
+describe('cmi5 Spec: Allowed statement envelope', () => {
+    it('includes the launch actor and preserves context template extensions', async () => {
+        const { driver, sentStatements } = createTestableDriver();
+
+        await driver.sendSlideStatement({ id: 'slide-1', title: 'Intro' });
+
+        expect(sentStatements[0].actor).toEqual({ mbox: 'mailto:test@example.com' });
+        expect(sentStatements[0].context.extensions['https://example.com/template']).toBe('preserved');
+        expect(sentStatements[0].context.registration).toBe('reg-uuid-1234');
+    });
+
+    it('refuses to start fresh when the LRS state read fails', async () => {
+        const { driver } = createTestableDriver();
+        driver._cmi5.xapi.getState = vi.fn().mockRejectedValue({
+            message: 'Unauthorized',
+            response: { status: 401 }
+        });
+
+        await expect(driver._prefetchState()).rejects.toThrow(/Unable to load suspend_data/);
+    });
+
+    it('uses authenticated keepalive requests for emergency state saves', async () => {
+        const { driver } = createTestableDriver();
+        driver._cmi5.getAuthToken = () => 'launch-token';
+        driver._suspendDataCache = { navigation: { currentSlide: 'slide-2' } };
+        driver._suspendDataDirty = true;
+        const originalFetch = globalThis.fetch;
+        globalThis.fetch = vi.fn().mockResolvedValue({ ok: true });
+
+        try {
+            driver.emergencySave();
+            await Promise.resolve();
+            const [, options] = globalThis.fetch.mock.calls[0];
+            expect(options.keepalive).toBe(true);
+            expect(options.method).toBe('PUT');
+            expect(options.headers.Authorization).toBe('Basic launch-token');
+            expect(options.headers['X-Experience-API-Version']).toBe('1.0.3');
+        } finally {
+            globalThis.fetch = originalFetch;
+        }
     });
 });

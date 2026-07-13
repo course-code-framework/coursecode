@@ -40,6 +40,7 @@ import * as NavigationState from '../../navigation/NavigationState.js';
 import * as AudioPlayer from './audio-player.js';
 import { eventBus } from '../../core/event-bus.js';
 import { logger } from '../../utilities/logger.js';
+import { normalizeCompletionThreshold } from '../../utilities/media-utils.js';
 import { renderCompactPlayer } from './audio-player.js';
 
 // Schema for validation, linting, and AI-assisted authoring
@@ -144,7 +145,7 @@ export function setup() {
  * @param {HTMLElement} trigger 
  */
 export function init(trigger) {
-    trigger.addEventListener('click', () => {
+    const handleClick = () => {
         const title = trigger.dataset.title || 'Modal';
         let body = trigger.dataset.body || '';
         let footer = trigger.dataset.footer || '<button class="btn btn-secondary" data-action="close-modal">Close</button>';
@@ -183,7 +184,7 @@ export function init(trigger) {
             src: audioSrc,
             autoplay: trigger.dataset.audioAutoplay === 'true',
             required: trigger.dataset.audioRequired === 'true',
-            completionThreshold: parseFloat(trigger.dataset.audioThreshold) || 0.95
+            completionThreshold: normalizeCompletionThreshold(trigger.dataset.audioThreshold)
         } : null;
 
         // Get modal ID for tracking (from trigger id or generate one)
@@ -200,7 +201,15 @@ export function init(trigger) {
                 closeOnEscape: trigger.dataset.closeOnEscape !== 'false'
             }
         });
-    });
+    };
+
+    trigger.addEventListener('click', handleClick);
+    return {
+        destroy: () => {
+            trigger.removeEventListener('click', handleClick);
+            if (isVisible()) hide();
+        }
+    };
 }
 
 /**
@@ -281,7 +290,7 @@ export async function show({ title, body, footer = '', modalId = null, config = 
                 src: audio.src,
                 autoplay: audio.autoplay === true,
                 required: audio.required || false,
-                completionThreshold: audio.completionThreshold || 0.95
+                completionThreshold: normalizeCompletionThreshold(audio.completionThreshold)
             }, audioContextId, 'modal');
             modalAudioLoaded = true;
 

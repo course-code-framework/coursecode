@@ -1,8 +1,9 @@
 import { eventBus } from '../core/event-bus.js';
 import { logger } from './logger.js';
 import { validateRenderedHTML } from '../validation/html-validators.js';
-import { initializeDeclarativeComponents } from './ui-initializer.js';
+import { cleanupDeclarativeComponents, initializeDeclarativeComponents } from './ui-initializer.js';
 import { courseConfig } from '../../../course/course-config.js';
+import { rewritePortableAssetAttributes } from './portable-assets.js';
 
 /**
  * Creates a view manager for a given container element.
@@ -78,8 +79,19 @@ export function createViewManager(container, scope = 'local') {
         // Auto-wrap content with content-width class if configured and not already wrapped
         newElement = autoWrapContentIfNeeded(newElement, name);
 
+        // Convert copied course assets to embedded data URLs before components
+        // initialize and begin loading media in a portable HTML export.
+        rewritePortableAssetAttributes(newElement);
+
         // Validate rendered HTML for common issues BEFORE adding to DOM
         validateRenderedContent(newElement, name);
+
+        // Release component resources before removing the old view. Some
+        // components subscribe to document-level events or own media managers,
+        // so removing their DOM alone is not sufficient cleanup.
+        if (oldElement) {
+            cleanupDeclarativeComponents(oldElement);
+        }
 
         // Clear container and add new view
         container.innerHTML = '';
@@ -242,6 +254,9 @@ export function createViewManager(container, scope = 'local') {
             const currentView = views[currentViewName];
             if (currentElement && typeof currentView.onHide === 'function') {
                 currentView.onHide(currentElement);
+            }
+            if (currentElement) {
+                cleanupDeclarativeComponents(currentElement);
             }
         }
         container.innerHTML = '';

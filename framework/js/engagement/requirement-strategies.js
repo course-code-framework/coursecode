@@ -250,7 +250,11 @@ export default strategies;
 export const validTypes = Object.keys(strategies);
 
 // ── Core fields not owned by any single strategy ────────────────────
-const CORE_FIELDS = { flipCardsRegistered: [] };
+const CORE_FIELDS = {
+    flipCardsRegistered: [],
+    interactiveImageHotspotsRegistered: [],
+    lightboxesRegistered: []
+};
 
 /**
  * Aggregate all tracked field defaults from strategy declarations.

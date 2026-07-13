@@ -229,6 +229,75 @@ export function formatLearnerResponseForScorm(interactionType, response) {
     }
 }
 
+/** SCORM 1.2 interaction vocabulary (RTE 1.2.7). */
+export const SCORM_12_INTERACTION_TYPES = [
+    'true-false',
+    'choice',
+    'fill-in',
+    'matching',
+    'performance',
+    'likert',
+    'sequencing',
+    'numeric'
+];
+
+/**
+ * Converts framework/SCORM 2004 interaction data to the materially different
+ * SCORM 1.2 vocabulary and response syntax.
+ *
+ * The framework keeps one lossless internal representation. Unsupported 2004
+ * types are represented as fill-in rows in the optional native 1.2 interaction
+ * array; the original record remains intact in suspend_data.
+ */
+export function serializeInteractionForScorm12(interaction) {
+    const type = SCORM_12_INTERACTION_TYPES.includes(interaction.type)
+        ? interaction.type
+        : 'fill-in';
+
+    const convertResponse = value => {
+        if (value === null || value === undefined) return '';
+        let serialized = String(value);
+
+        if (interaction.type === 'true-false') {
+            const normalized = serialized.toLowerCase().trim();
+            if (normalized === 'true' || normalized === 't' || normalized === '1') return 't';
+            if (normalized === 'false' || normalized === 'f' || normalized === '0') return 'f';
+            return '';
+        }
+
+        if (interaction.type === 'choice' || interaction.type === 'sequencing') {
+            serialized = serialized.replaceAll('[,]', ',');
+        } else if (interaction.type === 'matching') {
+            serialized = serialized.replaceAll('[.]', '.').replaceAll('[,]', ',');
+        }
+
+        // CMIString values in SCORM 1.2 are ASCII. Escape non-ASCII code units
+        // instead of submitting an invalid value that strict LMSs reject.
+        return serialized.replace(/[^\x00-\x7F]/g, char =>
+            `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`
+        );
+    };
+
+    const result = interaction.result === 'incorrect'
+        ? 'wrong'
+        : interaction.result;
+
+    return {
+        ...interaction,
+        id: convertResponse(interaction.id),
+        type,
+        learner_response: convertResponse(interaction.learner_response),
+        result,
+        correct_responses: interaction.correct_responses?.map(item => {
+            if (typeof item === 'object' && item !== null && 'pattern' in item) {
+                return { ...item, pattern: convertResponse(item.pattern) };
+            }
+            return convertResponse(item);
+        }),
+        objectives: interaction.objectives?.map(convertResponse)
+    };
+}
+
 /**
  * SCORM 2004 4th Edition valid completion status values.
  * @constant {string[]}

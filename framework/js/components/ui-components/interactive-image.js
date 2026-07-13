@@ -51,21 +51,14 @@ export function init(root, _options = {}) {
     const currentSlideId = NavigationState.getCurrentSlideId();
     const imageId = container.id || `interactive-image-${Math.random().toString(36).substr(2, 9)}`;
     const accordionId = container.dataset.accordionId;
-
-    // Register with EngagementManager if on a slide
-    if (currentSlideId) {
-        const hotspotIds = hotspots.map(h => h.dataset.hotspotId);
-        if (typeof engagementManager.registerInteractiveImage === 'function') {
-            engagementManager.registerInteractiveImage(currentSlideId, hotspotIds);
-        }
-    }
+    const cleanups = [];
 
     // Setup Accordion Integration if ID is provided
     let accordionElement = null;
     if (accordionId) {
         accordionElement = document.getElementById(accordionId);
         if (accordionElement) {
-            setupAccordionIntegration(container, hotspots, accordionElement, accordionId);
+            cleanups.push(setupAccordionIntegration(hotspots, accordionElement, accordionId));
         } else {
             logger.warn(`[InteractiveImage] Accordion #${accordionId} not found for image ${imageId}`);
         }
@@ -113,21 +106,30 @@ export function init(root, _options = {}) {
             }
         };
 
-        hotspot.addEventListener('click', handleClick);
-        hotspot.addEventListener('keydown', (e) => {
+        const handleKeydown = (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 handleClick(e);
             }
+        };
+
+        hotspot.addEventListener('click', handleClick);
+        hotspot.addEventListener('keydown', handleKeydown);
+        cleanups.push(() => {
+            hotspot.removeEventListener('click', handleClick);
+            hotspot.removeEventListener('keydown', handleKeydown);
         });
     });
 
     logger.debug(`[InteractiveImage] Initialized ${hotspots.length} hotspots for ${imageId}`);
+    return {
+        destroy: () => cleanups.forEach(cleanup => cleanup())
+    };
 }
 
 /**
  * Sets up bi-directional sync between image hotspots and accordion panels.
  */
-function setupAccordionIntegration(imageContainer, hotspots, accordionElement, accordionId) {
+function setupAccordionIntegration(hotspots, accordionElement, accordionId) {
     // Map hotspots by ID for quick access
     const hotspotMap = new Map(hotspots.map(h => [h.dataset.hotspotId, h]));
 
@@ -156,25 +158,23 @@ function setupAccordionIntegration(imageContainer, hotspots, accordionElement, a
 
     // 2. Hover Effects (Accordion Button -> Image Hotspot)
     const buttons = accordionElement.querySelectorAll('[data-panel]');
+    const buttonCleanups = [];
     buttons.forEach(btn => {
         const panelId = btn.dataset.panel;
         const hotspot = hotspotMap.get(panelId);
 
         if (hotspot) {
-            btn.addEventListener('mouseenter', () => {
-                hotspot.classList.add('highlighted');
-            });
-
-            btn.addEventListener('mouseleave', () => {
-                hotspot.classList.remove('highlighted');
-            });
-
-            btn.addEventListener('focus', () => {
-                hotspot.classList.add('highlighted');
-            });
-
-            btn.addEventListener('blur', () => {
-                hotspot.classList.remove('highlighted');
+            const highlight = () => hotspot.classList.add('highlighted');
+            const unhighlight = () => hotspot.classList.remove('highlighted');
+            btn.addEventListener('mouseenter', highlight);
+            btn.addEventListener('mouseleave', unhighlight);
+            btn.addEventListener('focus', highlight);
+            btn.addEventListener('blur', unhighlight);
+            buttonCleanups.push(() => {
+                btn.removeEventListener('mouseenter', highlight);
+                btn.removeEventListener('mouseleave', unhighlight);
+                btn.removeEventListener('focus', highlight);
+                btn.removeEventListener('blur', unhighlight);
             });
         }
     });
@@ -196,40 +196,16 @@ function setupAccordionIntegration(imageContainer, hotspots, accordionElement, a
         }
     };
 
-    // Component lifecycle cleanup using MutationObserver
-    // When the container is removed from DOM, we automatically clean up all listeners
     const cleanupListeners = () => {
         document.removeEventListener('click', safeHandleOutsideClick);
         eventBus.off('accordion:toggled', handleAccordionToggle);
-        if (observer) {
-            observer.disconnect();
-        }
+        buttonCleanups.forEach(cleanup => cleanup());
     };
 
     const safeHandleOutsideClick = (e) => {
-        if (!document.body.contains(imageContainer)) {
-            cleanupListeners();
-            return;
-        }
         handleOutsideClick(e);
     };
 
-    // Use MutationObserver to detect when container is removed from DOM
-    const observer = new MutationObserver((mutations) => {
-        for (const mutation of mutations) {
-            for (const node of mutation.removedNodes) {
-                if (node === imageContainer || node.contains?.(imageContainer)) {
-                    cleanupListeners();
-                    return;
-                }
-            }
-        }
-    });
-
-    // Observe parent for child removals (handles SPA navigation cleanup)
-    if (imageContainer.parentNode) {
-        observer.observe(imageContainer.parentNode, { childList: true });
-    }
-
     document.addEventListener('click', safeHandleOutsideClick);
+    return cleanupListeners;
 }

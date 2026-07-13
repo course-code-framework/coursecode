@@ -146,13 +146,14 @@ export function validateNavigationFrom(slide, assessmentConfigs) {
 
     // Check if this is an assessment with completion requirements that block navigation
     if (slide.type === 'assessment') {
-        const config = assessmentConfigs.get(slide.assessmentId);
+        const assessmentId = AssessmentManager.resolveAssessmentId(slide);
+        const config = assessmentConfigs.get(assessmentId);
         const requirements = config?.completionRequirements;
 
         // Only block if blockNavigation is explicitly true
         if (requirements?.blockNavigation === true) {
             const requirementsMet = AssessmentManager.meetsCompletionRequirements(
-                slide.assessmentId,
+                assessmentId,
                 requirements
             );
 

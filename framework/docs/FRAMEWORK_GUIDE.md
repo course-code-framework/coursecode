@@ -72,7 +72,7 @@ The framework supports multiple LMS formats:
 | `scorm1.2` | SCORM 1.2 (legacy LMS) | 4KB suspend_data (Strict Diet Mode found in `scorm-12-driver.js`) |
 | `lti` | LTI 1.3 (remote-hosted, JWT launch) | Unlimited (host-dependent) |
 
-> **Note on SCORM 1.2 Strict Diet Mode:** To stay within the 4KB limit, this mode only persists interaction responses for the *current* slide. If a user navigates away and returns, their previous answers on other slides may not be restored visually, although their completion status/score for assessments is always preserved.
+> **Note on SCORM 1.2 Strict Diet Mode:** The framework preserves the complete CourseCode state and compresses it into an ASCII-safe representation. If the compressed value still exceeds SCORM 1.2's 4,096-character limit, the write fails loudly instead of silently discarding learner state. Courses that exceed the limit must reduce persisted data or use SCORM 2004, cmi5, or LTI.
 
 **Set format in `course-config.js`** (for local CLI builds):
 ```javascript
@@ -138,10 +138,19 @@ The browser only downloads the one chunk matching the meta tag. Unused driver ch
 |---------|--------|---------|
 | `coursecode build` | `dist/` | Universal build + format manifest + meta tag stamped |
 | `coursecode build` (with `PACKAGE=true`) | `dist/` + ZIP | Same + format-specific ZIP for LMS upload |
+| `coursecode export html` | `<course-title>.html` | One portable learner file with an embedded standalone driver and course assets; no LMS manifest or server |
 | `coursecode preview --export` | `course-preview/` | Copy of `dist/` wrapped in stub player (for Netlify/GitHub Pages) |
 | `coursecode deploy` | Uploads `dist/` | Cloud hosts universal build, assembles format ZIPs on demand. Flags: `--promote` (force live), `--stage` (force staged), `--preview` (preview-only: production untouched, preview always moved), `--repair-binding` (clear stale local cloud binding first if the remote course was deleted). `--promote`/`--stage` are mutually exclusive; `--preview` stacks with either. **GitHub-linked courses**: production deploy blocked; only `--preview` allowed (see GitHub Source Guard below). |
 
 The ZIP never includes preview/stub player assets. Preview is a separate concern (see below).
+
+#### Portable HTML Architecture
+
+`coursecode export html` is intentionally smaller than preview export. It builds the normal learner runtime with `LMS_FORMAT=standalone`, uses `vite-plugin-singlefile` to inline generated JavaScript and CSS, embeds copied files from `course/assets/` plus the document-gallery manifest as data URLs, and omits LMS schemas, manifests, packaging, and the preview/stub-player shell.
+
+The standalone driver keeps the same semantic state contract as the LMS drivers. It saves bookmark, completion, success, score, and CourseCode suspend state to browser `localStorage`, keyed by course title and version. Restore is best effort because browsers define storage behavior for `file://` documents; when storage is unavailable, the course remains usable and keeps state only for the open session.
+
+Portable HTML is for direct file sharing, offline reference/training, USB delivery, and unmanaged kiosks. It does not provide learner identity, centralized reporting, cross-device sync, tamper-resistant records, or an administrator view. Remote embeds such as YouTube still require network access, and media-heavy courses can produce large HTML files.
 
 #### Re-Stamping for Different Formats
 
@@ -166,7 +175,9 @@ Both are pure Node utilities.
 |------|---------|
 | `framework/js/state/lms-connection.js` | `getLMSFormat()` — runtime priority chain (meta → env → default) |
 | `framework/js/drivers/driver-factory.js` | Dynamic `import()` switch — loads one driver at runtime |
+| `framework/js/drivers/standalone-driver.js` | Best-effort local persistence for portable HTML |
 | `lib/build-packaging.js` | `stampFormat()` — pure string meta tag re-stamping; `stampFormatInHtml()` — file-based wrapper |
+| `lib/portable-html.js` | Single-file Vite plugin wrapper, copied-asset embedding, and export validation |
 | `lib/manifest/manifest-factory.js` | `generateManifest()` — generates format-specific manifests |
 | Both `vite.config.js` files | Post-build `closeBundle` hook stamps meta tag into `dist/index.html` |
 
@@ -385,7 +396,7 @@ After images are acquired, the module:
 | `state-validation.js` | State hydration, migration, validation |
 | `transaction-log.js` | Ring buffer for debugging |
 
-> **Compression:** `cmi.suspend_data` is automatically compressed via `lz-string` (UTF16) in the driver layer. This is transparent to all consumers.
+> **Persistence encoding:** SCORM 2004 uses `lz-string` UTF-16 compression. SCORM 1.2 uses an ASCII-safe `CC12:` encoded representation because legacy LMS implementations may reject UTF-16 suspend data. cmi5 and LTI persist structured JSON through their HTTP state endpoints. These format differences are transparent to framework consumers.
 
 #### Domain API
 
@@ -474,7 +485,7 @@ Migrations run sequentially (v1→v2→v3), so each only handles one version jum
 
 ## Logging & Error Handling
 
-**Two complementary systems - use BOTH:**
+**Logger and event communication are integrated:** use `logger.*` for observability. `logger.warn()`, `logger.error()`, and `logger.fatal()` automatically emit structured `log:warn` or `log:error` events. Emit an additional domain event only when another framework component needs to react to that specific failure; do not duplicate a `log:error` event manually.
 
 ### Logger (Observability)
 
@@ -495,7 +506,7 @@ Global as `logger` or `window.logger` (no import needed). Auto-filtered by envir
 |------|------|----------|---------|
 | **Tier 1** | Contract violations, programming errors | Always `throw` | Wrong parameter types, API misuse, double-init |
 | **Tier 2** | Runtime/init failures (missing DOM, bad config) | `logger.fatal()` → throws in DEV, logs+degrades in PROD | Missing container element, invalid data attributes |
-| **Tier 3** | Existing dual-mode functions | Logger + eventBus only | Driver warnings, state persistence failures |
+| **Tier 3** | Recoverable background or unload failures | Structured logger event; retain/retry or emit a domain event when actionable | Debounced commit retry, best-effort unload save |
 
 **`logger.fatal(message, context)`** — Tier 2 handler in `framework/js/utilities/logger.js`:
 
@@ -515,7 +526,14 @@ All error events follow the standardized shape:
 { domain, operation, message, stack?, context? }
 ```
 
-**When to catch:** Only to show user notification or cleanup, then MUST re-throw:
+**When to catch depends on who can still act on the failure:**
+
+- **Critical awaited work** (assessment submission, completion, explicit flush/terminate): log or clean up, then re-throw so the caller cannot treat the operation as successful.
+- **Detached background work** (debounced commits): do not create an unhandled rejection. Log with structured context, preserve dirty state, and retry or emit an actionable domain event.
+- **Unload/pagehide work**: the browser is leaving and cannot await a recovery path. Use the driver's best-effort unload transport and log any synchronous or asynchronous failure with structured context; do not re-throw into the abandoned event handler.
+- **Expected capability probes**: a documented unsupported optional LMS field may degrade to a conservative default. Do not suppress failures for required resume, completion, score, or assessment fields.
+
+Critical-path example:
 
 ```javascript
 try {

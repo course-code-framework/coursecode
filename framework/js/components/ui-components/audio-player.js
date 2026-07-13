@@ -60,6 +60,7 @@ import engagementManager from '../../engagement/engagement-manager.js';
 import * as NavigationState from '../../navigation/NavigationState.js';
 import { logger } from '../../utilities/logger.js';
 import { iconManager } from '../../utilities/icons.js';
+import { normalizeCompletionThreshold } from '../../utilities/media-utils.js';
 
 
 /** @type {HTMLElement|null} */
@@ -351,6 +352,7 @@ function _handleProgressMousedown(event) {
 
     const progressBar = elements.progressBar;
     const rect = progressBar.getBoundingClientRect();
+    if (rect.width <= 0) return;
 
     const seek = (clientX) => {
         const percentage = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
@@ -823,7 +825,7 @@ class StandaloneAudioPlayer {
         this.audioSrc = container.dataset.audioSrc;
         this.required = container.dataset.audioRequired === 'true';
         this.compact = container.dataset.audioCompact === 'true';
-        this.threshold = parseFloat(container.dataset.audioThreshold) || 0.95;
+        this.threshold = normalizeCompletionThreshold(container.dataset.audioThreshold);
 
         if (!this.audioId) {
             throw new Error('[AudioPlayer] Standalone player requires data-audio-id');
@@ -836,6 +838,12 @@ class StandaloneAudioPlayer {
         this.isActive = false;
         this.eventHandlers = {};
         this.elements = {};
+        this.domEventHandlers = {
+            click: this._handleClick.bind(this),
+            progressKeydown: this._handleProgressKeydown.bind(this),
+            progressMousedown: this._handleProgressMousedown.bind(this)
+        };
+        this.dragCleanup = null;
 
         this._render();
         this._cacheElements();
@@ -867,11 +875,11 @@ class StandaloneAudioPlayer {
     }
 
     _setupEventListeners() {
-        this.container.addEventListener('click', this._handleClick.bind(this));
+        this.container.addEventListener('click', this.domEventHandlers.click);
 
         if (this.elements.progressBar) {
-            this.elements.progressBar.addEventListener('keydown', this._handleProgressKeydown.bind(this));
-            this.elements.progressBar.addEventListener('mousedown', this._handleProgressMousedown.bind(this));
+            this.elements.progressBar.addEventListener('keydown', this.domEventHandlers.progressKeydown);
+            this.elements.progressBar.addEventListener('mousedown', this.domEventHandlers.progressMousedown);
         }
     }
 
@@ -941,8 +949,11 @@ class StandaloneAudioPlayer {
     _handleProgressMousedown(event) {
         if (!this.isActive || !audioManager.hasAudio()) return;
 
+        this.dragCleanup?.();
+
         const progressBar = this.elements.progressBar;
         const rect = progressBar.getBoundingClientRect();
+        if (rect.width <= 0) return;
 
         const seek = (clientX) => {
             const pct = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
@@ -952,15 +963,19 @@ class StandaloneAudioPlayer {
         seek(event.clientX);
 
         const onMouseMove = (e) => seek(e.clientX);
-        const onMouseUp = () => {
+        const cleanupDrag = () => {
             document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
+            document.removeEventListener('mouseup', cleanupDrag);
             progressBar.classList.remove('dragging');
+            if (this.dragCleanup === cleanupDrag) {
+                this.dragCleanup = null;
+            }
         };
 
         progressBar.classList.add('dragging');
         document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
+        document.addEventListener('mouseup', cleanupDrag);
+        this.dragCleanup = cleanupDrag;
     }
 
     _subscribeToAudioEvents() {
@@ -1113,6 +1128,11 @@ class StandaloneAudioPlayer {
     }
 
     destroy() {
+        this.dragCleanup?.();
+        this.container.removeEventListener('click', this.domEventHandlers.click);
+        this.elements.progressBar?.removeEventListener('keydown', this.domEventHandlers.progressKeydown);
+        this.elements.progressBar?.removeEventListener('mousedown', this.domEventHandlers.progressMousedown);
+
         eventBus.off('audio:loadStart', this.eventHandlers.loadStart);
         eventBus.off('audio:loaded', this.eventHandlers.loaded);
         eventBus.off('audio:unloaded', this.eventHandlers.unloaded);

@@ -147,6 +147,15 @@ class ObjectiveManager {
             }
         }
 
+        if (objectiveData.success_status !== undefined &&
+            !ObjectiveManager.VALID_SUCCESS_STATUSES.includes(objectiveData.success_status)) {
+            throw new Error(`ObjectiveManager: Invalid success_status "${objectiveData.success_status}". Must be one of: ${ObjectiveManager.VALID_SUCCESS_STATUSES.join(', ')}`);
+        }
+        if (objectiveData.completion_status !== undefined &&
+            !ObjectiveManager.VALID_COMPLETION_STATUSES.includes(objectiveData.completion_status)) {
+            throw new Error(`ObjectiveManager: Invalid completion_status "${objectiveData.completion_status}". Must be one of: ${ObjectiveManager.VALID_COMPLETION_STATUSES.join(', ')}`);
+        }
+
         const existing = this.objectives[id] || { id };
         const updated = { ...existing, ...objectiveData };
 
@@ -178,7 +187,7 @@ class ObjectiveManager {
      * Valid completion status values per SCORM spec.
      * @private
      */
-    static VALID_COMPLETION_STATUSES = ['completed', 'incomplete'];
+    static VALID_COMPLETION_STATUSES = ['completed', 'incomplete', 'not attempted', 'unknown'];
 
     /**
      * A helper method to specifically update the success status of an objective.
@@ -200,12 +209,11 @@ class ObjectiveManager {
         if (!objective) {
             throw new Error(`ObjectiveManager: Objective with id "${id}" not found.`);
         }
-        objective.success_status = success_status;
-        this.setObjective(objective);
-        if (score !== null) {
-            // Validate score through setScore's guard (which will persist separately)
-            this.setScore(id, score);
-        }
+        this.setObjective({
+            ...objective,
+            success_status,
+            ...(score !== null ? { score } : {})
+        });
     }
 
     /**

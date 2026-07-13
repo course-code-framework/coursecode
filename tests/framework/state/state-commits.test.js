@@ -93,6 +93,19 @@ describe('CommitScheduler', () => {
             await scheduler.flush();
             expect(mockLMS.commit).not.toHaveBeenCalled();
         });
+
+        it('rejects a critical flush when the LMS commit fails and backs off retries', async () => {
+            mockLMS.commit.mockRejectedValue(new Error('commit rejected'));
+            scheduler.scheduleCommit(true);
+
+            await expect(scheduler.flush()).rejects.toThrow('commit rejected');
+            expect(vi.getTimerCount()).toBe(1);
+
+            await vi.advanceTimersByTimeAsync(999);
+            expect(mockLMS.commit).toHaveBeenCalledTimes(1);
+            await vi.advanceTimersByTimeAsync(1);
+            expect(mockLMS.commit).toHaveBeenCalledTimes(2);
+        });
     });
 
     // ─── commitToLMS (immediate commit) ─────────────────────────────

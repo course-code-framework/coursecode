@@ -30,6 +30,7 @@ const mocks = vi.hoisted(() => ({
     },
     assessmentManager: {
         meetsCompletionRequirements: vi.fn(() => false),
+        resolveAssessmentId: vi.fn(slide => slide?.assessmentId || slide?.id),
     },
     eventBus: {
         on: vi.fn(),
@@ -152,14 +153,32 @@ describe('checkCompletion()', () => {
 
     // ── Already completed ─────────────────────────────────────────────────────
 
-    it('should return true (cached) when already completed', async () => {
+    it('should re-evaluate and persist when already completed', async () => {
         mocks.navigationActions.isOnLastSlide.mockReturnValue(true);
         mocks.stateManager.getCompletion.mockReturnValue('completed');
         mocks.stateManager.getSuccess.mockReturnValue('passed');
 
         const result = await checkCompletion();
         expect(result).toBe(true);
-        expect(mocks.stateManager.reportCompletion).not.toHaveBeenCalled();
+        expect(mocks.stateManager.reportCompletion).toHaveBeenCalledWith('completed');
+        expect(mocks.stateManager.reportSuccess).toHaveBeenCalledWith('passed');
+        expect(mocks.stateManager.flush).toHaveBeenCalled();
+    });
+
+    it('upgrades failed success credit after a completed learner passes a retake', async () => {
+        mocks.navigationActions.isOnLastSlide.mockReturnValue(true);
+        mocks.stateManager.getCompletion.mockReturnValue('completed');
+        mocks.stateManager.getSuccess.mockReturnValue('failed');
+        mocks.courseHelpers.getSlidesByType.mockResolvedValue([{ assessmentId: 'exam-1' }]);
+        mocks.courseHelpers.getAssessmentConfigs.mockResolvedValue(new Map([
+            ['exam-1', { completionRequirements: { requireSubmission: true, requirePass: true } }]
+        ]));
+        mocks.assessmentManager.meetsCompletionRequirements.mockReturnValue(true);
+
+        await checkCompletion();
+
+        expect(mocks.stateManager.reportSuccess).toHaveBeenCalledWith('passed');
+        expect(mocks.stateManager.flush).toHaveBeenCalled();
     });
 
     it('should emit statusChanged with existing status when already completed', async () => {

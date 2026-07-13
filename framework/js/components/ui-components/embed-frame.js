@@ -51,6 +51,7 @@ export const metadata = {
 import { logger } from '../../utilities/logger.js';
 import { eventBus } from '../../core/event-bus.js';
 import flagManager from '../../managers/flag-manager.js';
+import { resolvePortableAssetUrl } from '../../utilities/portable-assets.js';
 
 /**
  * Initializes an embed-frame component.
@@ -254,6 +255,9 @@ function handleReadyMessage(embedId) {
  * @returns {string} Resolved path
  */
 function _resolvePath(src) {
+    const portableSrc = resolvePortableAssetUrl(src);
+    if (portableSrc !== src) return portableSrc;
+
     // Already absolute URL or protocol-relative
     if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('//')) {
         return src;
@@ -270,5 +274,5 @@ function _resolvePath(src) {
     }
 
     // Otherwise, assume relative to course/assets/
-    return `./course/${src}`;
+    return resolvePortableAssetUrl(`./course/${src}`);
 }

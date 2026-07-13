@@ -13,6 +13,17 @@ import { eventBus } from '../core/event-bus.js';
 import { logger } from '../utilities/logger.js';
 import LZString from 'lz-string';
 
+function parseFiniteNumber(value, fallback = null) {
+    if (value === null || value === undefined || String(value).trim() === '') return fallback;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function parseNonNegativeInteger(value) {
+    const parsed = Number(value);
+    return Number.isInteger(parsed) && parsed >= 0 ? parsed : 0;
+}
+
 /**
  * SCORM 2004 4th Edition Driver
  * Communicates with window.API_1484_11 via the pipwerks SCORM wrapper.
@@ -32,6 +43,7 @@ export class Scorm2004Driver extends ScormDriverBase {
             learnerName: '',
             objectives: {},               // Cached objectives keyed by ID
             objectiveIdToIndex: new Map(), // Maps objective ID → CMI index
+            objectivesCount: 0,             // LMS-reported count; may exceed readable IDs
             interactions: [],              // Cached interactions array
             interactionsCount: 0           // Current count for append operations
         };
@@ -50,7 +62,7 @@ export class Scorm2004Driver extends ScormDriverBase {
             supportsObjectives: true,
             supportsInteractions: true,
             supportsComments: true,
-            supportsEmergencySave: false,
+            supportsEmergencySave: true,
             maxSuspendDataBytes: 64000,
             asyncCommit: false
         };
@@ -217,17 +229,16 @@ export class Scorm2004Driver extends ScormDriverBase {
 
     getScore() {
         const scaledStr = this._getValueOptional('cmi.score.scaled');
-        if (scaledStr === null) return null;
-        const scaled = parseFloat(scaledStr);
-        if (isNaN(scaled)) return null;
+        const scaled = parseFiniteNumber(scaledStr);
+        if (scaled === null) return null;
         const rawStr = this._getValueOptional('cmi.score.raw');
         const minStr = this._getValueOptional('cmi.score.min');
         const maxStr = this._getValueOptional('cmi.score.max');
         return {
             scaled,
-            raw: rawStr !== null ? parseFloat(rawStr) : scaled * 100,
-            min: minStr !== null ? parseFloat(minStr) : 0,
-            max: maxStr !== null ? parseFloat(maxStr) : 100
+            raw: parseFiniteNumber(rawStr, scaled * 100),
+            min: parseFiniteNumber(minStr, 0),
+            max: parseFiniteNumber(maxStr, 100)
         };
     }
 
@@ -386,8 +397,7 @@ export class Scorm2004Driver extends ScormDriverBase {
         // Decompress lz-string data
         const jsonString = LZString.decompressFromUTF16(data);
         if (!jsonString) {
-            logger.warn('[Scorm2004Driver] Failed to decompress suspend_data - may be corrupted');
-            return null;
+            throw new Error('SCORM 2004 resume state is corrupted or truncated; refusing to start with empty progress');
         }
 
         try {
@@ -457,6 +467,7 @@ export class Scorm2004Driver extends ScormDriverBase {
         if (compressed.length > 64000) {
             logger.error(`[Scorm2004Driver] ⚠️ CRITICAL: suspend_data is ${compressedSizeKB}KB compressed (over 64KB). Many LMSs will reject this!`);
             eventBus.emit('suspend-data:critical', { bytes: compressed.length });
+            throw new Error(`SCORM 2004 suspend_data exceeds the 64000-character safety limit (${compressed.length})`);
         } else if (compressed.length > 32000) {
             logger.warn(`[Scorm2004Driver] ⚠️ WARNING: suspend_data is ${compressedSizeKB}KB compressed (over 32KB). Approaching critical threshold.`);
             eventBus.emit('suspend-data:warning', { bytes: compressed.length });
@@ -585,8 +596,9 @@ export class Scorm2004Driver extends ScormDriverBase {
         // Load objectives from CMI arrays
         let objectivesCount = 0;
         try {
-            objectivesCount = parseInt(this._getValue('cmi.objectives._count') || '0', 10);
+            objectivesCount = parseNonNegativeInteger(this._getValue('cmi.objectives._count') || '0');
         } catch (_e) { /* No objectives stored — normal */ }
+        this._cmiCache.objectivesCount = objectivesCount;
 
         for (let i = 0; i < objectivesCount; i++) {
             let id;
@@ -610,16 +622,16 @@ export class Scorm2004Driver extends ScormDriverBase {
 
             const scoreRaw = this._getValueOptional(`cmi.objectives.${i}.score.raw`);
             if (scoreRaw) {
-                const parsed = parseFloat(scoreRaw);
-                if (!isNaN(parsed)) {
+                const parsed = parseFiniteNumber(scoreRaw);
+                if (parsed !== null) {
                     this._cmiCache.objectives[id].score = parsed;
                 }
             }
 
             const progressMeasure = this._getValueOptional(`cmi.objectives.${i}.progress_measure`);
             if (progressMeasure) {
-                const parsed = parseFloat(progressMeasure);
-                if (!isNaN(parsed)) {
+                const parsed = parseFiniteNumber(progressMeasure);
+                if (parsed !== null) {
                     this._cmiCache.objectives[id].progress_measure = parsed;
                 }
             }
@@ -633,9 +645,9 @@ export class Scorm2004Driver extends ScormDriverBase {
         // Load interactions from CMI arrays
         let interactionsCount = 0;
         try {
-            interactionsCount = parseInt(this._getValue('cmi.interactions._count') || '0', 10);
+            interactionsCount = parseNonNegativeInteger(this._getValue('cmi.interactions._count') || '0');
         } catch (_e) { /* No interactions stored — normal */ }
-        this._cmiCache.interactionsCount = isNaN(interactionsCount) ? 0 : interactionsCount;
+        this._cmiCache.interactionsCount = interactionsCount;
 
         for (let i = 0; i < interactionsCount; i++) {
             const interaction = { _index: i };
@@ -650,8 +662,8 @@ export class Scorm2004Driver extends ScormDriverBase {
 
             const weighting = this._getValueOptional(`cmi.interactions.${i}.weighting`);
             if (weighting) {
-                const parsed = parseFloat(weighting);
-                if (!isNaN(parsed)) {
+                const parsed = parseFiniteNumber(weighting);
+                if (parsed !== null) {
                     interaction.weighting = parsed;
                 }
             }
@@ -673,9 +685,10 @@ export class Scorm2004Driver extends ScormDriverBase {
             return this._cmiCache.objectiveIdToIndex.get(objectiveId);
         }
 
-        const newIndex = this._cmiCache.objectiveIdToIndex.size;
+        const newIndex = this._cmiCache.objectivesCount;
         this._setValue(`cmi.objectives.${newIndex}.id`, objectiveId);
         this._cmiCache.objectiveIdToIndex.set(objectiveId, newIndex);
+        this._cmiCache.objectivesCount++;
 
         return newIndex;
     }

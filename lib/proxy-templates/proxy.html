@@ -48,7 +48,10 @@
     <script src="pipwerks.js"></script>
     <script>
         // Injected as a JSON string by the build system before the bridge loads.
-        window.COURSECODE_PROXY_CONFIG = { courseUrl: {{EXTERNAL_URL_JSON}} };
+        window.COURSECODE_PROXY_CONFIG = {
+            courseUrl: {{EXTERNAL_URL_JSON}},
+            baseFormat: {{BASE_FORMAT_JSON}}
+        };
     </script>
     <script src="scorm-bridge.js"></script>
     <script>

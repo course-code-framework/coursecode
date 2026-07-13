@@ -17,7 +17,7 @@ let cachedFormat = null;
 /**
  * Creates the appropriate LMS driver based on format.
  * All drivers exist as lazy chunks; only the matching one is loaded at runtime.
- * @param {string} format - 'cmi5' | 'cmi5-remote' | 'scorm2004' | 'scorm1.2' | 'scorm1.2-proxy' | 'scorm2004-proxy' | 'lti'
+ * @param {string} format - 'standalone' | 'cmi5' | 'cmi5-remote' | 'scorm2004' | 'scorm1.2' | 'scorm1.2-proxy' | 'scorm2004-proxy' | 'lti'
  * @returns {Promise<LMSDriver>} The driver instance
  */
 export async function createDriver(format = 'cmi5') {
@@ -29,6 +29,12 @@ export async function createDriver(format = 'cmi5') {
     let driver;
 
     switch (format) {
+        case 'standalone': {
+            const { StandaloneDriver } = await import('./standalone-driver.js');
+            driver = new StandaloneDriver();
+            break;
+        }
+
         case 'scorm2004': {
             const { Scorm2004Driver } = await import('./scorm-2004-driver.js');
             driver = new Scorm2004Driver();

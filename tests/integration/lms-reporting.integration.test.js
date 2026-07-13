@@ -104,8 +104,9 @@ describe('Integration: LMS Reporting & Recovery', () => {
 
         stateManager.setDomainState('data', { v: 1 });
         
-        // 2. Flush - StateManager should swallow the error but emit failure event
-        await expect(stateManager.flush()).resolves.not.toThrow();
+        // 2. Critical flush must reject so completion/assessment callers know
+        // the LMS did not save their result.
+        await expect(stateManager.flush()).rejects.toThrow('Network Error');
         
         // 3. Verify failure was reported
         expect(failureSpy).toHaveBeenCalled();

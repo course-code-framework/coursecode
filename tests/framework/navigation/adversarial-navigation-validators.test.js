@@ -12,7 +12,12 @@ vi.mock('../../../framework/js/navigation/navigation-helpers.js', () => ({
 }));
 
 vi.mock('../../../framework/js/managers/assessment-manager.js', () => ({
-    meetsCompletionRequirements: vi.fn(() => false)
+    meetsCompletionRequirements: vi.fn(() => false),
+    resolveAssessmentId: vi.fn(slide => {
+        const id = slide?.assessmentId || slide?.id;
+        if (!id) throw new Error('assessment slide requires assessmentId or id');
+        return id;
+    })
 }));
 
 import { evaluateGatingCondition, shouldBypassGating } from '../../../framework/js/navigation/navigation-helpers.js';
@@ -131,19 +136,24 @@ describe('BUG PROBE: inconsistent return shape in validateSlideAccess', () => {
 // If a slide has type='assessment' but no assessmentId, accessing
 // assessmentConfigs.get(undefined) silently returns undefined.
 
-describe('BUG PROBE: assessment slide with missing assessmentId', () => {
-    it('silently allows navigation when assessmentId is missing', () => {
+describe('assessment slide ID resolution', () => {
+    it('uses the documented slide id when assessmentId is absent', () => {
         const assessmentConfigs = new Map();
-        assessmentConfigs.set(undefined, {
+        assessmentConfigs.set('final-exam', {
             completionRequirements: { blockNavigation: true, requirePass: true }
         });
 
-        const slide = { type: 'assessment' }; // No assessmentId!
+        const slide = { type: 'assessment', id: 'final-exam' };
 
-        // assessmentConfigs.get(undefined) could match
         const result = validateNavigationFrom(slide, assessmentConfigs);
-        // This is subtle — if someone accidentally stored a config with undefined key...
-        expect(result.allowed).toBeDefined();
+        expect(result.allowed).toBe(false);
+        expect(AssessmentManager.meetsCompletionRequirements)
+            .toHaveBeenCalledWith('final-exam', expect.any(Object));
+    });
+
+    it('fails fast when an assessment slide has no usable ID', () => {
+        expect(() => validateNavigationFrom({ type: 'assessment' }, new Map()))
+            .toThrow('assessment slide requires assessmentId or id');
     });
 
     it('allows navigation when assessmentId has no matching config', () => {

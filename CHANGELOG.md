@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.58] - 2026-07-13
+
+### Changed
+- Declarative UI components now expose and run deterministic teardown hooks when views are re-rendered or removed, replacing observer-based cleanup and preventing stacked DOM, document, and event-bus listeners.
+- Standalone audio and video completion thresholds now share strict normalization, preserving valid zero values while rejecting malformed or out-of-range authored input.
+- Child-process commands avoid unnecessary shells, report spawn failures consistently, and open browser URLs without shell interpolation.
+- Preview startup now waits for a confirmed fresh Vite build and rejects invalid ports, spawn failures, and build timeouts instead of serving stale output.
+
+### Fixed
+- Preserved valid engagement progress when revisiting a slide, pruned removed component IDs, and prevented repeated interactive-image and lightbox registration from inflating required totals.
+- Fixed multiple rendered video players overwriting one another's active context, misattributing progress/completion, and leaving stale manager state after detach.
+- Fixed automation-completed standalone audio being tracked under its internal context prefix instead of the authored audio ID.
+- Rejected non-finite scroll depth, scores, weights, seek positions, and malformed LMS numeric fields before they could corrupt progress, scoring, or SCORM caches.
+- Made objective status-and-score updates atomic, validated objective status vocabularies at both manager and state boundaries, and restored support for all SCORM completion states.
+- Fixed the lightbox component metadata to map to the `viewAllLightboxes` engagement requirement.
+- Hardened proxy-driver listener and pending-request teardown across initialization, termination, timeout, and synchronous `postMessage` failures.
+- Fixed deep cloning of objects that shadow `hasOwnProperty`, blocked prototype-polluting deep merges and flag keys, and preserved non-plain values during merges.
+- Resolved assessment IDs consistently from derived `assessmentId` values with the documented slide `id` fallback.
+
+### Security
+- Removed avoidable shell execution from build, development, creation, narration, and preview-export subprocesses, and replaced shell-based browser launching with argument-safe process execution.
+
 ## [0.1.57] - 2026-07-11
 
 ### Changed
