@@ -352,6 +352,6 @@ describe(`Driver: ${FORMAT}`, () => {
 
     it('should have zero strict errors after full lifecycle', async () => {
         const errors = await lmsErrors();
-        expect(errors.totalErrors).toBe(0);
+        expect(errors.totalErrors, JSON.stringify(errors, null, 2)).toBe(0);
     });
 });

@@ -10,6 +10,7 @@ import {
   registerCoreInteraction
 } from './interaction-base.js';
 import { logger } from '../../utilities/logger.js';
+import { resolveCourseAssetUrl } from '../../utilities/portable-assets.js';
 
 // Default appearance themes for hotspots
 const HOTSPOT_DEFAULTS = {
@@ -282,7 +283,7 @@ export function createHotspotQuestion(config) {
           <div class="hotspot-container">
             <div class="image-container relative">
               <img
-                src="${image.src}"
+                src="${resolveCourseAssetUrl(image.src)}"
                 alt="${image.alt || ''}"
                 class="w-full h-auto"
                 id="${id}_image"
@@ -699,4 +700,3 @@ function toNumber(value, fallback = 0) {
   }
   return 0;
 }
-

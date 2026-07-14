@@ -73,6 +73,26 @@ export function resolvePortableAssetUrl(value) {
 }
 
 /**
+ * Resolve an author-facing course asset path for both normal and portable builds.
+ * Component APIs may use paths relative to course/assets (for example,
+ * "images/diagram.svg") or the legacy "assets/..." form documented by older
+ * CourseCode releases. Direct HTML should use "course/assets/...".
+ * @param {string} value
+ * @returns {string}
+ */
+export function resolveCourseAssetUrl(value) {
+    if (typeof value !== 'string' || value.length === 0) return value;
+
+    const portableValue = resolvePortableAssetUrl(value);
+    if (portableValue !== value) return portableValue;
+    if (/^(?:data:|blob:|https?:|mailto:|tel:|#|\/\/)/i.test(value)) return value;
+    if (value.startsWith('/') || value.startsWith('./') || value.startsWith('../')) return value;
+    if (value.startsWith('course/assets/')) return `./${value}`;
+    if (value.startsWith('assets/')) return `./course/${value}`;
+    return `./course/assets/${value}`;
+}
+
+/**
  * Rewrite URL-bearing attributes in freshly rendered slide DOM before
  * declarative components initialize and begin loading media.
  * @param {HTMLElement} root

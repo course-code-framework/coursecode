@@ -77,8 +77,7 @@ export const schema = {
             description: 'Draggable items',
             itemSchema: {
                 id: { type: 'string', required: true },
-                text: { type: 'string', required: true },
-                correctZone: { type: 'string', required: true }
+                content: { type: 'string', required: true }
             }
         },
         dropZones: {
@@ -88,7 +87,9 @@ export const schema = {
             description: 'Drop target zones',
             itemSchema: {
                 id: { type: 'string', required: true },
-                label: { type: 'string', required: true }
+                label: { type: 'string', required: true },
+                accepts: { type: 'array', required: true, minItems: 1 },
+                maxItems: { type: 'number' }
             }
         }
     }
@@ -881,4 +882,3 @@ function removeItemFromZone(container, itemId) {
     // Update state
     delete state.placements[itemId];
 }
-

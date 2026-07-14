@@ -40,4 +40,20 @@ describe('build tooling and learner-browser policy', () => {
             expect(source).toContain("src: 'framework/js/vendor/**/*', dest: 'js/vendor', rename: { stripBase: 3 }");
         }
     });
+
+    it('exempts framework-generated hotspot structure from generic runtime-linter warnings', () => {
+        const source = fs.readFileSync(path.join(repoRoot, 'framework/js/dev/runtime-linter.js'), 'utf8');
+
+        expect(source).toContain("'image-container', 'hotspot-feedback'");
+        expect(source).toContain("el.matches('[data-hotspot-id], .hotspot-area, .interactive-image-hotspot')");
+        expect(source).toContain("el.classList.contains('sr-only')");
+    });
+
+    it('does not let responsive smoke tests attach to an unrelated occupied port', () => {
+        const source = fs.readFileSync(path.join(repoRoot, 'scripts/responsive-visual-smoke.mjs'), 'utf8');
+
+        expect(source).toContain('await assertPortAvailable(args.port)');
+        expect(source).toContain('Preview server exited before becoming ready');
+        expect(source).toContain('--reuse-preview for the intended CourseCode preview');
+    });
 });

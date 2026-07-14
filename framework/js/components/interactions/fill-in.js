@@ -137,10 +137,13 @@ export const schema = {
             type: 'object',
             required: true,
             description: 'Map of blank IDs to their correct answers',
-            valueSchema: {
-                correct: { type: ['string', 'array'], required: true },
-                typoTolerance: { type: 'number', default: 0 },
-                hint: { type: 'string' }
+            mapValueSchema: {
+                type: 'object',
+                valueSchema: {
+                    correct: { type: ['string', 'array'], required: true },
+                    typoTolerance: { type: 'number', default: 0 },
+                    hint: { type: 'string' }
+                }
             }
         },
         template: {

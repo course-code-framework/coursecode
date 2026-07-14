@@ -94,10 +94,11 @@ export const schema = {
             type: 'array',
             required: true,
             minItems: 2,
-            description: 'Source-target pairs to match',
+            description: 'Items and their matching target text',
             itemSchema: {
-                source: { type: 'string', required: true },
-                target: { type: 'string', required: true }
+                id: { type: 'string', required: true },
+                text: { type: 'string', required: true },
+                match: { type: 'string', required: true }
             }
         },
         feedbackMode: {

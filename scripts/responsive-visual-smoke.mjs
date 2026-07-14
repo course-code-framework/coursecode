@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
+import net from 'node:net';
 import { spawn } from 'node:child_process';
 
 import headless from '../lib/headless-browser.js';
@@ -77,17 +78,44 @@ async function withRetries(fn, { attempts = 3, delayMs = 1000, label = 'operatio
   throw lastError;
 }
 
-function waitForHttp(port, timeoutMs = TIMEOUT_MS) {
+function assertPortAvailable(port) {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.once('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        reject(new Error(`Port ${port} is already in use. Pass --port=<free-port> or --reuse-preview for the intended CourseCode preview.`));
+      } else {
+        reject(error);
+      }
+    });
+    server.once('listening', () => server.close(resolve));
+    server.listen(port, '127.0.0.1');
+  });
+}
+
+function waitForHttp(port, timeoutMs = TIMEOUT_MS, child = null) {
   const start = Date.now();
   return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (callback, value) => {
+      if (settled) return;
+      settled = true;
+      if (child) child.off('exit', onExit);
+      callback(value);
+    };
+    const onExit = (code, signal) => {
+      finish(reject, new Error(`Preview server exited before becoming ready (code ${code ?? 'none'}, signal ${signal ?? 'none'}).`));
+    };
+    if (child) child.once('exit', onExit);
+
     const attempt = () => {
       const req = http.get(`http://localhost:${port}`, (res) => {
         res.resume();
-        resolve();
+        finish(resolve);
       });
       req.on('error', () => {
         if (Date.now() - start > timeoutMs) {
-          reject(new Error(`Preview server not reachable on port ${port} after ${timeoutMs}ms`));
+          finish(reject, new Error(`Preview server not reachable on port ${port} after ${timeoutMs}ms`));
           return;
         }
         setTimeout(attempt, 500);
@@ -220,8 +248,9 @@ async function run() {
 
   try {
     if (!args.reusePreview) {
+      await assertPortAvailable(args.port);
       previewChild = startPreviewServer(args.port);
-      await waitForHttp(args.port, TIMEOUT_MS);
+      await waitForHttp(args.port, TIMEOUT_MS, previewChild);
       // Give the first build a moment to finish loading
       await sleep(1200);
     } else {

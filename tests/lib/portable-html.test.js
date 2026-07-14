@@ -7,6 +7,7 @@ import {
     collectPortableAssets,
     validatePortableHtml
 } from '../../lib/portable-html.js';
+import { resolveCourseAssetUrl } from '../../framework/js/utilities/portable-assets.js';
 
 const temporaryDirectories = [];
 
@@ -17,6 +18,13 @@ afterEach(() => {
 });
 
 describe('portable HTML assembly', () => {
+    it('normalizes component asset paths to the packaged course directory', () => {
+        expect(resolveCourseAssetUrl('assets/images/diagram.svg')).toBe('./course/assets/images/diagram.svg');
+        expect(resolveCourseAssetUrl('images/diagram.svg')).toBe('./course/assets/images/diagram.svg');
+        expect(resolveCourseAssetUrl('course/assets/images/diagram.svg')).toBe('./course/assets/images/diagram.svg');
+        expect(resolveCourseAssetUrl('https://example.com/diagram.svg')).toBe('https://example.com/diagram.svg');
+    });
+
     it('embeds copied course assets under a canonical portable path', () => {
         const buildDir = fs.mkdtempSync(path.join(os.tmpdir(), 'coursecode-portable-test-'));
         temporaryDirectories.push(buildDir);

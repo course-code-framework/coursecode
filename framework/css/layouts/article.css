@@ -101,6 +101,13 @@
     margin: 0 auto;
 }
 
+/* Breadcrumbs are positioned absolutely and do not reserve layout space.
+   Add clearance only while they are visible; mobile hides them entirely. */
+html:not(.bp-max-mobile-landscape)[data-layout="article"]
+    .breadcrumbs:not(.hidden):not([hidden]) ~ #slide-container {
+    padding-top: var(--space-4);
+}
+
 /* Footer styling moved to components/footer.css - DATA-LAYOUT VARIANTS section */
 
 /* Audio player styling moved to components/audio-player.css - DATA-LAYOUT VARIANTS section */

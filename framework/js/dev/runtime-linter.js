@@ -42,7 +42,7 @@ const DYNAMIC_CLASSES = new Set([
     // Component-internal classes — styled via [data-component] selectors in individual component CSS files
     'intro-card', 'card-icon',
     // Interaction-internal classes — used by interaction JS for DOM structure
-    'drag-drop', 'matching-items', 'matching-targets',
+    'drag-drop', 'matching-items', 'matching-targets', 'image-container', 'hotspot-feedback',
     // Slide-specific JS selectors — queried by slide scripts for event binding
     'resources', 'complete-remedial-btn',
 ]);
@@ -833,6 +833,7 @@ function validateVisualLayout(slideId, renderedContent, errors, warnings) {
         const textElements = renderedContent.querySelectorAll('p, span:not(.accordion-icon), li, a, h1, h2, h3, h4, h5, h6, button');
         for (const el of textElements) {
             if (isLintIgnored(el, 'contrast')) continue;
+            if (el.classList.contains('sr-only') || el.closest('.sr-only')) continue;
             // Skip elements that are not visible or have no text
             if (el.offsetParent === null || el.textContent.trim() === '') continue;
 
@@ -1042,7 +1043,8 @@ function validateTextProximityToVisualElements(slideId, renderedContent, warning
         'dropdown', 'dropdown-menu', 'dropdown-item',
         'table',  // Tables manage their own cell spacing
         'step-number', 'step-content', 'step',  // Pattern-steps elements have intentional circular styling
-        'btn-link'  // Link-styled button intentionally has minimal padding
+        'btn-link',  // Link-styled button intentionally has minimal padding
+        'hotspot-area', 'interactive-image-hotspot'
     ]);
 
     // HTML elements that manage their own spacing (exclude from checks)
@@ -1171,6 +1173,8 @@ function validateElementOverlap(slideId, renderedContent, warnings) {
     const absoluteElements = renderedContent.querySelectorAll('[style*="position:absolute"], [style*="position: absolute"]');
     for (const el of absoluteElements) {
         if (el.offsetParent === null) continue;
+        // Hotspots intentionally overlap their background image and sometimes each other.
+        if (el.matches('[data-hotspot-id], .hotspot-area, .interactive-image-hotspot')) continue;
 
         const rect = el.getBoundingClientRect();
         const elText = el.textContent.trim().substring(0, 30);

@@ -1386,7 +1386,7 @@ export const slide = {
                 <div class="flex gap-4 flex-wrap items-start justify-between">
                   <a href="assets/docs/example_md_1.md" data-component="lightbox" data-lightbox-caption="Sample Document" data-lightbox-subtitle="Sample Document" style="width: 200px; height: 150px;"></a>
                   <a href="assets/docs/example_md_2.md" data-component="lightbox" data-lightbox-caption="Reference Table" data-lightbox-subtitle="Reference Table" style="width: 200px; height: 150px;"></a>
-                  <a href="assets/docs/example_pdf_1.pdf" data-component="lightbox" data-lightbox-caption="Quick Reference Guide" data-lightbox-thumbnail="assets/docs/example_pdf_1_thumbnail.png" data-lightbox-subtitle="Quick Reference Guide" style="width: 200px; height: 150px;"></a>
+                  <a href="assets/docs/example_pdf_2.pdf" data-component="lightbox" data-lightbox-caption="Quick Reference Guide" data-lightbox-thumbnail="assets/docs/example_pdf_1_thumbnail.png" data-lightbox-subtitle="Quick Reference Guide" style="width: 200px; height: 150px;"></a>
                 </div>
               </section>
 

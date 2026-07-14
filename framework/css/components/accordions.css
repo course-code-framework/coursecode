@@ -247,8 +247,10 @@
    ACCORDION STYLE VARIANTS
    ============================================================================
    
-   Apply these data attributes to the .accordion container to change
-   the visual appearance.
+   Global theme tokens are bridged to data attributes on <html>. Authors may
+   override that default on an individual .accordion. Keep every variant rule
+   scoped through the accordion container so a local attribute wins over an
+   inherited global attribute.
    
    USAGE:
    <div class="accordion" data-accordion-style="flush">
@@ -260,33 +262,51 @@
 /* --------------------------------------
    Flush Style - No outer border, dividers only
    -------------------------------------- */
-[data-accordion-style="flush"].accordion {
+:is(
+  [data-accordion-style="flush"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="flush"]
+) {
   border: none;
   border-radius: 0;
   box-shadow: none;
   background: transparent;
 }
 
-[data-accordion-style="flush"] .accordion-item {
+:is(
+  [data-accordion-style="flush"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="flush"]
+) .accordion-item {
   background: transparent;
   border-bottom: 1px solid var(--color-gray-200);
 }
 
-[data-accordion-style="flush"] .accordion-item:last-child {
+:is(
+  [data-accordion-style="flush"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="flush"]
+) .accordion-item:last-child {
   border-bottom: 1px solid var(--color-gray-200);
 }
 
-[data-accordion-style="flush"] .accordion-button {
+:is(
+  [data-accordion-style="flush"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="flush"]
+) .accordion-button {
   padding-left: 0;
   padding-right: 0;
 }
 
-[data-accordion-style="flush"] .accordion-body {
+:is(
+  [data-accordion-style="flush"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="flush"]
+) .accordion-body {
   padding-left: 0;
   padding-right: 0;
 }
 
-[data-accordion-style="flush"] .accordion-content {
+:is(
+  [data-accordion-style="flush"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="flush"]
+) .accordion-content {
   background: transparent;
 }
 
@@ -295,7 +315,10 @@
 /* --------------------------------------
    Separated Style - Gap between items
    -------------------------------------- */
-[data-accordion-style="separated"].accordion {
+:is(
+  [data-accordion-style="separated"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="separated"]
+) {
   border: none;
   border-radius: 0;
   box-shadow: none;
@@ -305,18 +328,27 @@
   gap: var(--space-3);
 }
 
-[data-accordion-style="separated"] .accordion-item {
+:is(
+  [data-accordion-style="separated"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="separated"]
+) .accordion-item {
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
 
-[data-accordion-style="separated"] .accordion-item:last-child {
+:is(
+  [data-accordion-style="separated"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="separated"]
+) .accordion-item:last-child {
   border-bottom: 1px solid var(--color-gray-200);
 }
 
-[data-accordion-style="separated"] .accordion-button:not(.collapsed) {
+:is(
+  [data-accordion-style="separated"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="separated"]
+) .accordion-button:not(.collapsed) {
   border-bottom: none;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
@@ -326,56 +358,86 @@
 /* --------------------------------------
    Minimal Style - No borders, subtle hover
    -------------------------------------- */
-[data-accordion-style="minimal"].accordion {
+:is(
+  [data-accordion-style="minimal"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="minimal"]
+) {
   border: none;
   border-radius: 0;
   box-shadow: none;
   background: transparent;
 }
 
-[data-accordion-style="minimal"] .accordion-item {
+:is(
+  [data-accordion-style="minimal"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="minimal"]
+) .accordion-item {
   background: transparent;
   border-bottom: none;
 }
 
-[data-accordion-style="minimal"] .accordion-button {
+:is(
+  [data-accordion-style="minimal"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="minimal"]
+) .accordion-button {
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
 }
 
-[data-accordion-style="minimal"] .accordion-button:hover {
+:is(
+  [data-accordion-style="minimal"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="minimal"]
+) .accordion-button:hover {
   background: var(--bg-muted);
 }
 
-[data-accordion-style="minimal"] .accordion-button:not(.collapsed) {
+:is(
+  [data-accordion-style="minimal"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="minimal"]
+) .accordion-button:not(.collapsed) {
   background: var(--color-primary-alpha-05);
   border-bottom: none;
 }
 
-[data-accordion-style="minimal"] .accordion-content {
+:is(
+  [data-accordion-style="minimal"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="minimal"]
+) .accordion-content {
   background: transparent;
 }
 
-[data-accordion-style="minimal"] .accordion-body {
+:is(
+  [data-accordion-style="minimal"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="minimal"]
+) .accordion-body {
   padding: var(--space-2) var(--space-4) var(--space-4);
 }
 
 /* Dark mode for minimal */
-[data-theme="dark"] [data-accordion-style="minimal"] .accordion-button:not(.collapsed) {
+:is(
+  [data-theme="dark"][data-accordion-style="minimal"] .accordion:not([data-accordion-style]),
+  [data-theme="dark"] .accordion[data-accordion-style="minimal"]
+) .accordion-button:not(.collapsed) {
   background: var(--color-primary-alpha-20);
 }
 
 /* --------------------------------------
    Boxed Style - Each item is a bordered box
    -------------------------------------- */
-[data-accordion-style="boxed"].accordion {
+:is(
+  [data-accordion-style="boxed"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="boxed"]
+) {
   border: none;
   border-radius: 0;
   box-shadow: none;
   background: transparent;
 }
 
-[data-accordion-style="boxed"] .accordion-item {
+:is(
+  [data-accordion-style="boxed"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="boxed"]
+) .accordion-item {
   border: 2px solid var(--color-gray-200);
   border-radius: var(--radius-lg);
   margin-bottom: var(--space-3);
@@ -383,38 +445,62 @@
   background: var(--bg-surface);
 }
 
-[data-accordion-style="boxed"] .accordion-item:last-child {
+:is(
+  [data-accordion-style="boxed"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="boxed"]
+) .accordion-item:last-child {
   margin-bottom: 0;
 }
 
-[data-accordion-style="boxed"] .accordion-button {
+:is(
+  [data-accordion-style="boxed"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="boxed"]
+) .accordion-button {
   background: var(--bg-subtle);
 }
 
-[data-accordion-style="boxed"] .accordion-button:hover {
+:is(
+  [data-accordion-style="boxed"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="boxed"]
+) .accordion-button:hover {
   background: var(--bg-muted);
 }
 
-[data-accordion-style="boxed"] .accordion-button:not(.collapsed) {
+:is(
+  [data-accordion-style="boxed"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="boxed"]
+) .accordion-button:not(.collapsed) {
   background: var(--color-primary);
   color: var(--color-white);
   border-bottom: none;
 }
 
-[data-accordion-style="boxed"] .accordion-button:not(.collapsed) .accordion-icon {
+:is(
+  [data-accordion-style="boxed"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="boxed"]
+) .accordion-button:not(.collapsed) .accordion-icon {
   color: var(--color-white);
 }
 
-[data-accordion-style="boxed"] .accordion-content {
+:is(
+  [data-accordion-style="boxed"] .accordion:not([data-accordion-style]),
+  .accordion[data-accordion-style="boxed"]
+) .accordion-content {
   border-top: 2px solid var(--color-gray-200);
 }
 
 /* Dark mode for boxed */
-[data-theme="dark"] [data-accordion-style="boxed"] .accordion-item {
+:is(
+  [data-theme="dark"][data-accordion-style="boxed"] .accordion:not([data-accordion-style]),
+  [data-theme="dark"] .accordion[data-accordion-style="boxed"]
+) .accordion-item {
   border-color: var(--border-default);
 }
 
-[data-theme="dark"] [data-accordion-style="boxed"] .accordion-content {
+:is(
+  [data-theme="dark"][data-accordion-style="boxed"] .accordion:not([data-accordion-style]),
+  [data-theme="dark"] .accordion[data-accordion-style="boxed"]
+) .accordion-content {
   border-top-color: var(--border-default);
 }
 

@@ -1,4 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { afterEach, describe, it, expect } from 'vitest';
 import {
     flattenStructure,
     validateGlobalConfig,
@@ -8,7 +11,22 @@ import {
     validateRequirementConfig,
     formatLintResults
 } from '../../lib/validation-rules.js';
-import { validateButtonVariants } from '../../lib/build-linter.js';
+import {
+    validateButtonVariants,
+    validateDirectAssetReferences,
+    validateInteractionAssetReferences,
+    validateInteractionSchema,
+    validateMenuIcons
+} from '../../lib/build-linter.js';
+import { parseSlideSource } from '../../lib/course-parser.js';
+
+const temporaryDirectories = [];
+
+afterEach(() => {
+    for (const directory of temporaryDirectories.splice(0)) {
+        fs.rmSync(directory, { recursive: true, force: true });
+    }
+});
 
 // ─── Build Linter Integration ───────────────────────────────────────
 // These tests verify the validation-rules as used by the build linter.
@@ -169,5 +187,152 @@ describe('validateButtonVariants', () => {
         `;
         validateButtonVariants('slide-1', source, warnings);
         expect(warnings).toHaveLength(2);
+    });
+});
+
+describe('interaction and asset validation', () => {
+    it('rejects a hotspot image with the wrong schema type', () => {
+        const source = `createHotspotQuestion({
+            id: 'hotspot-1',
+            prompt: 'Select a region',
+            image: 'assets/images/diagram.svg',
+            hotspots: [{ id: 'a', pos: [1, 2, 3, 4], correct: true, label: 'A' }]
+        })`;
+        const [interaction] = parseSlideSource(source, 'slide-1').interactions;
+        const errors = [];
+
+        validateInteractionSchema('slide-1', interaction, errors);
+
+        expect(errors).toContain('Slide "slide-1" interaction "hotspot-1" property "image" must be object, got string.');
+    });
+
+    it('validates nested required properties and minimum array items', () => {
+        const source = `createHotspotQuestion({
+            id: 'hotspot-1', prompt: 'Select a region', image: { alt: 'Diagram' }, hotspots: []
+        })`;
+        const [interaction] = parseSlideSource(source, 'slide-1').interactions;
+        const errors = [];
+
+        validateInteractionSchema('slide-1', interaction, errors);
+
+        expect(errors.some(error => error.includes('image" is missing required property "src"'))).toBe(true);
+        expect(errors.some(error => error.includes('hotspots" must contain at least 1 item'))).toBe(true);
+    });
+
+    it('validates map values and multi-type schema definitions', () => {
+        const source = `createFillInQuestion({
+            id: 'fill-1', prompt: 'Complete it', blanks: {
+                valid: { correct: ['one', 'two'] },
+                invalid: { typoTolerance: 1 }
+            }
+        })`;
+        const [interaction] = parseSlideSource(source, 'slide-1').interactions;
+        const errors = [];
+
+        validateInteractionSchema('slide-1', interaction, errors);
+
+        expect(errors).toEqual([
+            'Slide "slide-1" interaction "fill-1" property "blanks".invalid is missing required property "correct".'
+        ]);
+    });
+
+    it('validates enum values when they are statically known', () => {
+        const source = `createMatchingQuestion({
+            id: 'match-1', prompt: 'Match', feedbackMode: 'later',
+            pairs: [{ id: 'a', text: 'A', match: 'B' }, { id: 'b', text: 'B', match: 'A' }]
+        })`;
+        const [interaction] = parseSlideSource(source, 'slide-1').interactions;
+        const errors = [];
+
+        validateInteractionSchema('slide-1', interaction, errors);
+
+        expect(errors).toContain(
+            'Slide "slide-1" interaction "match-1" property "feedbackMode" must be one of: immediate, deferred.'
+        );
+    });
+
+    it('rejects broken direct HTML aliases and accepts existing canonical assets', () => {
+        const coursePath = fs.mkdtempSync(path.join(os.tmpdir(), 'coursecode-lint-assets-'));
+        temporaryDirectories.push(coursePath);
+        const imagePath = path.join(coursePath, 'assets', 'images', 'diagram.svg');
+        fs.mkdirSync(path.dirname(imagePath), { recursive: true });
+        fs.writeFileSync(imagePath, '<svg></svg>');
+        const errors = [];
+
+        validateDirectAssetReferences('slide-1', [
+            { attributes: { src: 'assets/images/diagram.svg' } },
+            { attributes: { src: 'course/assets/images/diagram.svg' } }
+        ], coursePath, errors);
+
+        expect(errors).toEqual([
+            'Slide "slide-1": Direct HTML asset path "assets/images/diagram.svg" will not exist in LMS packages. Use "course/assets/images/diagram.svg".'
+        ]);
+    });
+
+    it('accepts component-relative assets and reports missing files', () => {
+        const coursePath = fs.mkdtempSync(path.join(os.tmpdir(), 'coursecode-lint-assets-'));
+        temporaryDirectories.push(coursePath);
+        const imagePath = path.join(coursePath, 'assets', 'images', 'diagram.svg');
+        fs.mkdirSync(path.dirname(imagePath), { recursive: true });
+        fs.writeFileSync(imagePath, '<svg></svg>');
+        const errors = [];
+
+        validateInteractionAssetReferences('slide-1', {
+            image: { src: 'assets/images/diagram.svg' },
+            thumbnail: { src: 'images/missing.svg' }
+        }, coursePath, errors);
+
+        expect(errors).toEqual([
+            'Slide "slide-1": local course asset not found: course/assets/images/missing.svg'
+        ]);
+    });
+
+    it('treats a lightbox href as a component-owned course-relative path', () => {
+        const coursePath = fs.mkdtempSync(path.join(os.tmpdir(), 'coursecode-lint-lightbox-'));
+        temporaryDirectories.push(coursePath);
+        const documentPath = path.join(coursePath, 'assets', 'docs', 'reference.md');
+        fs.mkdirSync(path.dirname(documentPath), { recursive: true });
+        fs.writeFileSync(documentPath, '# Reference');
+        const errors = [];
+
+        validateDirectAssetReferences('slide-1', [{
+            attributes: {
+                href: 'assets/docs/reference.md',
+                'data-component': 'lightbox'
+            }
+        }], coursePath, errors);
+
+        expect(errors).toEqual([]);
+    });
+
+    it('ignores framework module aliases used by audio components', () => {
+        const errors = [];
+
+        validateDirectAssetReferences('slide-1', [
+            { attributes: { 'data-audio-src': '@slides/example.js#narration' } }
+        ], '/course', errors);
+
+        expect(errors).toEqual([]);
+    });
+});
+
+describe('menu icon validation', () => {
+    it('warns for unknown icons while accepting built-in and custom icons', () => {
+        const coursePath = fs.mkdtempSync(path.join(os.tmpdir(), 'coursecode-lint-icons-'));
+        temporaryDirectories.push(coursePath);
+        fs.writeFileSync(path.join(coursePath, 'icons.js'), `export const customIcons = {\n  'plant-one-line': '<path d="M1 1"/>'\n};\n`);
+        const warnings = [];
+
+        validateMenuIcons({
+            structure: [
+                { type: 'section', id: 'known', menu: { icon: 'book-open' }, children: [] },
+                { type: 'section', id: 'custom', menu: { icon: 'plant-one-line' }, children: [] },
+                { type: 'section', id: 'unknown', menu: { icon: 'briefcase' }, children: [] }
+            ]
+        }, coursePath, warnings);
+
+        expect(warnings).toEqual([
+            'Unknown menu icon "briefcase" on section "unknown". Add it to course/icons.js or use a registered icon.'
+        ]);
     });
 });

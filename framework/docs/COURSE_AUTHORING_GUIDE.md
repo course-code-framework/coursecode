@@ -618,7 +618,7 @@ createNumericQuestion({
 ```javascript
 createHotspotQuestion({
   id: 'hot1', prompt: 'Click the correct region:',
-  image: { src: 'assets/images/diagram.png', alt: 'Diagram' },
+  image: { src: 'assets/images/diagram.png', alt: 'Diagram' }, // Relative to course/assets/
   hotspots: [
     // pos = [x%, y%, width%, height%]
     { id: 'zone1', pos: [10, 20, 15, 10], correct: true, label: 'Correct Zone', feedback: 'Good choice!' },
@@ -626,6 +626,8 @@ createHotspotQuestion({
   ]
 });
 ```
+
+Interaction APIs such as `createHotspotQuestion()` resolve relative asset paths against `course/assets/`. In direct HTML attributes such as `<img src>`, use the packaged path `course/assets/...` as shown in the interactive-image example below. Declarative components may document their own path base; for example, lightbox `href` values are relative to `course/` and normally begin with `assets/`.
 
 **Appearance themes**: `'correct'`, `'incorrect'`, `'primary'`, `'accent'` — or provide custom `appearance` object.
 
@@ -1477,7 +1479,7 @@ parent.postMessage({ type: 'coursecode:resize', height: 400 }, '*');
 
 ```html
 <div data-component="interactive-image" id="diagram">
-  <img src="assets/images/diagram.png" alt="Diagram" />
+  <img src="course/assets/images/diagram.png" alt="Diagram" />
   <button data-hotspot-id="zone1" data-title="Component A" data-body="Description here..." 
           class="interactive-image-hotspot" style="top: 20%; left: 30%;">A</button>
   <button data-hotspot-id="zone2" data-title="Component B" data-body="More details..."
