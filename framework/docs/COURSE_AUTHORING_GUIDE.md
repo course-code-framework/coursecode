@@ -102,6 +102,8 @@ Test your course with a stub LMS wrapper.
 
 Runs Vite build in watch mode + stub LMS server. Changes to source files trigger automatic rebuilds:
 
+> **MCP-first workflow for AI agents:** Start by calling `coursecode_state`. If it connects, reuse that running preview for the entire authoring session. After editing course files, rely on preview hot reload and use `coursecode_errors`, `coursecode_screenshot`, `coursecode_viewport`, and the other CourseCode MCP runtime tools to inspect the result. Do not restart preview or run a production build after routine edits. If `coursecode_state` reports that preview is unavailable, start `coursecode preview` once in a terminal, then return to the MCP tools. Use `coursecode_lint` for static preflight checks and reserve `coursecode_build` for final package verification or export.
+
 ```bash
 coursecode preview                    # Open http://localhost:4173
 ```
