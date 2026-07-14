@@ -272,6 +272,75 @@ describe('Interactions', () => {
 
     // ─── API Consistency ─────────────────────────────────────
 
+    describe('Hotspot', () => {
+        it('evaluates automated responses and renders authored feedback', async () => {
+            await frame.evaluate(() => {
+                const container = document.createElement('div');
+                container.id = 'automation-hotspot-fixture';
+                container.dataset.checkedEvents = '0';
+                container.addEventListener('interaction-checked', () => {
+                    container.dataset.checkedEvents = String(Number(container.dataset.checkedEvents) + 1);
+                });
+                document.body.append(container);
+                CourseCode.createHotspotQuestion({
+                    id: 'automation-hotspot',
+                    prompt: 'Select the required regions.',
+                    image: {
+                        src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='100'%3E%3Crect width='200' height='100' fill='%23eee'/%3E%3C/svg%3E",
+                        alt: 'Test hotspot image'
+                    },
+                    hotspots: [
+                        { id: 'a', pos: [10, 10, 20, 20], correct: true, label: 'A' },
+                        { id: 'b', pos: [50, 10, 20, 20], correct: true, label: 'B' },
+                        { id: 'c', pos: [10, 60, 20, 20], correct: false, label: 'C' }
+                    ],
+                    feedback: {
+                        correct: 'Custom hotspot success.',
+                        incorrect: 'Custom hotspot retry.'
+                    }
+                }).render(container);
+            });
+
+            await setResponse(frame, 'automation-hotspot', ['a', 'b']);
+            const result = await checkAnswer(frame, 'automation-hotspot');
+            const feedbackText = await frame.evaluate(() => {
+                return {
+                    text: document.querySelector('#automation-hotspot_feedback')?.textContent.trim(),
+                    checkedEvents: document.querySelector('#automation-hotspot-fixture')?.dataset.checkedEvents
+                };
+            });
+
+            expect(result.correct).toBe(true);
+            expect(result.score).toBe(1);
+            expect(feedbackText.text).toBe('Custom hotspot success.');
+            expect(feedbackText.checkedEvents).toBe('1');
+
+            await goToSlide(frame, 'example-ui-showcase');
+            await goToSlide(frame, 'example-interactions-showcase');
+            await frame.evaluate(() => {
+                const replacement = document.createElement('div');
+                replacement.id = 'automation-hotspot-fixture';
+                document.body.append(replacement);
+                CourseCode.createHotspotQuestion({
+                    id: 'automation-hotspot',
+                    prompt: 'Select the required regions.',
+                    image: {
+                        src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='100'%3E%3Crect width='200' height='100' fill='%23eee'/%3E%3C/svg%3E",
+                        alt: 'Test hotspot image'
+                    },
+                    hotspots: [
+                        { id: 'a', pos: [10, 10, 20, 20], correct: true, label: 'A' },
+                        { id: 'b', pos: [50, 10, 20, 20], correct: true, label: 'B' },
+                        { id: 'c', pos: [10, 60, 20, 20], correct: false, label: 'C' }
+                    ]
+                }).render(replacement);
+            });
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            expect(await automation(frame, 'getResponse', 'automation-hotspot')).toEqual(['a', 'b']);
+        });
+    });
+
     describe('API Consistency', () => {
         it('getCorrectResponse output should be directly usable with setResponse', async () => {
             // Test all fill-in types: getCorrectResponse → setResponse → checkAnswer

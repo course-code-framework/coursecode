@@ -44,3 +44,59 @@ describe('HeadlessBrowser reload scheduling', () => {
         expect(browser._reloadPromise).toBeNull();
     });
 });
+
+describe('HeadlessBrowser screenshots', () => {
+    it('scrolls the framework main content container', async () => {
+        const browser = new HeadlessBrowser();
+        const content = { scrollTop: 0 };
+        browser.browser = {};
+        browser.page = {
+            screenshot: vi.fn().mockResolvedValue(Buffer.from('image'))
+        };
+        browser.courseFrame = {
+            evaluate: vi.fn()
+                .mockResolvedValueOnce(true)
+                .mockImplementationOnce((callback, y) => {
+                    const originalDocument = globalThis.document;
+                    globalThis.document = {
+                        querySelector: vi.fn(selector => selector === '#content' ? content : null),
+                        documentElement: {}
+                    };
+                    try {
+                        callback(y);
+                    } finally {
+                        globalThis.document = originalDocument;
+                    }
+                })
+        };
+
+        await browser.screenshot({ scrollY: 420 });
+
+        expect(content.scrollTop).toBe(420);
+    });
+
+    it('expands full-page captures for main content and preview chrome', async () => {
+        const browser = new HeadlessBrowser();
+        const iframeScreenshot = vi.fn().mockResolvedValue(Buffer.from('image'));
+        const iframe = {
+            boundingBox: vi.fn().mockResolvedValue({ height: 680 }),
+            screenshot: iframeScreenshot
+        };
+        browser.browser = {};
+        browser.page = {
+            setViewport: vi.fn().mockResolvedValue(),
+            $: vi.fn().mockResolvedValue(iframe)
+        };
+        browser.courseFrame = {
+            evaluate: vi.fn()
+                .mockResolvedValueOnce(true)
+                .mockResolvedValueOnce(1400)
+        };
+
+        await browser.screenshot({ fullPage: true });
+
+        expect(browser.page.setViewport).toHaveBeenNthCalledWith(1, { width: 1280, height: 1440 });
+        expect(browser.page.setViewport).toHaveBeenNthCalledWith(2, { width: 1280, height: 720 });
+        expect(iframeScreenshot).toHaveBeenCalledWith({ type: 'jpeg', quality: 50 });
+    });
+});

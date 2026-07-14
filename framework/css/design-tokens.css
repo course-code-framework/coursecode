@@ -153,6 +153,7 @@
   --color-success-light: color-mix(in srgb, var(--palette-green) 4%, var(--palette-white));
   --color-success-hover: color-mix(in srgb, var(--palette-green) 80%, var(--palette-black));
   --color-success-text: color-mix(in srgb, var(--palette-green) 85%, var(--palette-black));
+  --color-on-success: var(--color-white); /* Text/icon color on success-filled backgrounds */
 
   --color-partial: var(--palette-amber);  /* Partial credit feedback */
 

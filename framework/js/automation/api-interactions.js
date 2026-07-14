@@ -6,7 +6,7 @@
 
 import interactionRegistry from '../managers/interaction-registry.js';
 import { courseConfig } from '../../../course/course-config.js';
-import { getInteractionState, recordInteractionResult } from '../components/interactions/interaction-base.js';
+import { dispatchInteractionChecked, getInteractionState, recordInteractionResult } from '../components/interactions/interaction-base.js';
 import { logger } from '../utilities/logger.js';
 
 /**
@@ -143,6 +143,9 @@ export function createInteractionMethods(logTrace) {
                         logger.warn(`[CourseCodeAutomation] Failed to record interaction "${interactionId}" to SCORM: ${recordError.message}`);
                     }
                 }
+
+                const interactionElement = document.querySelector(`[data-interaction-id="${CSS.escape(interactionId)}"]`);
+                dispatchInteractionChecked(interactionElement, evaluation);
 
                 return evaluation;
             } catch (error) {

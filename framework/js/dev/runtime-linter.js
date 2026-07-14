@@ -781,6 +781,28 @@ function getEffectiveBackgroundColor(element) {
     return [result[0], result[1], result[2]];
 }
 
+/**
+ * Detects computed gradient backgrounds on an element or any ancestor.
+ * Course themes commonly use custom classes, so class-name allowlists cannot
+ * reliably identify every gradient that makes flat-color contrast calculation
+ * invalid.
+ * @param {HTMLElement} element
+ * @returns {boolean}
+ */
+function hasComputedGradientBackground(element) {
+    let current = element;
+
+    while (current && current.tagName !== 'HTML') {
+        const backgroundImage = window.getComputedStyle(current).backgroundImage;
+        if (backgroundImage && backgroundImage !== 'none' && backgroundImage.includes('gradient')) {
+            return true;
+        }
+        current = current.parentElement;
+    }
+
+    return false;
+}
+
 
 /**
  * Builds a compact description of an element and its ancestry for lint messages.
@@ -873,18 +895,7 @@ function validateVisualLayout(slideId, renderedContent, errors, warnings) {
             if (el.classList.contains('badge') || el.closest('.badge') !== null) continue;
 
             // Skip contrast check for elements on gradient backgrounds (can't reliably compute)
-            const hasGradientBackground = el.closest('.gradient') !== null ||
-                el.closest('.gradient-light') !== null ||
-                el.closest('.hero-gradient') !== null ||
-                el.closest('.btn-gradient') !== null ||
-                el.closest('[class*="bg-gradient-dark"]') !== null ||
-                el.closest('[class*="gradient-header"]') !== null ||
-                el.closest('[class*="gradient-success"]') !== null ||
-                el.closest('[class*="gradient-progress"]') !== null ||
-                el.closest('[style*="linear-gradient"]') !== null ||
-                el.closest('[style*="radial-gradient"]') !== null ||
-                style.backgroundImage.includes('gradient');
-            if (hasGradientBackground) continue;
+            if (hasComputedGradientBackground(el)) continue;
 
             const textColorStr = style.color;
             const bgColorRgb = getEffectiveBackgroundColor(el);

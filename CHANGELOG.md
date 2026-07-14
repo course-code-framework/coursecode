@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - `coursecode upgrade` now synchronizes the project-local CourseCode CLI dependency with the installed framework version.
 - `coursecode info` now reports the most recently built course package when multiple ZIP archives exist.
+- Success buttons now honor the theme's `--color-on-success` foreground token, and runtime contrast checks recognize custom computed gradient backgrounds.
+- MCP screenshots now scroll the framework's real content container and include preview chrome when sizing full-page captures.
+- Interactive images now apply their required positioning and responsive image hooks from the documented `data-component="interactive-image"` markup.
+- Hotspot answer checks now address the correct feedback container and honor authored correct and incorrect feedback during learner and automation flows.
+- Structured interaction responses now restore as their original arrays or objects, and learner, automation, and restored checks emit the documented `interaction-checked` event.
+- Automation registry entries now retain the interaction's SCORM type so structured responses are normalized correctly after MCP-driven checks.
 
 ## [0.1.59] - 2026-07-13
 

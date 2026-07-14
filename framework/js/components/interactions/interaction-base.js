@@ -195,6 +195,8 @@ export function createInteractionEventHandler(questionObj, config, customHandler
                 if (!config.controlled) {
                     recordInteractionResult(config, evaluation);
                 }
+
+                dispatchInteractionChecked(event.currentTarget, evaluation);
                 break;
 
             case 'reset':
@@ -231,7 +233,11 @@ export function createInteractionEventHandler(questionObj, config, customHandler
  */
 export function recordInteractionResult(config, evaluation) {
     // Mark as submitted in state (for restoration purposes)
-    saveInteractionState(config.id, evaluation.response, true);
+    saveInteractionState(
+        config.id,
+        normalizeInteractionResponseForPersistence(config.scormType, evaluation.response),
+        true
+    );
 
     // Format the response according to SCORM 2004 requirements
     const scormType = config.scormType || 'other';
@@ -264,6 +270,43 @@ export function recordInteractionResult(config, evaluation) {
         logger.error(`Failed to record interaction "${config.id}": ${error.message}`, { domain: 'interaction', operation: 'record', stack: error.stack, interactionId: config.id });
         throw error; // Re-throw to prevent silent failures
     }
+}
+
+/**
+ * Converts structured interaction responses back from their evaluation/SCORM
+ * JSON representation before storing them for UI restoration.
+ */
+export function normalizeInteractionResponseForPersistence(scormType, response) {
+    if (typeof response !== 'string' || !['choice', 'matching', 'sequencing', 'other'].includes(scormType)) {
+        return response;
+    }
+
+    const trimmed = response.trim();
+    if (!trimmed.startsWith('[') && !trimmed.startsWith('{')) {
+        return response;
+    }
+
+    try {
+        return JSON.parse(trimmed);
+    } catch {
+        return response;
+    }
+}
+
+/**
+ * Emits the documented interaction completion event from a rendered
+ * interaction or its author-provided container.
+ */
+export function dispatchInteractionChecked(target, evaluation) {
+    if (!target || !evaluation) return;
+
+    target.dispatchEvent(new CustomEvent('interaction-checked', {
+        bubbles: true,
+        detail: {
+            isCorrect: evaluation.correct,
+            evaluation
+        }
+    }));
 }
 
 /**
@@ -430,14 +473,34 @@ const _responseDebounceTimers = new Map();
  * @param {object} questionObj - The live interaction instance.
  */
 export function registerCoreInteraction(config, questionObj) {
+    const scormTypeByInteractionType = {
+        'multiple-choice-single': 'choice',
+        'multiple-choice-multiple': 'choice',
+        'drag-drop': 'other',
+        'fill-in': 'fill-in',
+        'hotspot': 'other',
+        'likert': 'likert',
+        'matching': 'matching',
+        'numeric': 'numeric',
+        'sequencing': 'sequencing',
+        'true-false': 'true-false'
+    };
+    const registryConfig = config.scormType
+        ? config
+        : { ...config, scormType: scormTypeByInteractionType[questionObj.type] || 'other' };
+
     // Delegate to the InteractionRegistry (separate from persistence manager)
-    interactionRegistry.register(config, questionObj);
+    interactionRegistry.register(registryConfig, questionObj);
+
+    // Snapshot restoration state before deferring DOM work. An automated check can
+    // run before the next animation frame; reading state inside the callback would
+    // then mistake that new answer for pre-existing state and restore it twice.
+    const savedState = getInteractionState(config.id);
 
     // Defer state restoration and auto-save setup to next frame
     // This ensures the DOM container exists after render() completes
     requestAnimationFrame(() => {
         // Restore previously saved response state if it exists
-        const savedState = getInteractionState(config.id);
         if (savedState && savedState.response !== null && savedState.response !== undefined) {
             try {
                 if (typeof questionObj.setResponse === 'function') {
@@ -446,7 +509,9 @@ export function registerCoreInteraction(config, questionObj) {
 
                     // If it was previously submitted, also restore the feedback state
                     if (savedState.submitted && typeof questionObj.checkAnswer === 'function') {
-                        questionObj.checkAnswer();
+                        const evaluation = questionObj.checkAnswer();
+                        const interactionElement = document.querySelector(`[data-interaction-id="${CSS.escape(config.id)}"]`);
+                        dispatchInteractionChecked(interactionElement, evaluation);
                     }
                 }
             } catch (error) {

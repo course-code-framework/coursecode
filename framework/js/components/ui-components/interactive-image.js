@@ -7,8 +7,8 @@
 export const schema = {
     type: 'interactive-image',
     description: 'Image with clickable hotspots for modals or accordion integration',
-    example: `<div data-component="interactive-image" class="interactive-image" style="position: relative; display: inline-block;">
-  <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250' fill='%23f1f5f9'%3E%3Crect width='400' height='250' rx='8'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2394a3b8' font-family='system-ui' font-size='14'%3EInteractive Diagram%3C/text%3E%3C/svg%3E" alt="Interactive diagram">
+    example: `<div data-component="interactive-image" class="interactive-image-container">
+  <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250' fill='%23f1f5f9'%3E%3Crect width='400' height='250' rx='8'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2394a3b8' font-family='system-ui' font-size='14'%3EInteractive Diagram%3C/text%3E%3C/svg%3E" alt="Interactive diagram" class="interactive-image-img">
   <button data-hotspot-id="feature-a" data-title="Feature A" data-body="Details about Feature A" class="hotspot" style="position: absolute; top: 30%; left: 25%; width: 24px; height: 24px; border-radius: 50%; background: #3b82f6; border: 2px solid white; cursor: pointer;" aria-label="Feature A"></button>
   <button data-hotspot-id="feature-b" data-title="Feature B" data-body="Details about Feature B" class="hotspot" style="position: absolute; top: 60%; left: 65%; width: 24px; height: 24px; border-radius: 50%; background: #f59e0b; border: 2px solid white; cursor: pointer;" aria-label="Feature B"></button>
 </div>`,
@@ -44,6 +44,12 @@ import { eventBus } from '../../core/event-bus.js';
 export function init(root, _options = {}) {
     const container = typeof root === 'string' ? document.querySelector(root) : root;
     if (!container) return;
+
+    // The data-component attribute is the author-facing contract. Normalize
+    // the internal CSS hooks so documented minimal markup positions hotspots
+    // against the image instead of an unrelated ancestor.
+    container.classList.add('interactive-image-container');
+    container.querySelector(':scope > img')?.classList.add('interactive-image-img');
 
     const hotspots = Array.from(container.querySelectorAll('[data-hotspot-id]'));
     if (!hotspots.length) return;

@@ -49,6 +49,21 @@ describe('build tooling and learner-browser policy', () => {
         expect(source).toContain("el.classList.contains('sr-only')");
     });
 
+    it('detects custom computed gradients before calculating flat background contrast', () => {
+        const source = fs.readFileSync(path.join(repoRoot, 'framework/js/dev/runtime-linter.js'), 'utf8');
+
+        expect(source).toContain('function hasComputedGradientBackground(element)');
+        expect(source).toContain('window.getComputedStyle(current).backgroundImage');
+        expect(source).toContain('if (hasComputedGradientBackground(el)) continue;');
+    });
+
+    it('normalizes documented interactive-image markup to its positioning hooks', () => {
+        const source = fs.readFileSync(path.join(repoRoot, 'framework/js/components/ui-components/interactive-image.js'), 'utf8');
+
+        expect(source).toContain("container.classList.add('interactive-image-container')");
+        expect(source).toContain("container.querySelector(':scope > img')?.classList.add('interactive-image-img')");
+    });
+
     it('does not let responsive smoke tests attach to an unrelated occupied port', () => {
         const source = fs.readFileSync(path.join(repoRoot, 'scripts/responsive-visual-smoke.mjs'), 'utf8');
 

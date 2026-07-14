@@ -107,4 +107,30 @@ describe('Theme variants', () => {
         expect(styles.item.borderTopWidth).toBe('1px');
         expect(styles.item.borderRadius).not.toBe('0px');
     });
+
+    it('uses the theme success foreground token for success buttons', async () => {
+        const styles = await frame.evaluate(() => {
+            const root = document.documentElement;
+            const button = document.createElement('button');
+            button.className = 'btn btn-success';
+            button.textContent = 'Check Answer';
+            document.body.append(button);
+
+            root.style.setProperty('--color-success', '#29b45e');
+            root.style.setProperty('--color-on-success', '#000000');
+            const computed = getComputedStyle(button);
+            const result = {
+                backgroundColor: computed.backgroundColor,
+                color: computed.color
+            };
+
+            button.remove();
+            root.style.removeProperty('--color-success');
+            root.style.removeProperty('--color-on-success');
+            return result;
+        });
+
+        expect(styles.backgroundColor).toBe('rgb(41, 180, 94)');
+        expect(styles.color).toBe('rgb(0, 0, 0)');
+    });
 });

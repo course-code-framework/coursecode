@@ -6,7 +6,6 @@ import {
   clearFeedback,
   validateContainer,
   parseResponse,
-  recordInteractionResult,
   registerCoreInteraction
 } from './interaction-base.js';
 import { logger } from '../../utilities/logger.js';
@@ -330,6 +329,7 @@ export function createHotspotQuestion(config) {
       if (!selections.length) {
         displayFeedback(
           targetContainer,
+          id,
           'Select at least one hotspot before checking your answer.',
           'error'
         );
@@ -341,7 +341,8 @@ export function createHotspotQuestion(config) {
       if (evaluation.correct) {
         displayFeedback(
           targetContainer,
-          '✓ Excellent! You found all the correct areas.',
+          id,
+          feedback?.correct || '✓ Excellent! You found all the correct areas.',
           'correct'
         );
       } else {
@@ -349,20 +350,11 @@ export function createHotspotQuestion(config) {
         const selectedCount = selections.length;
         displayFeedback(
           targetContainer,
-          `✗ Keep trying. ${selectedCount} selected / ${correctCount} required.`,
+          id,
+          feedback?.incorrect || `✗ Keep trying. ${selectedCount} selected / ${correctCount} required.`,
           'incorrect'
         );
       }
-
-      recordInteractionResult(
-        id,
-        'other',
-        evaluation.response,
-        evaluation.correct,
-        JSON.stringify(normalizedHotspots.filter(h => h.correct).map(h => h.id)),
-        prompt,
-        controlled
-      );
 
       return evaluation;
     },

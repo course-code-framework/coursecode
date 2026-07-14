@@ -166,14 +166,14 @@
 .btn-success,
 .btn-check {
   background: var(--color-success);
-  color: var(--color-white);
+  color: var(--color-on-success);
   border-color: var(--color-success);
 }
 
 .btn-success:hover:not(:disabled),
 .btn-check:hover:not(:disabled) {
   background: var(--color-success-hover);
-  color: var(--color-white);
+  color: var(--color-on-success);
   border-color: var(--color-success-hover);
   box-shadow: var(--shadow-md);
   transform: translateY(var(--btn-hover-translate-y));
