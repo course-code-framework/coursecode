@@ -5,7 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.61] - 2026-07-20
+
+### Fixed
+- MCP screenshots now normalize Puppeteer's binary output before base64 encoding, preventing invalid image payloads when Puppeteer returns a plain `Uint8Array`.
+
+## [0.1.60] - 2026-07-14
 
 ### Fixed
 - `coursecode upgrade` now synchronizes the project-local CourseCode CLI dependency with the installed framework version.

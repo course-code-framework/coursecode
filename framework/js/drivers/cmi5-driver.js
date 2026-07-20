@@ -25,6 +25,87 @@ import { logger } from '../utilities/logger.js';
 const STATE_ID_SUSPEND_DATA = 'https://w3id.org/xapi/cmi5/state/suspend_data';
 const STATE_ID_BOOKMARK = 'https://w3id.org/xapi/cmi5/state/bookmark';
 
+function sanitizeInitializationMessage(message) {
+    return String(message || 'Unknown cmi5 initialization error')
+        .replace(/(https?:\/\/[^\s?#]+)\?[^\s)]+/gi, '$1?[redacted]')
+        .replace(/(Basic\s+)[A-Za-z0-9+/=._-]+/gi, '$1[redacted]');
+}
+
+/**
+ * Classify cmi5 initialization failures without exposing launch credentials.
+ * Only explicit token-expiry errors are treated as an expired session; generic
+ * HTTP 400 and network/fetch failures remain actionable initialization errors.
+ */
+export function classifyCmi5InitializationError(error) {
+    const status = error?.response?.status ?? error?.status ?? null;
+    const code = error?.code || null;
+    const message = sanitizeInitializationMessage(error?.message);
+    const explicitlyExpired = /(?:fetch|token|credential).{0,50}(?:expired|already used|invalid)|(?:expired|already used|invalid).{0,50}(?:fetch|token|credential)/i.test(message);
+    const networkFailure = code === 'ERR_NETWORK' ||
+        code === 'ECONNABORTED' ||
+        /failed to fetch|network error|cors|load failed/i.test(message);
+
+    if (explicitlyExpired) {
+        return {
+            category: 'session_expired',
+            status,
+            code,
+            message: 'Your session has expired. Please return to the learning management system to resume this course.',
+            userFacing: true,
+        };
+    }
+
+    if (networkFailure) {
+        return {
+            category: 'network',
+            status,
+            code,
+            message: 'Unable to contact the LMS cmi5 service. Check the LMS launch endpoint, CORS policy, and network connectivity.',
+            userFacing: false,
+        };
+    }
+
+    if (status === 401 || status === 403) {
+        return {
+            category: 'authentication',
+            status,
+            code,
+            message: `The LMS rejected cmi5 authentication (HTTP ${status}).`,
+            userFacing: false,
+        };
+    }
+
+    if (status) {
+        return {
+            category: 'http',
+            status,
+            code,
+            message: `The LMS rejected cmi5 initialization (HTTP ${status}): ${message}`,
+            userFacing: false,
+        };
+    }
+
+    return {
+        category: 'unknown',
+        status,
+        code,
+        message,
+        userFacing: false,
+    };
+}
+
+/** Return a safe cmi5 return URL, or null for invalid/non-web protocols. */
+export function getSafeCmi5ReturnUrl(value) {
+    if (!value || typeof value !== 'string') return null;
+
+    try {
+        const url = new URL(value);
+        return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null;
+    } catch {
+        return null;
+    }
+}
+
 // =============================================================================
 // cmi5 Driver Class
 // =============================================================================
@@ -132,20 +213,31 @@ export class Cmi5Driver extends HttpDriverBase {
                 return true;
             }
 
-            const isExpiredToken = error.message?.includes('400') ||
-                error.response?.status === 400 ||
-                error.message?.includes('fetch');
+            const diagnostic = classifyCmi5InitializationError(error);
+            const logContext = {
+                domain: 'cmi5',
+                operation: 'initialize',
+                category: diagnostic.category,
+                status: diagnostic.status,
+                code: diagnostic.code,
+                userFacing: diagnostic.userFacing,
+            };
 
-            if (isExpiredToken) {
-                const sessionError = new Error(
-                    'Your session has expired. Please return to the learning management system to resume this course.'
-                );
-                sessionError.isSessionExpired = true;
-                sessionError.userFacing = true;
-                throw sessionError;
+            if (diagnostic.userFacing) {
+                logger.warn('[Cmi5Driver] Session expired during initialization', logContext);
+            } else {
+                logger.error('[Cmi5Driver] Initialization failed', logContext);
             }
 
-            throw new Error(`[Cmi5Driver] Initialization failed: ${error.message}`);
+            const initializationError = new Error(`[Cmi5Driver] ${diagnostic.message}`);
+            initializationError.code = diagnostic.code;
+            initializationError.httpStatus = diagnostic.status;
+            initializationError.cmi5Category = diagnostic.category;
+            if (diagnostic.userFacing) {
+                initializationError.isSessionExpired = true;
+                initializationError.userFacing = true;
+            }
+            throw initializationError;
         }
     }
 
@@ -164,10 +256,12 @@ export class Cmi5Driver extends HttpDriverBase {
         try {
             await this._persistState();
             await this._flushOutcomeStatements();
+            const returnURL = this._cmi5.getLaunchData?.()?.returnURL || null;
             await this._cmi5.terminate();
             logger.debug('[Cmi5Driver] Sent Terminated statement');
 
             this._isTerminated = true;
+            this._navigateToReturnUrl(returnURL);
             return true;
 
         } catch (error) {
@@ -232,6 +326,31 @@ export class Cmi5Driver extends HttpDriverBase {
                 sentSuccessStatus: this._sentSuccessStatus
             };
             this._sendAuthenticatedKeepalive(bookmarkUrl, bookmarkData, authToken, 'bookmark');
+        }
+    }
+
+    _navigateToReturnUrl(returnURL) {
+        if (!returnURL) return;
+
+        const safeReturnURL = getSafeCmi5ReturnUrl(returnURL);
+        if (!safeReturnURL) {
+            logger.warn('[Cmi5Driver] Ignoring invalid cmi5 returnURL', {
+                domain: 'cmi5',
+                operation: 'return',
+            });
+            return;
+        }
+
+        if (typeof window === 'undefined' || typeof window.location?.assign !== 'function') return;
+
+        try {
+            window.location.assign(safeReturnURL);
+        } catch (error) {
+            logger.warn('[Cmi5Driver] Unable to navigate to cmi5 returnURL', {
+                domain: 'cmi5',
+                operation: 'return',
+                message: error?.message,
+            });
         }
     }
 

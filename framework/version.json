@@ -1,8 +1,8 @@
 {
-  "version": "0.1.59",
+  "version": "0.1.61",
   "name": "CourseCode Framework",
   "description": "Multi-format course authoring and learner runtime framework",
-  "released": "2026-07-13",
+  "released": "2026-07-20",
   "formats": [
     "SCORM 2004 4th Edition",
     "SCORM 1.2",

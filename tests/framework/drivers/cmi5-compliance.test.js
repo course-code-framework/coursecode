@@ -1,11 +1,22 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
-// Mock the @xapi/cmi5 external package — it's dynamically imported in the driver
-// but not installed as a dev dependency. We test against our statement output,
-// not the xAPI library itself.
-vi.mock('@xapi/cmi5', () => ({}));
+const cmi5ModuleMock = vi.hoisted(() => ({ construct: vi.fn() }));
 
-import { Cmi5Driver } from '../../../framework/js/drivers/cmi5-driver.js';
+// Statement tests inject a cmi5 instance directly. Initialization tests use this
+// functional constructor mock; the actual package lifecycle has separate coverage.
+vi.mock('@xapi/cmi5', () => ({
+    default: class MockCmi5 {
+        constructor(parameters) {
+            return cmi5ModuleMock.construct(parameters);
+        }
+    }
+}));
+
+import {
+    Cmi5Driver,
+    classifyCmi5InitializationError,
+    getSafeCmi5ReturnUrl
+} from '../../../framework/js/drivers/cmi5-driver.js';
 
 // ─── cmi5 Specification Compliance Tests ─────────────────────────────
 //
@@ -130,6 +141,107 @@ function createTestableDriver() {
 
     return { driver, sentStatements };
 }
+
+describe('cmi5 production initialization contract', () => {
+    it('passes all launch parameters through the production library lifecycle', async () => {
+        const actor = { mbox: 'mailto:learner@example.com' };
+        const search = new URLSearchParams({
+            fetch: 'https://lms.example.com/cmi5/fetch',
+            endpoint: 'https://lms.example.com/xapi',
+            actor: JSON.stringify(actor),
+            registration: '00000000-0000-4000-8000-000000000001',
+            activityId: 'https://example.com/course/au/1'
+        }).toString();
+        const windowMock = { location: { search: `?${search}` } };
+        windowMock.parent = windowMock;
+        vi.stubGlobal('window', windowMock);
+
+        const initialize = vi.fn().mockResolvedValue(undefined);
+        const getState = vi.fn().mockRejectedValue({
+            message: 'Not found',
+            response: { status: 404 }
+        });
+        cmi5ModuleMock.construct.mockReturnValue({
+            initialize,
+            getLaunchParameters: () => ({
+                endpoint: 'https://lms.example.com/xapi',
+                actor,
+                registration: '00000000-0000-4000-8000-000000000001',
+                activityId: 'https://example.com/course/au/1'
+            }),
+            xapi: { getState }
+        });
+
+        try {
+            const driver = new Cmi5Driver();
+            await expect(driver.initialize()).resolves.toBe(true);
+
+            expect(cmi5ModuleMock.construct).toHaveBeenCalledWith({
+                fetch: 'https://lms.example.com/cmi5/fetch',
+                endpoint: 'https://lms.example.com/xapi',
+                actor,
+                registration: '00000000-0000-4000-8000-000000000001',
+                activityId: 'https://example.com/course/au/1'
+            });
+            expect(initialize).toHaveBeenCalledOnce();
+            expect(getState).toHaveBeenCalledTimes(2);
+            expect(driver.isConnected()).toBe(true);
+        } finally {
+            vi.unstubAllGlobals();
+            cmi5ModuleMock.construct.mockReset();
+        }
+    });
+
+    it('does not misclassify generic HTTP 400 or fetch failures as expired sessions', () => {
+        const httpFailure = classifyCmi5InitializationError({
+            message: 'Request failed with status code 400',
+            response: { status: 400 }
+        });
+        const networkFailure = classifyCmi5InitializationError({
+            message: 'Failed to fetch https://lms.example.com/token?secret=value',
+            code: 'ERR_NETWORK'
+        });
+
+        expect(httpFailure).toMatchObject({ category: 'http', userFacing: false });
+        expect(networkFailure).toMatchObject({ category: 'network', userFacing: false });
+        expect(networkFailure.message).not.toContain('secret=value');
+    });
+
+    it('only classifies explicit token-expiry responses as expired sessions', () => {
+        expect(classifyCmi5InitializationError({
+            message: 'The cmi5 fetch token has expired',
+            response: { status: 400 }
+        })).toMatchObject({ category: 'session_expired', userFacing: true });
+    });
+});
+
+describe('cmi5 return URL handling', () => {
+    it('accepts HTTP(S) return URLs and rejects executable or malformed URLs', () => {
+        expect(getSafeCmi5ReturnUrl('https://lms.example.com/return?course=1'))
+            .toBe('https://lms.example.com/return?course=1');
+        expect(getSafeCmi5ReturnUrl('javascript:alert(1)')).toBeNull();
+        expect(getSafeCmi5ReturnUrl('not a URL')).toBeNull();
+    });
+
+    it('navigates only after persistence and the Terminated statement succeed', async () => {
+        const { driver, sentStatements } = createTestableDriver();
+        const assign = vi.fn();
+        vi.stubGlobal('window', { location: { assign } });
+        driver._cmi5.getLaunchData = () => ({
+            launchMode: 'Normal',
+            moveOn: 'Completed',
+            returnURL: 'https://lms.example.com/return'
+        });
+
+        try {
+            await driver.terminate();
+            expect(sentStatements.at(-1)).toEqual({ _lifecycle: 'terminated' });
+            expect(assign).toHaveBeenCalledWith('https://lms.example.com/return');
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    });
+});
 
 // ═════════════════════════════════════════════════════════════════════
 // Tests: xAPI Verb IRIs
