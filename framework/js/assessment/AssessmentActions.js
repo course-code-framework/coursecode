@@ -19,6 +19,13 @@ import interactionManager from '../managers/interaction-manager.js';
 import globalStateManager from '../state/index.js';
 import { formatLearnerResponseForScorm } from '../validation/scorm-validators.js';
 import { logger } from '../utilities/logger.js';
+import accessibilityManager from '../managers/accessibility-manager.js';
+import {
+    roundPercentage,
+    resolvePassingScore,
+    formatScoreForDisplay,
+    buildResultsActionButton
+} from './assessment-results.js';
 
 /**
  * Creates an object containing all action handlers for an assessment.
@@ -41,7 +48,55 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
     const { settings } = config;
     // All parameters are immutable for this action instance's lifetime
 
+    // Randomized/bank assessments persist their question order so index-keyed
+    // responses always resolve to the same questions on resume.
+    const requiresPersistedOrder = Boolean(config.questionBanks || settings.randomizeQuestions);
+
+    /**
+     * Replaces the session with a fresh attempt while keeping the summary
+     * (attempt counts, lastResults, attempt history) intact.
+     * @param {boolean} reselectQuestions - Clear the persisted question order so
+     *   the next render draws a new randomized selection.
+     */
+    async function _startNewAttemptSession({ reselectQuestions = false } = {}) {
+        await stateManager.startNewAttemptSession();
+        if (requiresPersistedOrder) {
+            await stateManager.setSelectedQuestions(reselectQuestions ? null : config.questions);
+        }
+    }
+
+    /**
+     * Moves focus into the newly shown assessment view so keyboard and screen
+     * reader users don't land on <body> after the DOM swap.
+     * @param {string} viewName
+     * @param {string} [announcement]
+     */
+    function _focusView(viewName, announcement) {
+        const container = typeof uiManager.getContainer === 'function' ? uiManager.getContainer() : null;
+        if (!container) return;
+
+        const target = (viewName === 'question' && container.querySelector('.question-prompt h3, .question-prompt h2'))
+            || container.querySelector('h1, h2, h3');
+        if (target) {
+            if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+            target.focus({ preventScroll: true });
+        }
+
+        if (announcement) {
+            accessibilityManager.announce(announcement);
+        }
+    }
+
+    function _questionAnnouncement() {
+        return `Question ${stateManager.getCurrentQuestionIndex() + 1} of ${config.questions.length}`;
+    }
+
     async function _forceSaveCurrentResponse() {
+        // Only a question that is on screen has live input to save. From the
+        // review screen (possibly restored after a reload) no question is
+        // rendered, and reading it would throw or overwrite the saved answer.
+        if (stateManager.getCurrentView() !== 'question') return;
+
         const currentIndex = stateManager.getCurrentQuestionIndex();
         const questionInstance = questionInstances[currentIndex];
         if (questionInstance && typeof questionInstance.persistToSCORM === 'function') {
@@ -58,19 +113,16 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
     }
 
     async function handleStart() {
-        const summary = stateManager.getSummary();
-        // Summary initialized by Factory on first render
-        const attemptNumber = (summary?.attempts || 0) + 1;
-
-        await stateManager.clearSession();
+        // Fresh session for the next attempt number (summary.attempts + 1).
+        // Keeps the question order this instance is rendering persisted.
+        await _startNewAttemptSession();
         await stateManager.setCurrentView('question');
         await stateManager.setCurrentQuestionIndex(0);
         await stateManager.setStartTime(Date.now());
-        await stateManager.setSubmitted(false);
-        await stateManager.setAttemptNumber(attemptNumber);
 
         _manageFooterVisibility('question');
         await uiManager.showView('question');
+        _focusView('question', _questionAnnouncement());
     }
 
     async function handlePrev() {
@@ -80,6 +132,7 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
         if (currentIndex > 0) {
             await stateManager.setCurrentQuestionIndex(currentIndex - 1);
             await uiManager.showView('question');
+            _focusView('question', _questionAnnouncement());
         }
     }
 
@@ -95,6 +148,7 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
                 await stateManager.setCurrentView('review');
                 _manageFooterVisibility('review');
                 await uiManager.showView('review');
+                _focusView('review');
             } else {
                 // FIX: Route through handleSubmit to ensure unanswered checks are performed
                 // previously called submitAssessment() directly, bypassing validation
@@ -103,6 +157,7 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
         } else {
             await stateManager.setCurrentQuestionIndex(currentIndex + 1);
             await uiManager.showView('question');
+            _focusView('question', _questionAnnouncement());
         }
     }
 
@@ -120,6 +175,7 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
         await stateManager.setCurrentQuestionIndex(index);
         _manageFooterVisibility('question');
         await uiManager.showView('question');
+        _focusView('question', _questionAnnouncement());
     }
 
     async function handleBackToQuestions() {
@@ -127,6 +183,7 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
         await stateManager.setCurrentView('question');
         _manageFooterVisibility('question');
         await uiManager.showView('question');
+        _focusView('question', _questionAnnouncement());
     }
 
     async function handleJumpToReview() {
@@ -134,6 +191,7 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
         await stateManager.setCurrentView('review');
         _manageFooterVisibility('review');
         await uiManager.showView('review');
+        _focusView('review');
     }
 
     async function handleSubmit() {
@@ -221,35 +279,40 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
             }
         });
 
-        // Clear session state
-        await stateManager.clearSession();
-        await stateManager.setCurrentView('intro');
-        await stateManager.setCurrentQuestionIndex(0);
-        await stateManager.setStartTime(null);
-        await stateManager.setSubmitted(false);
-        await stateManager.updateSession({ reviewReached: false });
-
         // Check if we need to re-randomize questions
         const shouldRandomizeOnRetake = settings.randomizeOnRetake !== false;
         // FIX: Also check randomizeQuestions setting for direct mode (no banks)
-        const isRandomized = config.questionBanks || settings.randomizeQuestions;
+        const isRandomized = Boolean(config.questionBanks || settings.randomizeQuestions);
+        const reselectQuestions = shouldRandomizeOnRetake && isRandomized;
 
-        if (shouldRandomizeOnRetake && isRandomized) {
-            // Clear selection to force new randomization
-            await stateManager.setSelectedQuestions(null);
+        // Start the next attempt's session. Its attempt number is newer than
+        // summary.lastResults, so on re-render/resume the in-progress retake
+        // takes precedence over the previous attempt's results screen. The
+        // summary (attempt counts, lastResults) is preserved for attempt
+        // limits, remedial logic, gating and score reporting.
+        await _startNewAttemptSession({ reselectQuestions });
 
-            // Navigate back to this slide with refresh flag
-            // This will cause slide to create NEW assessment instance
+        if (reselectQuestions) {
+            // Navigate back to this slide so it creates a NEW assessment
+            // instance, which draws a fresh randomized selection because the
+            // persisted order was cleared above.
             const currentSlideId = getCurrentSlideId();
             if (currentSlideId) {
-                await goToSlide(currentSlideId, { refreshAssessment: true });
-                return; // Exit - new instance will be created
+                try {
+                    await goToSlide(currentSlideId, { refreshAssessment: true });
+                    return; // Exit - new instance will be created
+                } catch (error) {
+                    logger.warn(`[AssessmentActions:${config.id}] Could not re-render for a new question selection; retaking with the current questions. ${error.message}`);
+                }
             }
+            // Keep the persisted order aligned with the questions still rendered
+            await stateManager.setSelectedQuestions(config.questions);
         }
 
         // Simple reset - same questions
         _manageFooterVisibility('intro');
         await uiManager.showView('intro');
+        _focusView('intro');
     }
 
     function handleRestartCourse() {
@@ -262,69 +325,13 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
         const summary = stateManager.getSummary();
         // Summary always exists after submit
         const currentAttempts = summary?.attempts || 0;
-        const { attemptsBeforeRemedial, attemptsBeforeRestart, allowRetake } = settings;
 
-        // Determine action button configuration
-        let actionButton = null;
-
-        if (!results.passed && allowRetake) {
-            // Check if remedial content has already been viewed
-            // Use NavigationState directly to get visited slides
-            const visitedSlides = getVisitedSlides() || [];
-
-            const hasRemedialSlides = settings.remedialSlideIds && settings.remedialSlideIds.length > 0;
-            const remedialViewed = hasRemedialSlides && settings.remedialSlideIds.every(id => visitedSlides.includes(id));
-
-            if (attemptsBeforeRestart && currentAttempts >= attemptsBeforeRestart) {
-                actionButton = {
-                    type: 'restart',
-                    action: 'restart-course',
-                    label: 'Restart Course',
-                    message: `You have completed ${currentAttempts} attempts. To try again, you must restart the entire course. This will erase all progress.`,
-                    messageType: 'warning'
-                };
-            } else if (attemptsBeforeRemedial && currentAttempts >= attemptsBeforeRemedial && !remedialViewed) {
-                actionButton = {
-                    type: 'remedial',
-                    action: hasRemedialSlides ? 'go-to-remedial' : 'retake',
-                    label: hasRemedialSlides ? 'Review Content' : 'Retake Assessment',
-                    message: hasRemedialSlides
-                        ? 'Please review the recommended content before attempting the assessment again. This will help strengthen your understanding of key concepts.'
-                        : 'Please take time to review the course material before attempting the assessment again.',
-                    messageType: 'info'
-                };
-            } else {
-                // Standard retake
-                let attemptsMessage = null;
-
-                // Check remedial warning first (if applicable and not passed)
-                if (attemptsBeforeRemedial) {
-                    const remaining = attemptsBeforeRemedial - currentAttempts;
-                    if (remaining > 0) {
-                        attemptsMessage = remaining > 1
-                            ? `${remaining} more attempts before review is recommended.`
-                            : 'Content review will be recommended after your next attempt.';
-                    }
-                }
-
-                // If no remedial warning (either not configured, or we passed it and viewed content), check restart warning
-                if (!attemptsMessage && attemptsBeforeRestart) {
-                    const remaining = attemptsBeforeRestart - currentAttempts;
-                    if (remaining > 0) {
-                        attemptsMessage = remaining > 1
-                            ? `${remaining} attempts remaining before course restart is required.`
-                            : 'This is your final attempt before course restart is required.';
-                    }
-                }
-
-                actionButton = {
-                    type: 'retake',
-                    action: 'retake',
-                    label: 'Retake Assessment',
-                    attemptsMessage
-                };
-            }
-        }
+        // Determine action button configuration (shared with resumed results)
+        const actionButton = buildResultsActionButton(settings, {
+            passed: results.passed,
+            currentAttempts,
+            visitedSlides: getVisitedSlides() || []
+        });
 
         return {
             ...results,
@@ -388,6 +395,7 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
             totalQuestions: finalResults.totalQuestions,
             correctCount: finalResults.correctCount,
             scorePercentage: finalResults.scorePercentage,
+            passingScore: finalResults.passingScore,
             passed: finalResults.passed,
             // Store only question IDs and correctness, not full details
             questionResults: finalResults.details.map(d => ({
@@ -446,6 +454,7 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
         // prevent the LMS from receiving the learner's submitted result.
         _manageFooterVisibility('results');
         await uiManager.showView('results', displayData);
+        _focusView('results', `Assessment results: ${finalResults.passed ? 'Passed' : 'Failed'}. Score ${formatScoreForDisplay(finalResults.scorePercentage, finalResults.passingScore)}%, ${finalResults.correctCount} of ${finalResults.totalQuestions} correct.`);
 
         if (typeof config.onComplete === 'function') {
             config.onComplete(finalResults);
@@ -505,14 +514,14 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
             return detail;
         });
 
-        const scorePercentage = (totalPossibleScore > 0) ? (achievedScore / totalPossibleScore) * 100 : 0;
+        // Round to 2 decimals before comparing: (29 / 50) * 100 is
+        // 57.99999999999999 in binary floating point and would fail a 58% pass mark.
+        const scorePercentage = (totalPossibleScore > 0) ? roundPercentage((achievedScore / totalPossibleScore) * 100) : 0;
 
         // Check for LMS-provided masteryScore override (cmi5 launch data)
-        // masteryScore is 0-1 scaled in cmi5 spec, convert to percentage
+        // masteryScore is 0-1 scaled in cmi5 spec, convert to percentage (rounded the same way)
         const launchData = globalStateManager.getLaunchData();
-        const effectivePassingScore = (launchData?.masteryScore !== null && launchData?.masteryScore !== undefined)
-            ? launchData.masteryScore * 100
-            : (settings.passingScore || 0);
+        const effectivePassingScore = resolvePassingScore(settings, launchData);
 
         const passed = scorePercentage >= effectivePassingScore;
 
@@ -523,6 +532,7 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
             totalQuestions,
             correctCount,
             scorePercentage,
+            passingScore: effectivePassingScore,
             passed,
             details,
         };

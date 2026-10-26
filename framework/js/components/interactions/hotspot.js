@@ -254,7 +254,6 @@ export function createHotspotQuestion(config) {
             role="checkbox"
             class="${baseClasses.join(' ')}"
             data-hotspot-id="${spot.id}"
-            data-correct="${spot.correct}"
             data-default-bg="${spot.backgroundColor}"
             data-selected-bg="${spot.selectedBackgroundColor}"
             data-default-border="${spot.borderColor}"

@@ -111,6 +111,26 @@ export function createDragDropQuestion(config) {
 
     let _container = null;
 
+    // Items with a target zone. Items no zone accepts are distractors that
+    // should stay in the bank; they don't count towards the required total.
+    const targetItemIds = new Set(dropZones.flatMap(zone => zone.accepts || []));
+    const requiredCount = items.filter(item => targetItemIds.has(item.id)).length;
+
+    /**
+     * A zone without maxItems defaults to holding 1 item, but must at least
+     * hold every item it accepts or the question would be unwinnable.
+     */
+    function resolveZoneMaxItems(zone) {
+        const acceptsCount = Array.isArray(zone.accepts) ? zone.accepts.length : 0;
+        if (zone.maxItems) {
+            if (zone.maxItems < acceptsCount) {
+                logger.warn(`Drag-drop question "${id}": zone "${zone.id}" maxItems (${zone.maxItems}) is less than its ${acceptsCount} correct item(s); the question cannot be answered correctly.`);
+            }
+            return zone.maxItems;
+        }
+        return Math.max(1, acceptsCount);
+    }
+
     const questionObj = {
         id,
         type: 'drag-drop',
@@ -160,7 +180,7 @@ export function createDragDropQuestion(config) {
 
             dropZones.forEach((zone) => {
                 const placedItemIds = Object.keys(initialPlacements).filter(itemId => initialPlacements[itemId] === zone.id);
-                const maxItems = zone.maxItems || 1; // Default to 1 if not specified
+                const maxItems = resolveZoneMaxItems(zone);
 
                 html += `
                     <div
@@ -180,12 +200,7 @@ export function createDragDropQuestion(config) {
                 placedItemIds.forEach(itemId => {
                     const item = items.find(i => i.id === itemId);
                     if (item) {
-                        html += `
-                            <div class="drag-item dropped" data-item-id="${item.id}" draggable="true" data-testid="${id}-dropped-item-${item.id}">
-                                ${item.content}
-                                <button type="button" class="remove-item" data-action="remove-item" data-item-id="${item.id}" aria-label="Remove ${item.content}" title="Remove this item" data-testid="${id}-remove-${item.id}">×</button>
-                            </div>
-                        `;
+                        html += renderDroppedItemHtml(id, item);
                     }
                 });
 
@@ -252,18 +267,22 @@ export function createDragDropQuestion(config) {
             }
 
             let correct = 0;
+            let misplaced = 0;
             const results = [];
 
             Object.entries(placements).forEach(([itemId, zoneId]) => {
                 const zone = dropZones.find(z => z.id === zoneId);
-                const isCorrect = zone && zone.accepts.includes(itemId);
+                const isCorrect = Boolean(zone && zone.accepts.includes(itemId));
                 if (isCorrect) correct++;
+                else misplaced++;
                 results.push({ itemId, zoneId, correct: isCorrect });
             });
 
+            // Every item with a target must be in an accepting zone, and nothing
+            // (including distractors) may be placed in a wrong zone.
             return {
-                score: correct / items.length,
-                correct: correct === items.length,
+                score: requiredCount > 0 ? correct / requiredCount : (misplaced === 0 ? 1 : 0),
+                correct: correct === requiredCount && misplaced === 0,
                 results,
                 response: JSON.stringify(placements)
             };
@@ -287,14 +306,13 @@ export function createDragDropQuestion(config) {
         reset: () => {
             validateContainer(_container, id);
 
-            const dragItems = _container.querySelectorAll('.drag-item');
-            dragItems.forEach(item => {
-                item.style.display = '';
-                item.classList.remove('keyboard-selected', 'dropped');
-            });
-
             const zoneContents = _container.querySelectorAll('.drop-zone .zone-content');
             zoneContents.forEach(zone => zone.innerHTML = '');
+
+            _container.querySelectorAll('.drag-items .drag-item').forEach(item => {
+                setBankItemVisible(item, true);
+                item.classList.remove('keyboard-selected');
+            });
 
             clearFeedback(_container, id);
 
@@ -330,32 +348,33 @@ export function createDragDropQuestion(config) {
             }
 
             // Reset to clean state
-            const dragItems = _container.querySelectorAll('.drag-item');
-            dragItems.forEach(item => item.style.display = '');
-
             const zones = _container.querySelectorAll('.drop-zone .zone-content');
             zones.forEach(zone => zone.innerHTML = '');
+            _container.querySelectorAll('.drag-items .drag-item').forEach(item => setBankItemVisible(item, true));
 
-            // Apply placements
+            const state = _container._dragDropState;
+            if (state) {
+                state.placements = {};
+                state.selectedForDrop = null;
+            }
+
+            // Apply placements with fully interactive placed items (draggable,
+            // keyboard/touch support and a remove button), exactly like a drop.
             Object.keys(placements).forEach(itemId => {
                 const zoneId = placements[itemId];
-                const item = _container.querySelector(`.drag-item[data-item-id="${escapeCssSelector(itemId)}"]`);
+                const item = _container.querySelector(`.drag-items .drag-item[data-item-id="${escapeCssSelector(itemId)}"]`);
                 const zone = _container.querySelector(`.drop-zone[data-zone-id="${escapeCssSelector(zoneId)}"] .zone-content`);
 
                 if (item && zone) {
-                    const clonedItem = item.cloneNode(true);
-                    clonedItem.classList.add('dropped');
-                    clonedItem.draggable = false;
-                    zone.appendChild(clonedItem);
-                    item.style.display = 'none';
+                    const placedItem = createDroppedItem(id, item);
+                    zone.appendChild(placedItem);
+                    if (state) {
+                        setupDragListenersForItem(placedItem, _container, state);
+                        state.placements[itemId] = zoneId;
+                    }
+                    setBankItemVisible(item, false);
                 }
             });
-
-            // Update internal state
-            const state = _container._dragDropState;
-            if (state) {
-                state.placements = { ...placements };
-            }
         },
 
         getCorrectAnswer: () => {
@@ -551,49 +570,84 @@ function performDrop(container, state, item, zone) {
 
     // If the item is already in a zone, remove it from that zone first
     if (item.classList.contains('dropped')) {
-        const currentZone = item.closest('.drop-zone');
-        if (currentZone) {
-            const _oldZoneId = currentZone.dataset.zoneId;
-            delete state.placements[itemId];
-        }
+        delete state.placements[itemId];
         item.remove();
-
-        // Show the original item in the items area temporarily
-        const originalItem = container.querySelector(`.drag-items .drag-item[data-item-id="${escapeCssSelector(itemId)}"]`);
-        if (originalItem) {
-            originalItem.style.display = '';
-        }
     }
 
     // Add new item to zone (don't clear existing items)
-    const clonedItem = item.cloneNode(true);
-    clonedItem.classList.add('dropped');
-    clonedItem.classList.remove('keyboard-selected');
-    clonedItem.draggable = true;
+    const interactionId = container.querySelector('.interaction.drag-drop')?.dataset.interactionId || null;
+    const placedItem = createDroppedItem(interactionId, item);
+    zoneContent.appendChild(placedItem);
+
+    // Setup drag listeners for the placed item
+    setupDragListenersForItem(placedItem, container, state);
+
+    // Update state. The bank copy is always the one hidden: for a zone-to-zone
+    // move the dragged element is the removed zone copy, not the bank item.
+    state.placements[itemId] = zoneId;
+    const bankItem = container.querySelector(`.drag-items .drag-item[data-item-id="${escapeCssSelector(itemId)}"]`);
+    if (bankItem) {
+        setBankItemVisible(bankItem, false);
+    }
+    state.selectedForDrop = null;
+    state.draggedElement = null;
+}
+
+/**
+ * Shows or hides an item in the bank (items area). Render marks placed
+ * items with the `hidden` class, drops use inline display; keep both in sync.
+ */
+function setBankItemVisible(item, visible) {
+    item.style.display = visible ? '' : 'none';
+    item.classList.toggle('hidden', !visible);
+}
+
+/**
+ * Markup for an item placed in a zone (initial render).
+ */
+function renderDroppedItemHtml(interactionId, item) {
+    return `
+                            <div class="drag-item dropped" data-item-id="${item.id}" draggable="true" tabindex="0" role="button" aria-grabbed="false" data-testid="${interactionId}-dropped-item-${item.id}">
+                                ${item.content}
+                                <button type="button" class="remove-item" data-action="remove-item" data-item-id="${item.id}" aria-label="Remove ${item.content}" title="Remove this item" data-testid="${interactionId}-remove-${item.id}">×</button>
+                            </div>
+                        `;
+}
+
+/**
+ * Creates the element for an item placed in a zone from its bank/zone source
+ * element. Callers attach listeners via setupDragListenersForItem().
+ */
+function createDroppedItem(interactionId, sourceItem) {
+    const itemId = sourceItem.dataset.itemId;
+    const placedItem = sourceItem.cloneNode(true);
+    placedItem.classList.add('dropped');
+    placedItem.classList.remove('keyboard-selected', 'hidden', 'touch-dragging');
+    placedItem.style.display = '';
+    placedItem.style.opacity = '';
+    placedItem.draggable = true;
+    placedItem.setAttribute('aria-grabbed', 'false');
+    placedItem.removeAttribute('data-index');
+
+    if (interactionId) {
+        placedItem.dataset.testid = `${interactionId}-dropped-item-${itemId}`;
+    }
 
     // Add remove button if not already present
-    if (!clonedItem.querySelector('.remove-item')) {
+    if (!placedItem.querySelector('.remove-item')) {
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
         removeBtn.className = 'remove-item';
         removeBtn.dataset.action = 'remove-item';
         removeBtn.dataset.itemId = itemId;
-        removeBtn.setAttribute('aria-label', `Remove ${item.textContent || item.innerText}`);
+        removeBtn.setAttribute('aria-label', `Remove ${sourceItem.textContent.trim()}`);
         removeBtn.setAttribute('title', 'Remove this item');
         removeBtn.textContent = '×';
-        clonedItem.appendChild(removeBtn);
+        if (interactionId) removeBtn.dataset.testid = `${interactionId}-remove-${itemId}`;
+        placedItem.appendChild(removeBtn);
     }
 
-    zoneContent.appendChild(clonedItem);
-
-    // Setup drag listeners for the cloned item
-    setupDragListenersForItem(clonedItem, container, state);
-
-    // Update state
-    state.placements[itemId] = zoneId;
-    item.style.display = 'none';
-    state.selectedForDrop = null;
-    state.draggedElement = null;
+    return placedItem;
 }
 
 /**
@@ -876,7 +930,7 @@ function removeItemFromZone(container, itemId) {
     // Show the original item in the items area
     const originalItem = container.querySelector(`.drag-items .drag-item[data-item-id="${escapeCssSelector(itemId)}"]`);
     if (originalItem) {
-        originalItem.style.display = '';
+        setBankItemVisible(originalItem, true);
     }
 
     // Update state

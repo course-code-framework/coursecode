@@ -12,6 +12,7 @@ import stateManager from '../state/index.js';
 import { createAssessmentState } from './AssessmentState.js';
 import { createAssessmentUI } from './AssessmentUI.js';
 import { createAssessmentActions } from './AssessmentActions.js';
+import { buildResultsActionButton } from './assessment-results.js';
 import { shuffleArray } from '../utilities/utilities.js';
 import * as AppUI from '../app/AppUI.js';
 import { getVisitedSlides } from '../navigation/NavigationState.js';
@@ -325,7 +326,6 @@ export function createAssessmentInstance(config) {
 
         // Load persisted state
         let summary = assessmentState.getSummary();
-        const session = assessmentState.getSession();
 
         // Initialize summary if this is first time rendering (fire-and-forget)
         if (!summary) {
@@ -335,6 +335,34 @@ export function createAssessmentInstance(config) {
             // Use optimistic local value until persist completes
             summary = { attempts: 0 };
         }
+
+        // Returning from remedial content after a failed attempt starts the
+        // next attempt (Intro screen). This must happen BEFORE questions are
+        // resolved so a randomized assessment draws a new selection, and it
+        // persists a real new-attempt session so a reload doesn't fall back to
+        // the old results. An attempt already in progress is left alone.
+        // We don't increment attempts here; submit does that.
+        const fromSlide = context.fromSlide;
+        const remedialSlideIds = config.settings?.remedialSlideIds || [];
+        const isReturningFromRemedial = fromSlide && remedialSlideIds.includes(fromSlide);
+        if (isReturningFromRemedial && summary?.lastResults && !summary.lastResults.passed && !assessmentState.hasActiveAttempt()) {
+            const reselect = config.settings?.randomizeOnRetake !== false &&
+                Boolean(config.questionBanks || config.settings?.randomizeQuestions);
+            const previousSelection = assessmentState.getSelectedQuestions();
+            const logFailure = error => {
+                logger.error(`Failed to start attempt after remedial review: ${error.message}`, {
+                    domain: 'assessment', operation: 'remedial-return', assessmentId, stack: error.stack
+                });
+            };
+            // State mutations apply synchronously (before question resolution
+            // below); only persistence is fire-and-forget.
+            assessmentState.startNewAttemptSession().catch(logFailure);
+            if (!reselect && previousSelection) {
+                assessmentState.setSelectedQuestions(previousSelection).catch(logFailure);
+            }
+        }
+
+        const session = assessmentState.getSession();
 
         // Resolve active questions for this session
         activeQuestions = _resolveActiveQuestions();
@@ -375,41 +403,45 @@ export function createAssessmentInstance(config) {
         );
         assessmentActions.initialize(targetContainer);
 
-        // Check for auto-restart from remedial
-        const fromSlide = context.fromSlide;
-        const remedialSlideIds = config.settings?.remedialSlideIds || [];
-        const isReturningFromRemedial = fromSlide && remedialSlideIds.includes(fromSlide);
-
-        if (isReturningFromRemedial && summary?.lastResults && !summary.lastResults.passed) {
-             // Clear session to force a fresh start (Intro screen)
-             // We don't increment attempts here; handleStart does that when user clicks Start
-             assessmentState.clearSession().then(() => {
-                 AppUI.showFooter();
-                 viewManager.showView('intro');
-             });
-             return;
-        }
-
-        // Determine initial view and set footer visibility
+        // Determine initial view and set footer visibility.
+        // An attempt started after the last submission (retake in progress)
+        // takes precedence over the previous attempt's results.
         const savedResults = summary?.lastResults;
-        if (savedResults) {
-            // Show completed results (summary only - details not persisted to save space)
-            // Prepare display data since we don't have full details anymore
-            const displayData = _prepareResumedResultsDisplayData(savedResults, finalConfig);
-            AppUI.showFooter();
-            viewManager.showView('results', displayData);
-            return;
-        }
+        if (assessmentState.hasActiveAttempt()) {
+            // Restore in-progress session (re-read: question resolution may
+            // have restarted a session whose questions changed)
+            let currentView = assessmentState.getCurrentView();
 
-        if (session && !session.submitted) {
-            // Restore in-progress session
-            const currentView = session.currentView || 'intro';
+            // Guard against a stored question index that no longer exists
+            // (e.g. questions removed in a course update).
+            if (currentView === 'question') {
+                const storedIndex = assessmentState.getCurrentQuestionIndex();
+                const lastIndex = activeQuestions.length - 1;
+                if (lastIndex < 0) {
+                    currentView = 'intro';
+                } else if (storedIndex > lastIndex || storedIndex < 0) {
+                    logger.warn(`[AssessmentFactory:${assessmentId}] Stored question index ${storedIndex} is out of range (${activeQuestions.length} questions). Clamping.`);
+                    assessmentState.setCurrentQuestionIndex(Math.min(Math.max(storedIndex, 0), lastIndex)).catch(error => {
+                        logger.error(`Failed to persist clamped question index: ${error.message}`, { domain: 'assessment', operation: 'clamp-question-index', assessmentId });
+                    });
+                }
+            }
+
             if (currentView === 'question' || currentView === 'review') {
                 AppUI.hideFooter();
             } else {
                 AppUI.showFooter();
             }
             viewManager.showView(currentView);
+            return;
+        }
+
+        if (savedResults) {
+            // Show completed results (summary only - details not persisted to save space)
+            // Prepare display data since we don't have full details anymore
+            const displayData = _prepareResumedResultsDisplayData(savedResults, finalConfig);
+            AppUI.showFooter();
+            viewManager.showView('results', displayData);
             return;
         }
 
@@ -428,7 +460,6 @@ export function createAssessmentInstance(config) {
     function _prepareResumedResultsDisplayData(resultsSummary, config) {
         const summary = assessmentState.getSummary();
         const currentAttempts = summary?.attempts || 0;
-        const { attemptsBeforeRemedial, attemptsBeforeRestart, allowRetake, settings: _settings } = config;
 
         // Reconstruct minimal results object for display
         // Note: detailed question-by-question review not available on resume (only summary)
@@ -437,55 +468,19 @@ export function createAssessmentInstance(config) {
             totalQuestions: resultsSummary.totalQuestions,
             correctCount: resultsSummary.correctCount,
             scorePercentage: resultsSummary.scorePercentage,
+            passingScore: resultsSummary.passingScore,
             passed: resultsSummary.passed,
             details: null  // Not available after resume - only summary stats
         };
 
-        // Determine action button (same logic as in AssessmentActions)
-        let actionButton = null;
-
-        if (attemptsBeforeRestart && currentAttempts >= attemptsBeforeRestart) {
-            actionButton = {
-                type: 'restart',
-                action: 'restart-course',
-                label: 'Restart Course',
-                message: `You've completed ${currentAttempts} attempt(s). You must restart the course to try again.`,
-                messageType: 'error'
-            };
-        } else {
-            // Check remedial logic
-            let showRemedial = false;
-            if (attemptsBeforeRemedial && currentAttempts >= attemptsBeforeRemedial && !resultsSummary.passed) {
-                const remedialSlideIds = config.settings?.remedialSlideIds || (config.settings?.remedialSlideId ? [config.settings.remedialSlideId] : []);
-                
-                // Check if remedial content has already been viewed
-                const visitedSlides = getVisitedSlides() || [];
-                
-                const remedialViewed = remedialSlideIds.length > 0 && remedialSlideIds.every(id => visitedSlides.includes(id));
-
-                if (remedialSlideIds.length > 0 && !remedialViewed) {
-                    showRemedial = true;
-                    actionButton = {
-                        type: 'remedial',
-                        action: 'go-to-remedial',
-                        label: 'Review Content',
-                        message: `Please review the content before attempting again (Attempt ${currentAttempts}/${attemptsBeforeRestart || '∞'}).`,
-                        messageType: 'warning',
-                        attemptsMessage: `Attempts: ${currentAttempts}${attemptsBeforeRestart ? `/${attemptsBeforeRestart}` : ''}`
-                    };
-                }
-            }
-            
-            // Fallback to standard retake if remedial not shown
-            if (!showRemedial && allowRetake !== false && !resultsSummary.passed) {
-                actionButton = {
-                    type: 'retake',
-                    action: 'retake',
-                    label: 'Retake Assessment',
-                    attemptsMessage: `Attempts: ${currentAttempts}${attemptsBeforeRestart ? `/${attemptsBeforeRestart}` : ''}`
-                };
-            }
-        }
+        // Determine action button with the same rules as live results. Retake
+        // limits live under config.settings (attemptsBeforeRemedial,
+        // attemptsBeforeRestart, allowRetake, remedialSlideIds).
+        const actionButton = buildResultsActionButton(config.settings || {}, {
+            passed: resultsSummary.passed,
+            currentAttempts,
+            visitedSlides: getVisitedSlides() || []
+        });
 
         return {
             ...resultsForDisplay,

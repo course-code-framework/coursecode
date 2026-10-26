@@ -22,6 +22,7 @@ import * as AppActions from '../app/AppActions.js';
 import * as AppUI from '../app/AppUI.js';
 import { eventBus } from '../core/event-bus.js';
 import engagementManager from '../engagement/engagement-manager.js';
+import accessibilityManager from '../managers/accessibility-manager.js';
 import { logger } from '../utilities/logger.js';
 
 
@@ -31,6 +32,9 @@ let viewManager;
 let assessmentConfigs = new Map();
 let navigationLocked = false;
 let isInitialized = false;
+// True once the first slide has rendered. Focus is only moved on subsequent
+// slide changes so initial page load doesn't steal focus.
+let hasRenderedInitialSlide = false;
 
 // Navigation queue for handling async navigation requests
 const navigationQueue = [];
@@ -93,6 +97,7 @@ export async function init(courseSlides, viewManagerInstance, courseMenuTree = [
     assessmentConfigs = courseAssessmentConfigs;
     navigationLocked = false;
     isInitialized = true;
+    hasRenderedInitialSlide = false;
 
     // Initialize NavigationState (no longer needs slides parameter)
     NavigationState.initializeNavigationState();
@@ -276,6 +281,33 @@ export async function init(courseSlides, viewManagerInstance, courseMenuTree = [
             );
         }
 
+        // A slide that fails to render (e.g. a bookmarked slide broken by a
+        // course update) must not brick the course. In production, fall back
+        // to the first accessible slide that renders.
+        if (error.isSlideRenderError && !import.meta.env.DEV) {
+            logger.error(`Initial slide "${initialSlideId}" failed to render. Recovering to another slide.`, {
+                domain: 'navigation', operation: 'initial-load', stack: error.stack,
+                slideId: initialSlideId, action: 'graceful_recovery'
+            });
+
+            for (const candidate of _getAccessibleSlides()) {
+                if (candidate.id === initialSlideId) continue;
+                try {
+                    await goToSlide(candidate.id, {}, true);
+                    eventBus.emit('state:recovered', {
+                        domain: 'navigation',
+                        message: `Slide "${initialSlideId}" could not be displayed. Starting from "${candidate.id}".`,
+                        context: { originalSlide: initialSlideId, fallbackSlide: candidate.id, reason: 'render-failure' },
+                        action: 'reverted_to_renderable_slide'
+                    });
+                    logger.debug('NavigationActions initialized (with fallback after render failure).');
+                    return;
+                } catch (fallbackError) {
+                    if (!fallbackError.isSlideRenderError) throw fallbackError;
+                }
+            }
+        }
+
         // For other errors, emit and re-throw
         logger.error(error.message, { domain: 'navigation', operation: 'initial-load', stack: error.stack, slideId: initialSlideId });
         throw error;
@@ -290,19 +322,19 @@ export async function init(courseSlides, viewManagerInstance, courseMenuTree = [
  * @returns {object|null} The first accessible slide, or null if none found
  */
 function _findFirstAccessibleSlide() {
-    for (const slide of slides) {
-        // Check if slide is in sequence
-        if (!isSlideInSequence(slide, stateManager, assessmentConfigs)) {
-            continue;
-        }
+    return _getAccessibleSlides()[0] || null;
+}
 
-        // Check if slide passes gating conditions
-        const accessCheck = validateSlideAccess(slide, stateManager, assessmentConfigs);
-        if (accessCheck.allowed) {
-            return slide;
-        }
-    }
-    return null;
+/**
+ * Returns all in-sequence slides that pass their gating conditions, in order.
+ * @private
+ * @returns {object[]}
+ */
+function _getAccessibleSlides() {
+    return slides.filter(slide =>
+        isSlideInSequence(slide, stateManager, assessmentConfigs) &&
+        validateSlideAccess(slide, stateManager, assessmentConfigs).allowed
+    );
 }
 
 /**
@@ -484,6 +516,21 @@ function _handleMenuClick(event) {
 
     const slideId = target.dataset.slideId;
     if (slideId) {
+        // Re-validate against current state rather than trusting the menu's
+        // locked class, which may be stale between syncs. This applies the same
+        // rules as the Next button: previous-slide engagement and an earlier
+        // assessment's blockNavigation ("must pass to continue").
+        const accessCheck = checkAllSlidesAccessibility().get(slideId);
+        if (accessCheck && !accessCheck.allowed) {
+            AppActions.showNotification(accessCheck.message, 'info', 3000);
+            eventBus.emit('navigation:blocked', {
+                slideId,
+                message: accessCheck.message,
+                reason: 'menu-locked'
+            });
+            return;
+        }
+
         goToSlide(slideId).catch(error => {
             // Error is already emitted via eventBus in goToSlide, 
             // but we catch it here to prevent unhandled promise rejection
@@ -645,7 +692,13 @@ async function _performNavigation(slideId, context = {}, updateBookmark = true) 
     NavigationState.setCurrentSlideIndex(slideIndex);
 
     // Show the slide view (this calls initSlide which registers interactions)
-    await viewManager.showView(newSlide.id, { ...context, fromSlide: previousSlideId });
+    try {
+        await viewManager.showView(newSlide.id, { ...context, fromSlide: previousSlideId });
+    } catch (error) {
+        await _recoverFromRenderFailure(newSlide, previousSlideIndex, slideIndex, error);
+        error.isSlideRenderError = true;
+        throw error;
+    }
 
     // Reset scroll position to top of new slide
     // Users expect to start reading from the top when navigating to a new slide
@@ -720,12 +773,105 @@ async function _performNavigation(slideId, context = {}, updateBookmark = true) 
     // This ensures button states reflect any engagement tracking that happened during slide render
     sync();
 
+    // Move focus to the new slide for keyboard/screen reader users (not on initial load)
+    if (hasRenderedInitialSlide) {
+        _focusSlide(newSlide);
+    }
+    hasRenderedInitialSlide = true;
+
     // Announce that navigation has completed.
     // Include fromSlideId so xapi-statement-service can send 'experienced' statements
     eventBus.emit('navigation:changed', { fromSlideId: previousSlideId, toSlideId: newSlide.id, slideTitle: newSlide.title || null });
 
     // Announce that a navigation change may trigger a completion check.
     eventBus.emit('navigation:completeCheck');
+}
+
+/**
+ * Restores a consistent state after a slide's render threw. Navigation state
+ * and the menu were already pointed at the failed slide, so revert them and
+ * try to put the previous slide back; if that is impossible, show an inline
+ * error instead of leaving a half-torn-down slide in place.
+ * @private
+ */
+async function _recoverFromRenderFailure(failedSlide, previousSlideIndex, failedSlideIndex, error) {
+    logger.error(`Slide "${failedSlide.id}" failed to render: ${error.message}`, {
+        domain: 'navigation', operation: 'render', stack: error.stack, slideId: failedSlide.id
+    });
+
+    // Stop any engagement tracking (e.g. time intervals) the failed render started
+    try {
+        engagementManager.cleanupSlide(failedSlide.id);
+    } catch (cleanupError) {
+        logger.warn(`Engagement cleanup failed for "${failedSlide.id}": ${cleanupError.message}`);
+    }
+
+    const previousSlide = previousSlideIndex !== failedSlideIndex ? slides[previousSlideIndex] : null;
+
+    if (previousSlide) {
+        NavigationState.setCurrentSlideIndex(previousSlideIndex);
+        NavigationUI.setActiveItem(previousSlide.id);
+        try {
+            await viewManager.showView(previousSlide.id, { fromSlide: failedSlide.id, recoveredFromError: true });
+            _setupEngagementListeners(previousSlide);
+            _updateEngagementIndicator(previousSlide);
+            sync();
+            // navigation:beforeChange already fired for leaving this slide;
+            // re-announce it as current so its timer and audio resume.
+            eventBus.emit('navigation:changed', { fromSlideId: null, toSlideId: previousSlide.id, slideTitle: previousSlide.title || null });
+            AppActions.showNotification('This page could not be displayed. Please try again or contact support.', 'error', 5000);
+            return;
+        } catch (restoreError) {
+            logger.error(`Previous slide "${previousSlide.id}" also failed to re-render: ${restoreError.message}`, {
+                domain: 'navigation', operation: 'render-recovery', stack: restoreError.stack, slideId: previousSlide.id
+            });
+        }
+    }
+
+    // No slide could be restored. Leave state pointing at the failed slide and
+    // replace the torn-down view with a visible, announced error message.
+    NavigationState.setCurrentSlideIndex(failedSlideIndex);
+    NavigationUI.setActiveItem(failedSlide.id);
+    const slideContainer = document.getElementById('slide-container');
+    if (slideContainer) {
+        slideContainer.innerHTML = '';
+        const errorEl = document.createElement('div');
+        errorEl.className = 'p-6 callout callout-danger';
+        errorEl.setAttribute('role', 'alert');
+        const heading = document.createElement('h2');
+        heading.textContent = 'This page could not be displayed';
+        const text = document.createElement('p');
+        text.textContent = 'Use the navigation to continue, or contact support if the problem persists.';
+        errorEl.append(heading, text);
+        slideContainer.appendChild(errorEl);
+    }
+    _setupEngagementListeners(null);
+    _updateEngagementIndicator(null);
+    sync();
+}
+
+/**
+ * Moves focus to the new slide's main heading (or the main content region)
+ * and announces the slide title, so keyboard and screen reader users start
+ * at the new content instead of the control they activated.
+ * @private
+ * @param {object} slide
+ */
+function _focusSlide(slide) {
+    const slideContainer = document.getElementById('slide-container');
+    const heading = slideContainer?.querySelector('h1, h2');
+    const target = heading || document.querySelector('main#content') || slideContainer;
+    if (target && typeof target.focus === 'function') {
+        if (!target.hasAttribute('tabindex')) {
+            target.setAttribute('tabindex', '-1');
+        }
+        target.focus({ preventScroll: true });
+    }
+
+    const title = slide.title || slide.menu?.label;
+    if (title) {
+        accessibilityManager.announce(title);
+    }
 }
 
 /**
@@ -771,6 +917,22 @@ export function checkAllSlidesAccessibility() {
     const currentIndex = NavigationState.getCurrentSlideIndex();
     const currentSlide = slides[currentIndex];
 
+    // For each slide, the message of the first earlier in-sequence assessment
+    // whose completionRequirements.blockNavigation is unmet ("must pass to
+    // continue"). The Next button enforces this via validateNavigationFrom;
+    // the menu must not offer a way around it.
+    const assessmentBlockBefore = [];
+    let blockingAssessmentMessage = null;
+    slides.forEach((slide, index) => {
+        assessmentBlockBefore[index] = blockingAssessmentMessage;
+        if (!blockingAssessmentMessage && slide.type === 'assessment' && isSlideInSequence(slide, stateManager, assessmentConfigs)) {
+            const navigationCheck = validateNavigationFrom(slide, assessmentConfigs);
+            if (!navigationCheck.allowed) {
+                blockingAssessmentMessage = navigationCheck.message;
+            }
+        }
+    });
+
     // Build the accessibility map
     slides.forEach((slide, index) => {
         const include = isSlideInSequence(slide, stateManager, assessmentConfigs);
@@ -793,6 +955,14 @@ export function checkAllSlidesAccessibility() {
         // Current slide is always accessible (we're already on it)
         if (currentSlide && slide.id === currentSlide.id) {
             accessibilityMap.set(slide.id, { allowed: true, message: null });
+            return;
+        }
+
+        // Forward past an unmet blocking assessment is not allowed; going back
+        // to a slide already visited keeps working as before.
+        const isVisitedEarlierSlide = index < currentIndex && visitedSlides.includes(slide.id);
+        if (assessmentBlockBefore[index] && !isVisitedEarlierSlide) {
+            accessibilityMap.set(slide.id, { allowed: false, message: assessmentBlockBefore[index] });
             return;
         }
 

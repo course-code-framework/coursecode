@@ -9,6 +9,7 @@ import {
     validateContainer,
     registerCoreInteraction
 } from './interaction-base.js';
+import { shuffleArray } from '../../utilities/utilities.js';
 
 // Metadata for sequencing interaction type
 export const metadata = {
@@ -103,6 +104,32 @@ export function createSequencingQuestion(config) {
 
     let _container = null;
     let _currentOrder = [];
+    // Container-level click handler. setResponse()/reset() re-render into the
+    // same container, so the previous handler must be removed first or Check
+    // Answer would fire once per render.
+    let _clickHandler = null;
+    let _clickHandlerContainer = null;
+
+    /**
+     * Fisher-Yates shuffle of the item IDs that never presents the correct
+     * order up front (there are always at least two items).
+     */
+    function shuffledItemIds() {
+        const ids = items.map(i => i.id);
+        for (let attempt = 0; attempt < 5; attempt++) {
+            const shuffled = shuffleArray(ids);
+            if (!isCorrectOrder(shuffled)) return shuffled;
+        }
+        // Extremely unlikely after 5 attempts; swap the first two to guarantee
+        // the learner has to do something.
+        const fallback = [...correctOrder];
+        [fallback[0], fallback[1]] = [fallback[1], fallback[0]];
+        return fallback;
+    }
+
+    function isCorrectOrder(order) {
+        return order.length === correctOrder.length && order.every((itemId, index) => itemId === correctOrder[index]);
+    }
 
     const questionObj = {
         id,
@@ -121,9 +148,8 @@ export function createSequencingQuestion(config) {
             if (Array.isArray(initialValue) && initialValue.length === items.length) {
                 displayOrderIds = initialValue;
             } else {
-                // Default to items order (author should provide them shuffled or we shuffle here)
-                // Let's shuffle by default to ensure it's a challenge
-                displayOrderIds = items.map(i => i.id).sort(() => Math.random() - 0.5);
+                // Shuffle by default to ensure it's a challenge
+                displayOrderIds = shuffledItemIds();
             }
 
             _currentOrder = [...displayOrderIds];
@@ -185,8 +211,13 @@ export function createSequencingQuestion(config) {
             attachDragAndDropListeners(listContainer);
             attachKeyboardListeners(listContainer);
 
-            // Attach standard interaction handlers
-            container.addEventListener('click', createInteractionEventHandler(questionObj, config));
+            // Attach standard interaction handlers (replacing any from a previous render)
+            if (_clickHandler && _clickHandlerContainer) {
+                _clickHandlerContainer.removeEventListener('click', _clickHandler);
+            }
+            _clickHandler = createInteractionEventHandler(questionObj, config);
+            _clickHandlerContainer = container;
+            container.addEventListener('click', _clickHandler);
         },
 
         getResponse: () => {
@@ -222,7 +253,7 @@ export function createSequencingQuestion(config) {
         },
 
         reset: () => {
-            clearFeedback(_container);
+            clearFeedback(_container, id);
             // Re-shuffle or reset to initial state
             // For simplicity, we'll just re-render with a new shuffle
             questionObj.render(_container, null);
