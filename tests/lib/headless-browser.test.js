@@ -73,11 +73,43 @@ describe('HeadlessBrowser screenshots', () => {
                         globalThis.document = originalDocument;
                     }
                 })
+                .mockResolvedValueOnce(true)
+                .mockResolvedValueOnce(undefined)
         };
 
         await browser.screenshot({ scrollY: 420 });
 
         expect(content.scrollTop).toBe(420);
+    });
+
+    it('clears navigation focus on headings before capturing', async () => {
+        const browser = new HeadlessBrowser();
+        const heading = { getAttribute: vi.fn().mockReturnValue('-1'), blur: vi.fn() };
+        const button = { getAttribute: vi.fn().mockReturnValue(null), blur: vi.fn() };
+        browser.browser = {};
+        browser.page = { screenshot: vi.fn().mockResolvedValue(Buffer.from('image')) };
+        const runWithActive = (active) => (callback) => {
+            const originalDocument = globalThis.document;
+            globalThis.document = { activeElement: active, body: {} };
+            try {
+                return callback();
+            } finally {
+                globalThis.document = originalDocument;
+            }
+        };
+        browser.courseFrame = {
+            evaluate: vi.fn()
+                .mockResolvedValueOnce(true)
+                .mockImplementationOnce(runWithActive(heading))
+                .mockResolvedValueOnce(true)
+                .mockImplementationOnce(runWithActive(button))
+        };
+
+        await browser.screenshot();
+        await browser.screenshot();
+
+        expect(heading.blur).toHaveBeenCalledTimes(1);
+        expect(button.blur).not.toHaveBeenCalled();
     });
 
     it('expands full-page captures for main content and preview chrome', async () => {
@@ -94,6 +126,8 @@ describe('HeadlessBrowser screenshots', () => {
         };
         browser.courseFrame = {
             evaluate: vi.fn()
+                .mockResolvedValueOnce(true)
+                .mockResolvedValueOnce(undefined)
                 .mockResolvedValueOnce(true)
                 .mockResolvedValueOnce(1400)
         };
