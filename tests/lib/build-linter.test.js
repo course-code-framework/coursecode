@@ -336,3 +336,29 @@ describe('menu icon validation', () => {
         ]);
     });
 });
+
+describe('validateCourseIdentifier', () => {
+    it('warns when a non-Latin title forces a hash-derived identifier', async () => {
+        const { validateCourseIdentifier } = await import('../../lib/build-linter.js');
+        const warnings = [];
+        validateCourseIdentifier({ metadata: { title: '安全研修' } }, warnings);
+        expect(warnings).toHaveLength(1);
+        expect(warnings[0]).toMatch(/metadata\.identifier/);
+    });
+
+    it('stays quiet for ASCII/accented titles and explicit IRIs', async () => {
+        const { validateCourseIdentifier } = await import('../../lib/build-linter.js');
+        const warnings = [];
+        validateCourseIdentifier({ metadata: { title: 'Safety 101' } }, warnings);
+        validateCourseIdentifier({ metadata: { title: 'Café Básico' } }, warnings);
+        validateCourseIdentifier({ metadata: { title: '安全研修', identifier: 'urn:acme:safety-101' } }, warnings);
+        expect(warnings).toEqual([]);
+    });
+
+    it('warns when an explicit identifier is not an absolute IRI', async () => {
+        const { validateCourseIdentifier } = await import('../../lib/build-linter.js');
+        const warnings = [];
+        validateCourseIdentifier({ metadata: { title: 'Safety', identifier: 'safety 101' } }, warnings);
+        expect(warnings[0]).toMatch(/not an absolute IRI/);
+    });
+});

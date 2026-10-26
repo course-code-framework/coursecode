@@ -4,6 +4,10 @@
  *
  * SCHEMA REFERENCE (for AI agents authoring courses)
  * 
+ * METADATA.IDENTIFIER (optional, recommended before first LMS upload):
+ *   identifier: 'urn:acme:safety-101'  // Absolute IRI; becomes the cmi5 course/AU ID and the SCORM manifest ID
+ *   If omitted, the ID is derived from metadata.title, so renaming the course changes its LMS identity.
+ * 
  * LAYOUT: 'article' (default) | 'traditional' | 'focused' | 'presentation' | 'canvas'
  * 
  * SCORING (null = disabled):
