@@ -15,6 +15,13 @@ import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
+const [major, minor] = process.versions.node.split('.').map(Number);
+if (major < 22 || (major === 22 && minor < 15)) {
+    // Claude Code shows MCP server stderr in /mcp, so say exactly what to do
+    console.error(`[coursecode] CourseCode needs Node.js 22.15 or later, but this is Node.js ${process.versions.node}. Install the current LTS from https://nodejs.org/ and restart Claude Code.`);
+    process.exit(1);
+}
+
 const projectCli = path.join(process.cwd(), 'node_modules', 'coursecode', 'bin', 'cli.js');
 const FALLBACK_VERSION = '0.1.61';
 const args = process.argv.slice(2);

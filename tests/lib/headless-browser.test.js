@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { HeadlessBrowser } from '../../lib/headless-browser.js';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import { PUPPETEER_REVISIONS } from 'puppeteer-core';
+import { Browser, computeExecutablePath, detectBrowserPlatform } from '@puppeteer/browsers';
+import { HeadlessBrowser, ensureDownloadedBrowser } from '../../lib/headless-browser.js';
 
 afterEach(() => {
     vi.useRealTimers();
@@ -129,5 +134,27 @@ describe('HeadlessBrowser breakpoint viewports', () => {
     it('makes portrait breakpoints taller than wide', async () => {
         expect(await viewportFor('mobile-portrait')).toEqual({ width: 479, height: 852, breakpoint: 'mobile-portrait' });
         expect(await viewportFor('tablet-portrait')).toEqual({ width: 1023, height: 1364, breakpoint: 'tablet-portrait' });
+    });
+});
+
+describe('ensureDownloadedBrowser', () => {
+    it('reuses a browser already in the cache without downloading', async () => {
+        const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'coursecode-browser-cache-'));
+        try {
+            const expected = computeExecutablePath({
+                browser: Browser.CHROMEHEADLESSSHELL,
+                buildId: PUPPETEER_REVISIONS['chrome-headless-shell'],
+                platform: detectBrowserPlatform(),
+                cacheDir
+            });
+            fs.mkdirSync(path.dirname(expected), { recursive: true });
+            fs.writeFileSync(expected, '');
+            const log = vi.fn();
+
+            await expect(ensureDownloadedBrowser({ cacheDir, log })).resolves.toBe(expected);
+            expect(log).not.toHaveBeenCalled();
+        } finally {
+            fs.rmSync(cacheDir, { recursive: true, force: true });
+        }
     });
 });

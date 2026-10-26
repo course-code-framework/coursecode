@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Claude Code plugin** (`plugin/`, listed by `.claude-plugin/marketplace.json`): bundles the MCP server with five skills (`new-course`, `outline`, `build-slides`, `review`, `publish`). Install with `claude plugin install coursecode --marketplace course-code-framework/coursecode`. No global CLI install is needed: the plugin runs the project's own `coursecode` dependency, or the latest published CLI through `npx` outside a project.
+- **Claude Code plugin** (`plugin/`, listed by `.claude-plugin/marketplace.json`): bundles the MCP server with five skills (`new-course`, `outline`, `build-slides`, `review`, `publish`). Install with `claude plugin install coursecode --marketplace course-code-framework/coursecode`. No global CLI install is needed: the plugin runs the project's own `coursecode` dependency, or the matching published CLI through `npx` outside a project. The launcher reports an outdated Node.js version with install instructions.
+- **No browser prerequisite for MCP runtime tools:** besides Chrome and Chromium, the headless browser now finds Edge (preinstalled on Windows) and Brave. With none installed, the first runtime tool call downloads the Chrome Headless Shell build that `puppeteer-core` is tested against (about 100 MB, once) into the shared Puppeteer cache (`~/.cache/puppeteer` or `PUPPETEER_CACHE_DIR`). `@puppeteer/browsers` is now a direct dependency.
 
 ### Fixed
 - **MCP:** An installed CLI (project dependency, global, or `npx`) run outside a course project no longer treats its bundled template as the author's course. It reports stage 0 with short instructions, so MCP clients that start the server in every session no longer get course instructions in unrelated folders. Stage 0 now recommends creating the project in the current folder (`coursecode create .`), which the MCP server can see.

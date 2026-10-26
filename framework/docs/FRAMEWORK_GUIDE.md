@@ -963,7 +963,7 @@ MCP Server (IDE) ──puppeteer──▶ Headless Chrome ──HTTP──▶ Pr
 ```
 
 - **Preview not running?** → Tools return a clear error. Start preview externally in a terminal, then retry.
-- **Chrome not found?** → Install Google Chrome or set `CHROME_PATH` env var
+- **Browser download failed?** → MCP runtime tools use Chrome, Edge, Chromium, or Brave when installed, and otherwise download Chrome Headless Shell once to `~/.cache/puppeteer` (or `PUPPETEER_CACHE_DIR`). Behind a blocking proxy, install Google Chrome or set `CHROME_PATH`
 
 ### Pre-Release Responsive Checks (Framework)
 

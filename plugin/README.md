@@ -15,7 +15,12 @@ claude plugin marketplace add course-code-framework/coursecode
 claude plugin install coursecode@coursecode
 ```
 
-Requires [Node.js](https://nodejs.org/) 22.15 or later. No global `coursecode` install is needed: inside a course project the plugin runs the project's own CourseCode version, and elsewhere it uses the latest published one through `npx`.
+## Requirements
+
+[Node.js](https://nodejs.org/) 22.15 or later. Nothing else needs installing first:
+
+- **No global `coursecode` install.** Inside a course project the plugin runs the project's own CourseCode version. Elsewhere it runs the matching published version through `npx`.
+- **No browser setup.** Previews and screenshots use a headless copy of Chrome, Edge, Chromium, or Brave if one is installed. If none is, the first screenshot downloads Chrome Headless Shell (about 100 MB, once) into `~/.cache/puppeteer`, shared with other Puppeteer-based tools. Set `CHROME_PATH` to use a specific browser.
 
 ## Use
 
@@ -35,6 +40,15 @@ The preview runs at http://localhost:4173, so you can watch the course change as
 
 - **MCP server** (`coursecode`): headless preview, screenshots, navigation, interaction testing, lint, live diagnostics, builds, and catalogs of components, interactions, CSS classes, and icons.
 - **Skills**: the five workflows above. They follow the guides in each project's `framework/docs/`, so they stay in step with the framework version the course uses.
+
+## What it downloads and sends
+
+- **npm registry:** the `coursecode` package (through `npx` outside a project, and as a project dependency when you create a course).
+- **Google's Chrome for Testing storage:** Chrome Headless Shell, only when no Chromium-based browser is installed.
+- **CourseCode Cloud:** your course files, only when you ask to deploy (`/coursecode:publish`) after signing in with `coursecode login`.
+- **Text-to-speech providers** (ElevenLabs, Deepgram, or Google): slide narration text, only when you generate narration with your own API key.
+
+Everything else runs locally. The preview server listens on `127.0.0.1` only.
 
 ## Links
 
