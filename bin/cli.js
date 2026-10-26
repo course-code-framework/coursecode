@@ -39,15 +39,31 @@ if (!process.env.NODE_EXTRA_CA_CERTS) {
   const { injectSystemCerts } = await import('../lib/cloud-certs.js');
   const certPath = await injectSystemCerts();
   if (certPath) {
-    // macOS/Linux: re-exec with NODE_EXTRA_CA_CERTS pointing to PEM file
-    const { spawnSync } = await import('child_process');
-    const result = spawnSync(process.execPath, process.argv.slice(1), {
+    // macOS/Linux: re-exec with NODE_EXTRA_CA_CERTS pointing to PEM file.
+    // Async spawn so termination signals sent to this wrapper process (e.g. by
+    // a desktop app or process manager) are forwarded to the real CLI, which
+    // otherwise would be orphaned along with its preview server / Vite child.
+    const { spawn } = await import('child_process');
+    const child = spawn(process.execPath, process.argv.slice(1), {
       env: { ...process.env, NODE_EXTRA_CA_CERTS: certPath },
       stdio: 'inherit',
     });
-    if (result.error) throw result.error;
-    if (result.signal) process.kill(process.pid, result.signal);
-    process.exit(result.status ?? 0);
+    const forwardedSignals = ['SIGINT', 'SIGTERM', 'SIGHUP'];
+    const forwarders = new Map();
+    for (const signal of forwardedSignals) {
+      const forward = () => {
+        if (child.exitCode === null && child.signalCode === null) child.kill(signal);
+      };
+      forwarders.set(signal, forward);
+      process.on(signal, forward);
+    }
+    const { code, signal } = await new Promise((resolve, reject) => {
+      child.once('error', reject);
+      child.once('exit', (exitCode, exitSignal) => resolve({ code: exitCode, signal: exitSignal }));
+    });
+    for (const [sig, forward] of forwarders) process.off(sig, forward);
+    if (signal) process.kill(process.pid, signal);
+    process.exit(code ?? (signal ? 1 : 0));
   }
   // Windows: win-ca already injected certs in-process — continue normally
 }
@@ -235,10 +251,11 @@ program
   .description('Live preview with stub LMS + auto-rebuild, or export static preview')
   .option('-e, --export', 'Export static preview folder for sharing (instead of live server)')
   .option('-o, --output <dir>', 'Output directory for export (default: ./course-preview)', './course-preview')
-  .option('-p, --password <password>', 'Require password to access preview (export only)')
+  .option('-p, --password <password>', 'Soft password gate for the exported preview (export only; not a security boundary)')
+  .option('--force', 'Replace a non-empty export output directory that is not a previous preview export (export only)')
   .option('--title <title>', 'Custom title (default: course title)')
   .option('--port <port>', 'Preview server port (default: 4173)', '4173')
-  .option('--host <host>', 'Preview bind address (default: 127.0.0.1)', '127.0.0.1')
+  .option('--host <host>', 'Preview bind address (default: 127.0.0.1). Non-loopback addresses expose the preview to your network.', '127.0.0.1')
   .option('--skip-build', 'Skip build step for export (use existing dist folder)')
   .option('--nojekyll', 'Add .nojekyll file (required for GitHub Pages)')
   .option('--no-content', 'Exclude course content viewer from preview toolbar')
