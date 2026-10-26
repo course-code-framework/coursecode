@@ -100,3 +100,34 @@ describe('HeadlessBrowser screenshots', () => {
         expect(iframeScreenshot).toHaveBeenCalledWith({ type: 'jpeg', quality: 50 });
     });
 });
+
+describe('HeadlessBrowser breakpoint viewports', () => {
+    async function viewportFor(breakpoint) {
+        const browser = new HeadlessBrowser();
+        browser.browser = {};
+        browser.page = { setViewport: vi.fn().mockResolvedValue() };
+        browser._ensureCourseFrame = vi.fn().mockResolvedValue();
+        browser.courseFrame = {
+            evaluate: vi.fn().mockImplementation((callback, name) => {
+                const breakpoints = [
+                    { name: 'desktop', maxWidth: 1439 },
+                    { name: 'tablet-portrait', maxWidth: 1023 },
+                    { name: 'mobile-landscape', maxWidth: 767 },
+                    { name: 'mobile-portrait', maxWidth: 479 }
+                ];
+                return breakpoints.find(b => b.name === name) || null;
+            })
+        };
+        return browser.setViewport(breakpoint);
+    }
+
+    it('keeps landscape breakpoints at 16:9', async () => {
+        expect(await viewportFor('desktop')).toEqual({ width: 1439, height: 809, breakpoint: 'desktop' });
+        expect(await viewportFor('mobile-landscape')).toEqual({ width: 767, height: 431, breakpoint: 'mobile-landscape' });
+    });
+
+    it('makes portrait breakpoints taller than wide', async () => {
+        expect(await viewportFor('mobile-portrait')).toEqual({ width: 479, height: 852, breakpoint: 'mobile-portrait' });
+        expect(await viewportFor('tablet-portrait')).toEqual({ width: 1023, height: 1364, breakpoint: 'tablet-portrait' });
+    });
+});
