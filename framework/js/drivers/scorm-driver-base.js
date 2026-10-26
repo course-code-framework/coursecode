@@ -111,14 +111,34 @@ export class ScormDriverBase {
     }
 
     /**
-     * Synchronous best-effort commit for pagehide. StateManager writes the
-     * latest suspend_data and exit mode immediately before this call.
+     * Synchronous best-effort commit and termination for pagehide.
+     * StateManager writes the latest suspend_data and exit mode immediately
+     * before this call. SCORM API calls are synchronous, so the session is
+     * finished here (browsers do not wait for async work during unload); a
+     * later terminate() is then a no-op.
      */
     emergencySave() {
         if (!this._isConnected || this._isTerminated) return;
-        const success = this._scorm.save();
-        if (!success) {
-            throw new Error(`[${this.constructor.name}] SCORM emergency commit failed`);
+
+        let saved = false;
+        try {
+            saved = this._scorm.save();
+        } catch (error) {
+            logger.error(`[${this.constructor.name}] Emergency commit threw:`, error);
+        }
+
+        // Terminate even if the commit failed: Terminate/LMSFinish performs an
+        // implicit commit on most LMSs and is the last chance to do so.
+        let terminated = false;
+        try {
+            terminated = this._scorm.quit();
+        } catch (error) {
+            logger.error(`[${this.constructor.name}] Emergency termination threw:`, error);
+        }
+        this._isTerminated = terminated;
+
+        if (!saved || !terminated) {
+            throw new Error(`[${this.constructor.name}] SCORM emergency ${saved ? 'termination' : 'commit'} failed`);
         }
     }
 }

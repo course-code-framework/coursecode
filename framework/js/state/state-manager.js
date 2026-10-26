@@ -26,6 +26,11 @@ const VALID_COMPLETION_STATUSES = new Set(['completed', 'incomplete', 'not attem
 const VALID_SUCCESS_STATUSES = new Set(['passed', 'failed', 'unknown']);
 const ISO_8601_DURATION_PATTERN = /^P(T(?=\d)(\d+H)?(\d+M)?(\d+(\.\d+)?S)?)$/;
 
+// Domains written as a side effect of simply opening the course. Writes to
+// these do not count as new learner progress when deciding whether unreadable
+// LMS suspend_data may be overwritten.
+const PASSIVE_DOMAINS = new Set(['sessionData', 'accessibility', 'audio', 'video']);
+
 /**
  * Formats milliseconds as ISO 8601 duration for SCORM 2004.
  * @param {number} milliseconds
@@ -114,6 +119,9 @@ class StateManager {
         this._checkCapabilities();
 
         this._domains.state = this._validator.hydrateStateFromLMS(lmsConnection);
+        if (this._validator.hydrationError) {
+            this._commits.holdSuspendData('stored suspend_data could not be decoded');
+        }
         this.isInitialized = true;
 
         logger.debug('[StateManager] Initialized and state hydrated from LMS');
@@ -156,6 +164,10 @@ class StateManager {
         }
 
         const result = this._domains.setDomainState(domain, value, meta);
+
+        if (this._commits.isSuspendHeld && this._isLearnerProgress(domain, value)) {
+            this._commits.releaseSuspendHold();
+        }
 
         // Report to driver for format-specific handling
         if (domain === 'objectives' && value) {
@@ -201,6 +213,8 @@ class StateManager {
         lmsConnection.reportScore({ raw: 0, scaled: 0, min: 0, max: 100 });
         lmsConnection.reportProgress(0);
         this._domains.clearState();
+        // An explicit restart is intentional, so it may replace unreadable state.
+        this._commits.releaseSuspendHold();
         await this._commits.commitToLMS();
         eventBus.emit('state:cleared', { reason: 'course restart' });
     }
@@ -343,7 +357,7 @@ class StateManager {
         if (!this.isInitialized || this.isTerminated) return;
         this._reportSessionTime();
         lmsConnection.setExitMode('suspend');
-        lmsConnection.setSuspendData(this._domains.state);
+        this._commits.syncSuspendData();
     }
 
     /**
@@ -483,6 +497,32 @@ class StateManager {
         } catch (error) {
             logger.debug('[StateManager] Could not check driver capabilities:', error.message);
         }
+    }
+
+    /**
+     * Whether a domain write represents new learner progress (as opposed to
+     * bookkeeping performed by merely opening the launch slide).
+     */
+    _isLearnerProgress(domain, value) {
+        if (PASSIVE_DOMAINS.has(domain)) return false;
+        // Opening the course visits the launch slide, registers its engagement
+        // tracking and seeds configured objectives; only movement beyond that
+        // counts as progress.
+        if (domain === 'navigation') {
+            return Array.isArray(value?.visitedSlides) && value.visitedSlides.length > 1;
+        }
+        if (domain === 'engagement') {
+            return Object.values(value || {}).some(slide => slide?.complete === true);
+        }
+        if (domain === 'objectives') {
+            return Object.values(value || {}).some(objective =>
+                objective?.completion_status === 'completed' ||
+                objective?.success_status === 'passed' ||
+                objective?.success_status === 'failed' ||
+                Number.isFinite(objective?.score)
+            );
+        }
+        return true;
     }
 
     _reportObjectivesToDriver(objectives) {

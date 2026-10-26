@@ -72,7 +72,7 @@ The framework supports multiple LMS formats:
 | `scorm1.2` | SCORM 1.2 (legacy LMS) | 4KB suspend_data (Strict Diet Mode found in `scorm-12-driver.js`) |
 | `lti` | LTI 1.3 (remote-hosted, JWT launch) | Unlimited (host-dependent) |
 
-> **Note on SCORM 1.2 Strict Diet Mode:** The framework preserves the complete CourseCode state and compresses it into an ASCII-safe representation. If the compressed value still exceeds SCORM 1.2's 4,096-character limit, the write fails loudly instead of silently discarding learner state. Courses that exceed the limit must reduce persisted data or use SCORM 2004, cmi5, or LTI.
+> **Note on SCORM 1.2 Strict Diet Mode:** The framework preserves the complete CourseCode state and compresses it into an ASCII-safe representation. If the compressed value exceeds SCORM 1.2's 4,096-character limit, non-essential data is trimmed in tiers (first the interaction history already stored in native `cmi.interactions`, then archived attempt summaries, then media/timer session data) and `suspend-data:warning` is emitted. If even the resume core doesn't fit, `suspend-data:critical` and `state:suspendDataFailed` are emitted and suspend_data is skipped for that commit — status, score and location are still committed. SCORM 2004 applies the same tiers at its 64,000-character limit. Courses that routinely trim should reduce persisted data or use SCORM 2004, cmi5, or LTI.
 
 **Set format in `course-config.js`** (for local CLI builds):
 ```javascript
@@ -396,7 +396,7 @@ After images are acquired, the module:
 | `state-validation.js` | State hydration, migration, validation |
 | `transaction-log.js` | Ring buffer for debugging |
 
-> **Persistence encoding:** SCORM 2004 uses `lz-string` UTF-16 compression. SCORM 1.2 uses an ASCII-safe `CC12:` encoded representation because legacy LMS implementations may reject UTF-16 suspend data. cmi5 and LTI persist structured JSON through their HTTP state endpoints. These format differences are transparent to framework consumers.
+> **Persistence encoding:** SCORM 2004 and SCORM 1.2 use ASCII-safe `lz-string` encodings prefixed `CC04:` and `CC12:`, because some LMS implementations mangle or reject UTF-16 suspend data (legacy UTF-16 values are still read on resume). Unreadable suspend_data doesn't lock the learner out: the course starts fresh, emits `state:recovered`, and leaves the stored value untouched until the learner makes progress. cmi5 and LTI persist structured JSON through their HTTP state endpoints. These format differences are transparent to framework consumers.
 
 #### Domain API
 

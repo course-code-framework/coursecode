@@ -20,6 +20,9 @@ const STATE_MIGRATIONS = {
     // No migrations yet - add here when STATE_SCHEMA_VERSION is incremented
 };
 
+// Error code drivers attach when stored suspend_data was read but cannot be decoded.
+const SUSPEND_DATA_CORRUPT = 'SUSPEND_DATA_CORRUPT';
+
 /**
  * Handles state validation mismatches.
  * - In dev mode: Throws an error with detailed diagnostics
@@ -51,6 +54,8 @@ function handleStateMismatch(domain, message, context, defaultValue) {
 export class StateValidator {
     constructor() {
         this._validationConfig = null;
+        // Set when stored suspend_data could not be decoded during hydration.
+        this.hydrationError = null;
     }
 
     get schemaVersion() {
@@ -132,7 +137,41 @@ export class StateValidator {
             return this.createFreshState();
         }
 
-        const suspendData = lmsConnection.getSuspendData();
+        let suspendData;
+        try {
+            suspendData = lmsConnection.getSuspendData();
+            if (suspendData !== null && suspendData !== undefined &&
+                (typeof suspendData !== 'object' || Array.isArray(suspendData))) {
+                const shapeError = new Error(`suspend_data decoded to ${Array.isArray(suspendData) ? 'an array' : typeof suspendData}, expected an object`);
+                shapeError.code = SUSPEND_DATA_CORRUPT;
+                throw shapeError;
+            }
+        } catch (error) {
+            // A failed LMS read may hide intact progress, so it still fails
+            // closed. Only data that was read but cannot be decoded is
+            // recovered from.
+            if (error?.code !== SUSPEND_DATA_CORRUPT) throw error;
+
+            // Never lock the learner out over corrupted resume state. Start
+            // fresh, but the caller holds suspend_data writes so the stored
+            // LMS value is not overwritten until the learner makes progress.
+            this.hydrationError = error;
+            logger.error('[StateManager] Stored suspend_data cannot be restored; starting with fresh state and preserving the LMS value until new progress is made', {
+                domain: 'state',
+                operation: 'hydrateStateFromLMS',
+                entryMode,
+                error: error?.message,
+                stack: error?.stack
+            });
+            eventBus.emit('state:recovered', {
+                domain: 'suspend_data',
+                message: error?.message,
+                context: { entryMode },
+                action: 'started_fresh_preserving_lms_state'
+            });
+            return this.createFreshState();
+        }
+
         if (suspendData) {
             const state = this.validateAndMigrateState(suspendData);
             logger.debug('[StateManager] Hydrated state from suspend_data');

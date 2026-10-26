@@ -141,4 +141,55 @@ describe('CommitScheduler', () => {
             expect(failCall[1].stateSnapshot.domains).toContain('navigation');
         });
     });
+
+    // ─── suspend_data overflow must never block commit ──────────────
+    // Status, score and location are native CMI values; an oversized
+    // suspend_data previously threw before commit() and wedged all saving.
+
+    describe('suspend_data failures', () => {
+        function overflowError() {
+            const error = new Error('SCORM 1.2 suspend_data exceeds the 4096-character limit (5000)');
+            error.code = 'SUSPEND_DATA_OVERFLOW';
+            return error;
+        }
+
+        it('auto-batch still commits when suspend_data overflows, without a retry loop', async () => {
+            mockLMS.setSuspendData.mockImplementation(() => { throw overflowError(); });
+            scheduler.scheduleCommit(true);
+            await vi.advanceTimersByTimeAsync(500);
+
+            expect(mockLMS.commit).toHaveBeenCalledOnce();
+            expect(eventBus.emit).toHaveBeenCalledWith('state:commitSuccess');
+            expect(eventBus.emit).toHaveBeenCalledWith('state:suspendDataFailed', expect.objectContaining({ overflow: true }));
+
+            await vi.advanceTimersByTimeAsync(120000);
+            expect(mockLMS.commit).toHaveBeenCalledOnce();
+        });
+
+        it('flush resolves (does not rethrow) when only suspend_data failed', async () => {
+            mockLMS.setSuspendData.mockImplementation(() => { throw overflowError(); });
+            scheduler.scheduleCommit(true);
+
+            await expect(scheduler.flush()).resolves.toBeUndefined();
+            expect(mockLMS.commit).toHaveBeenCalledOnce();
+        });
+
+        it('critical commit (terminate path) still commits when suspend_data fails', async () => {
+            mockLMS.setSuspendData.mockImplementation(() => { throw new Error('LMSSetValue failed'); });
+
+            await expect(scheduler.commitToLMS()).resolves.toBe(true);
+            expect(mockLMS.commit).toHaveBeenCalledOnce();
+        });
+
+        it('skips suspend_data while held, but still commits native values', async () => {
+            scheduler.holdSuspendData('corrupt stored state');
+            await scheduler.commitToLMS();
+            expect(mockLMS.setSuspendData).not.toHaveBeenCalled();
+            expect(mockLMS.commit).toHaveBeenCalledOnce();
+
+            scheduler.releaseSuspendHold();
+            await scheduler.commitToLMS();
+            expect(mockLMS.setSuspendData).toHaveBeenCalledOnce();
+        });
+    });
 });

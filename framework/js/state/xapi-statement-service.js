@@ -7,10 +7,37 @@
  * these methods, so this is a no-op for SCORM formats.
  * 
  * This enables rich xAPI learning records for cmi5 without modifying SCORM behavior.
+ *
+ * Statements are non-blocking. Failed sends are kept in a small bounded
+ * in-memory queue and retried after the next successful commit (with
+ * backoff) and once more before termination.
  */
 
 import { eventBus } from '../core/event-bus.js';
 import { logger } from '../utilities/logger.js';
+
+const RETRY_QUEUE_LIMIT = 50;
+const MAX_SEND_ATTEMPTS = 5;
+const RETRY_BASE_DELAY_MS = 2000;
+const RETRY_MAX_DELAY_MS = 60000;
+
+/** Scales a 0-100 score to 0-1; null/undefined/NaN mean "no score". */
+function toScaledScore(score) {
+    return typeof score === 'number' && Number.isFinite(score) ? score / 100 : undefined;
+}
+
+/** Correctness for xAPI result.success; undefined when it does not apply (likert, survey, neutral). */
+function toSuccess(result) {
+    if (result === 'correct') return true;
+    if (result === 'incorrect' || result === 'wrong') return false;
+    return undefined;
+}
+
+function createStatementId() {
+    return typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : undefined;
+}
 
 /**
  * xAPI Statement Service
@@ -26,6 +53,12 @@ class XapiStatementService {
         this._currentSlideId = null;
         this._currentSlideTitle = null;
         this._slideEntryTime = null;
+
+        // Failed statements awaiting retry: { method, payload, attempts, label }
+        this._retryQueue = [];
+        this._retryDelayMs = RETRY_BASE_DELAY_MS;
+        this._nextRetryAt = 0;
+        this._isRetrying = false;
     }
 
     /**
@@ -100,6 +133,13 @@ class XapiStatementService {
             eventBus.on('session:beforeTerminate', this._handleBeforeTerminate.bind(this))
         );
 
+        // A successful commit means the LRS is reachable again: retry failures
+        this._subscriptions.push(
+            eventBus.on('state:commitSuccess', () => {
+                if (Date.now() >= this._nextRetryAt) void this._flushRetryQueue();
+            })
+        );
+
         logger.debug('[XapiStatementService] Subscribed to manager events');
     }
 
@@ -121,17 +161,12 @@ class XapiStatementService {
             verb = 'failed';
         }
 
-        try {
-            await this._driver.sendObjectiveStatement({
-                id: objective.id,
-                verb: verb,
-                name: objective.description || objective.id,
-                score: objective.score !== undefined ? objective.score / 100 : undefined
-            });
-        } catch (error) {
-            logger.error('[XapiStatementService] Failed to send objective statement:', error);
-            // Don't throw - xAPI statements are non-blocking
-        }
+        await this._send('sendObjectiveStatement', {
+            id: objective.id,
+            verb: verb,
+            name: objective.description || objective.id,
+            score: toScaledScore(objective.score)
+        }, 'objective statement');
     }
 
     /**
@@ -142,15 +177,11 @@ class XapiStatementService {
         const resolvedId = id || objectiveId;
         if (!resolvedId) return;
 
-        try {
-            await this._driver.sendObjectiveStatement({
-                id: resolvedId,
-                verb: 'progressed',
-                score: typeof score === 'number' && !isNaN(score) ? score / 100 : undefined
-            });
-        } catch (error) {
-            logger.error('[XapiStatementService] Failed to send objective score statement:', error);
-        }
+        await this._send('sendObjectiveStatement', {
+            id: resolvedId,
+            verb: 'progressed',
+            score: toScaledScore(score)
+        }, 'objective score statement');
     }
 
     /**
@@ -160,19 +191,15 @@ class XapiStatementService {
     async _handleInteractionRecorded(interaction) {
         if (!interaction?.id) return;
 
-        try {
-            await this._driver.sendInteractionStatement({
-                id: interaction.id,
-                type: interaction.type || 'other',
-                response: interaction.learner_response || '',
-                correct: interaction.result === 'correct',
-                description: interaction.description || undefined,
-                duration: interaction.latency || undefined,
-                objectiveId: interaction.objectives?.[0] || undefined
-            });
-        } catch (error) {
-            logger.error('[XapiStatementService] Failed to send interaction statement:', error);
-        }
+        await this._send('sendInteractionStatement', {
+            id: interaction.id,
+            type: interaction.type || 'other',
+            response: interaction.learner_response || '',
+            correct: toSuccess(interaction.result),
+            description: interaction.description || undefined,
+            duration: interaction.latency || undefined,
+            objectiveId: interaction.objectives?.[0] || undefined
+        }, 'interaction statement');
     }
 
     /**
@@ -202,20 +229,15 @@ class XapiStatementService {
             }
         }
 
-        try {
-            const score = typeof results.scorePercentage === 'number' ? results.scorePercentage / 100 : undefined;
-            await this._driver.sendAssessmentStatement({
-                id: assessmentId,
-                score, // Convert to 0-1 scaled; undefined if not provided
-                passed: results.passed,
-                questionCount: results.totalQuestions,
-                correctCount: results.correctCount,
-                attemptNumber: results.attemptNumber,
-                duration: duration
-            });
-        } catch (error) {
-            logger.error('[XapiStatementService] Failed to send assessment statement:', error);
-        }
+        await this._send('sendAssessmentStatement', {
+            id: assessmentId,
+            score: toScaledScore(results.scorePercentage), // 0-1 scaled; undefined if not provided
+            passed: results.passed,
+            questionCount: results.totalQuestions,
+            correctCount: results.correctCount,
+            attemptNumber: results.attemptNumber,
+            duration: duration
+        }, 'assessment statement');
     }
 
     /**
@@ -228,16 +250,12 @@ class XapiStatementService {
         if (fromSlideId && this._slideEntryTime) {
             const duration = this._calculateDuration(this._slideEntryTime);
 
-            try {
-                await this._driver.sendSlideStatement({
-                    id: fromSlideId,
-                    title: this._currentSlideTitle || undefined,
-                    verb: 'experienced',
-                    duration: duration
-                });
-            } catch (error) {
-                logger.error('[XapiStatementService] Failed to send slide statement:', error);
-            }
+            await this._send('sendSlideStatement', {
+                id: fromSlideId,
+                title: this._currentSlideTitle || undefined,
+                verb: 'experienced',
+                duration: duration
+            }, 'slide statement');
         }
 
         // Track entry time and title for new slide
@@ -272,6 +290,8 @@ class XapiStatementService {
      */
     async _handleBeforeTerminate() {
         await this._sendPendingSlideStatement();
+        // Last chance before Terminated: no statements may follow it.
+        await this._flushRetryQueue({ final: true });
     }
 
     /**
@@ -285,23 +305,105 @@ class XapiStatementService {
         }
 
         const duration = this._calculateDuration(this._slideEntryTime);
+        const slideId = this._currentSlideId;
 
-        try {
-            await this._driver.sendSlideStatement({
-                id: this._currentSlideId,
-                title: this._currentSlideTitle || undefined,
-                verb: 'experienced',
-                duration: duration
-            });
-            logger.debug(`[XapiStatementService] Sent final slide statement: ${this._currentSlideId}`);
-        } catch (error) {
-            logger.error('[XapiStatementService] Failed to send final slide statement:', error);
-        }
+        const sent = await this._send('sendSlideStatement', {
+            id: slideId,
+            title: this._currentSlideTitle || undefined,
+            verb: 'experienced',
+            duration: duration
+        }, 'final slide statement');
+        if (sent) logger.debug(`[XapiStatementService] Sent final slide statement: ${slideId}`);
 
         // Clear tracking to prevent duplicate sends
         this._currentSlideId = null;
         this._currentSlideTitle = null;
         this._slideEntryTime = null;
+    }
+
+    /**
+     * Sends a statement through the driver. A failure never throws: the
+     * statement is queued for retry with its original id and timestamp.
+     * @private
+     * @returns {Promise<boolean>} True if sent now
+     */
+    async _send(method, payload, label) {
+        const entry = {
+            method,
+            label,
+            attempts: 0,
+            payload: {
+                ...payload,
+                timestamp: payload.timestamp || new Date().toISOString(),
+                statementId: payload.statementId || createStatementId()
+            }
+        };
+        return this._attempt(entry);
+    }
+
+    /** @private */
+    async _attempt(entry, { requeue = true } = {}) {
+        entry.attempts++;
+        try {
+            await this._driver[entry.method](entry.payload);
+            return true;
+        } catch (error) {
+            logger.error(`[XapiStatementService] Failed to send ${entry.label} (attempt ${entry.attempts}):`, error);
+            if (requeue) this._requeue([entry]);
+            return false;
+        }
+    }
+
+    /**
+     * Adds entries to the bounded retry queue (at the front when re-queuing
+     * an interrupted retry batch, preserving order) and backs off.
+     * @private
+     */
+    _requeue(entries, { front = false } = {}) {
+        const retryable = entries.filter(entry => {
+            if (entry.attempts < MAX_SEND_ATTEMPTS) return true;
+            logger.error(`[XapiStatementService] Dropping ${entry.label} after ${entry.attempts} failed attempts`);
+            return false;
+        });
+        this._retryQueue = front ? [...retryable, ...this._retryQueue] : [...this._retryQueue, ...retryable];
+        while (this._retryQueue.length > RETRY_QUEUE_LIMIT) {
+            const dropped = this._retryQueue.shift();
+            logger.error(`[XapiStatementService] Retry queue full (${RETRY_QUEUE_LIMIT}); dropping oldest ${dropped.label}`);
+        }
+        this._nextRetryAt = Date.now() + this._retryDelayMs;
+        this._retryDelayMs = Math.min(this._retryDelayMs * 2, RETRY_MAX_DELAY_MS);
+    }
+
+    /**
+     * Retries queued statements in their original order. Stops at the first
+     * failure (the LRS is likely still unreachable) unless this is the final
+     * pre-termination flush, which tries each once and then gives up.
+     * @private
+     */
+    async _flushRetryQueue({ final = false } = {}) {
+        if (this._isRetrying || this._retryQueue.length === 0 || !this._driver) return;
+        this._isRetrying = true;
+        let undelivered = 0;
+        try {
+            const pending = this._retryQueue.splice(0);
+            for (let i = 0; i < pending.length; i++) {
+                const sent = await this._attempt(pending[i], { requeue: false });
+                if (sent) continue;
+                if (final) {
+                    undelivered++;
+                    continue;
+                }
+                this._requeue(pending.slice(i), { front: true });
+                return;
+            }
+            this._retryDelayMs = RETRY_BASE_DELAY_MS;
+            this._nextRetryAt = 0;
+        } finally {
+            this._isRetrying = false;
+            if (final && undelivered > 0) {
+                logger.error(`[XapiStatementService] ${undelivered} statement(s) could not be delivered before termination`);
+            }
+        }
     }
 
     /**
@@ -317,6 +419,9 @@ class XapiStatementService {
         this._currentSlideId = null;
         this._currentSlideTitle = null;
         this._slideEntryTime = null;
+        this._retryQueue = [];
+        this._retryDelayMs = RETRY_BASE_DELAY_MS;
+        this._nextRetryAt = 0;
     }
 }
 
