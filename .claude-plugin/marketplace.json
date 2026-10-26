@@ -1,0 +1,14 @@
+{
+  "name": "coursecode",
+  "description": "CourseCode plugins for building LMS-ready e-learning courses with AI.",
+  "owner": {
+    "name": "Seth Vincent"
+  },
+  "plugins": [
+    {
+      "name": "coursecode",
+      "source": "./plugin",
+      "description": "Create, build, review, and publish SCORM, cmi5, and LTI courses with CourseCode."
+    }
+  ]
+}

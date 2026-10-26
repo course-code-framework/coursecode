@@ -232,6 +232,16 @@ Without MCP, you describe problems to your AI and paste code back and forth. Wit
 
 MCP setup depends on which AI tool you use. In each case, you add a small configuration that tells the tool how to launch CourseCode's MCP server.
 
+#### Claude Code
+
+Install the CourseCode plugin. It sets up the MCP server and adds guided skills for each stage of the workflow:
+
+```bash
+claude plugin install coursecode --marketplace course-code-framework/coursecode
+```
+
+Start Claude Code from your course folder (or an empty folder for a new course). Run `/coursecode:new-course` to begin, or just describe what you want to build.
+
 #### Claude Desktop
 
 Open **Settings → Developer → Edit Config** and add:
@@ -304,9 +314,9 @@ Once connected, your AI assistant gains these capabilities:
 | `coursecode_interaction_catalog` | Browse available interaction types (multiple choice, drag-drop, etc.) |
 | `coursecode_css_catalog` | Browse available CSS classes by category |
 | `coursecode_icon_catalog` | Browse available icons by name/category |
-
 | `coursecode_workflow_status` | Get guidance on what to do next based on your project's current state |
 | `coursecode_build` | Build the course for LMS deployment |
+| `coursecode_narration` | Generate text-to-speech audio narration for slides |
 
 > **Note:** The preview server must be running before using runtime tools like `coursecode_state`, `coursecode_errors`, `coursecode_screenshot`, or `coursecode_navigate`. If preview is not already running for this project, start it with `coursecode preview` in a terminal. Do not start a second preview server if one is already running.
 

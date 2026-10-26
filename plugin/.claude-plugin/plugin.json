@@ -1,0 +1,21 @@
+{
+  "name": "coursecode",
+  "displayName": "CourseCode",
+  "version": "0.1.61",
+  "description": "Build SCORM, cmi5, and LTI e-learning courses with Claude: create a project, turn source documents into an outline, build interactive slides, review them in a headless preview, and publish to any LMS.",
+  "author": {
+    "name": "Seth Vincent"
+  },
+  "homepage": "https://coursecodeframework.com",
+  "repository": "https://github.com/course-code-framework/coursecode",
+  "license": "MIT",
+  "keywords": [
+    "scorm",
+    "cmi5",
+    "lti",
+    "elearning",
+    "lms",
+    "course-authoring",
+    "instructional-design"
+  ]
+}
