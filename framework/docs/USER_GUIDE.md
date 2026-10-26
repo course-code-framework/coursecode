@@ -67,7 +67,7 @@ A complete guide to creating interactive e-learning courses with AI assistance. 
 ### What You'll Need
 
 **Required:**
-- [Node.js](https://nodejs.org/) (version 20.19 or later)
+- [Node.js](https://nodejs.org/) (version 22.15 or later)
 
 **Recommended:**
 - A text editor like [VS Code](https://code.visualstudio.com/) or [Notepad++](https://notepad-plus-plus.org/)

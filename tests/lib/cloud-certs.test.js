@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { getCertCacheDir, writeCertBundle } from '../../lib/cloud-certs.js';
+import { applyWindowsSystemCerts, getCertCacheDir, writeCertBundle } from '../../lib/cloud-certs.js';
 
 const PEM_A = '-----BEGIN CERTIFICATE-----\nAAAA\n-----END CERTIFICATE-----\n';
 const PEM_B = '-----BEGIN CERTIFICATE-----\nBBBB\n-----END CERTIFICATE-----\n';
@@ -69,5 +69,55 @@ describe.runIf(process.platform !== 'win32')('writeCertBundle', () => {
         fs.chmodSync(dir, 0o777);
         writeCertBundle(PEM_A, dir);
         expect(fs.statSync(dir).mode & 0o777).toBe(0o700);
+    });
+});
+
+describe('applyWindowsSystemCerts', () => {
+    const BUNDLED = '-----BEGIN CERTIFICATE-----\nBUNDLED\n-----END CERTIFICATE-----\n';
+    const SYSTEM = '-----BEGIN CERTIFICATE-----\nSYSTEM\n-----END CERTIFICATE-----';
+
+    function fakeTls({ system = [SYSTEM], defaults = [BUNDLED], withSetter = true } = {}) {
+        const api = {
+            calls: [],
+            getCACertificates(type) {
+                if (type === 'system') return system;
+                if (type === 'default') return defaults;
+                return [];
+            },
+        };
+        if (withSetter) api.setDefaultCACertificates = (certs) => api.calls.push(certs);
+        return api;
+    }
+
+    it('adds system certs to the existing defaults in-process when supported', () => {
+        const api = fakeTls({ defaults: [BUNDLED, SYSTEM] });
+        expect(applyWindowsSystemCerts(api)).toEqual({ method: 'in-process' });
+        // Defaults are kept (additive, like win-ca's inject '+') and deduplicated
+        expect(api.calls).toEqual([[BUNDLED, SYSTEM]]);
+    });
+
+    it('returns a PEM bundle for NODE_EXTRA_CA_CERTS when setDefaultCACertificates is unavailable', () => {
+        const api = fakeTls({ withSetter: false, system: [SYSTEM, BUNDLED] });
+        const result = applyWindowsSystemCerts(api);
+        expect(result.method).toBe('pem');
+        expect(result.pem).toBe(`${SYSTEM}\n${BUNDLED}`);
+    });
+
+    it('is a no-op when the system store is empty', () => {
+        const api = fakeTls({ system: [] });
+        expect(applyWindowsSystemCerts(api)).toEqual({ method: 'none' });
+        expect(api.calls).toEqual([]);
+    });
+
+    it('is a no-op on Node versions without tls.getCACertificates', () => {
+        expect(applyWindowsSystemCerts({})).toEqual({ method: 'unsupported' });
+    });
+
+    it('works against the real tls module', async () => {
+        const tls = await import('tls');
+        expect(typeof tls.getCACertificates).toBe('function');
+        expect(['in-process', 'pem', 'none']).toContain(
+            applyWindowsSystemCerts({ getCACertificates: tls.getCACertificates }).method
+        );
     });
 });

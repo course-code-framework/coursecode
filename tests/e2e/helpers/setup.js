@@ -22,7 +22,7 @@ export async function launchBrowser() {
 
     return puppeteer.launch({
         executablePath: CHROME_PATH,
-        headless: 'new',
+        headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 }

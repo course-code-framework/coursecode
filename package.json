@@ -106,7 +106,7 @@
   },
   "homepage": "https://github.com/course-code-framework/coursecode/blob/main/framework/docs/USER_GUIDE.md",
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22.15.0"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
@@ -120,21 +120,20 @@
     "node-pptx-parser": "^1.0.1",
     "pdf2json": "^4.0.3",
     "pdf2md": "^1.0.2",
-    "puppeteer-core": "^24.43.1",
+    "puppeteer-core": "^25.16.0",
     "vite-plugin-singlefile": "^2.3.3",
-    "win-ca": "^3.5.1",
     "ws": "^8.21.0"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/coverage-v8": "^4.1.12",
     "@xapi/cmi5": "^1.4.0",
-    "eslint": "^10.6.0",
+    "eslint": "^10.13.0",
     "globals": "^17.7.0",
-    "jsdom": "^29.1.0",
+    "jsdom": "^29.1.1",
     "pptxgenjs": "^4.0.1",
     "vite": "~8.1.6",
     "vite-plugin-static-copy": "^4.1.1",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.12"
   },
   "overrides": {
     "uuid": "^11.1.1"

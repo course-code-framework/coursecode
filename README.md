@@ -44,7 +44,7 @@ Bring your own PDFs, Word docs, or other reference documents, use AI to accelera
 
 ### Required
 
-Install [Node.js](https://nodejs.org/) (v20.19 or later), then run:
+Install [Node.js](https://nodejs.org/) (v22.15 or later), then run:
 
 ```bash
 npm install -g coursecode

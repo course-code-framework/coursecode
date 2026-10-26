@@ -29,9 +29,10 @@ import fs from 'fs';
 // presents its own CA certificate. Node.js ships its own CA bundle and ignores
 // the OS trust store, so TLS verification fails.
 //
-// Windows: win-ca injects certs directly into Node's TLS context (in-process,
-//          no subprocess, no re-exec). Works regardless of PowerShell policy.
-// macOS/Linux: exports OS certs to a temp PEM file and re-execs with
+// Windows: Node's built-in system store reader adds the certs in-process on
+//          Node 22.19+/24.5+ (no subprocess, no re-exec); older Node 22 falls
+//          back to the PEM re-exec below. Works regardless of PowerShell policy.
+// macOS/Linux: exports OS certs to a private PEM file and re-execs with
 //              NODE_EXTRA_CA_CERTS. The guard prevents an infinite loop.
 // =============================================================================
 
@@ -39,7 +40,7 @@ if (!process.env.NODE_EXTRA_CA_CERTS) {
   const { injectSystemCerts } = await import('../lib/cloud-certs.js');
   const certPath = await injectSystemCerts();
   if (certPath) {
-    // macOS/Linux: re-exec with NODE_EXTRA_CA_CERTS pointing to PEM file.
+    // Re-exec with NODE_EXTRA_CA_CERTS pointing to the PEM file.
     // Async spawn so termination signals sent to this wrapper process (e.g. by
     // a desktop app or process manager) are forwarded to the real CLI, which
     // otherwise would be orphaned along with its preview server / Vite child.
@@ -65,7 +66,7 @@ if (!process.env.NODE_EXTRA_CA_CERTS) {
     if (signal) process.kill(process.pid, signal);
     process.exit(code ?? (signal ? 1 : 0));
   }
-  // Windows: win-ca already injected certs in-process — continue normally
+  // Certs applied in-process (Windows) or none found — continue normally
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
