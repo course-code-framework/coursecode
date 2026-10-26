@@ -52,6 +52,9 @@ export function createAssessmentState(config, stateManager) {
         responses: {},
         selectedQuestions: null, // Array of question IDs only (for bank mode) - NOT full configs to save space
         reviewReached: false, // True once user reaches review screen (allows jump to review)
+        // qsig (string, non-randomized assessments only): compact signature of
+        // the question order the index-keyed responses belong to. Stamped when
+        // an attempt starts; left out of the defaults so it costs nothing until set.
     };
 
     function _getAssessmentDomainState() {
@@ -233,6 +236,23 @@ export function createAssessmentState(config, stateManager) {
         await _setAssessmentDomainState(domainState, `${SOURCE}:response`);
     }
 
+    // === Question Set Signature Operations ===
+
+    /**
+     * Signature of the question order the session's index-keyed responses
+     * were recorded against (see question-set-signature.js). Null for
+     * sessions saved before signatures existed.
+     * @returns {string|null}
+     */
+    function getQuestionSetSignature() {
+        const session = getSession();
+        return typeof session?.qsig === 'string' ? session.qsig : null;
+    }
+
+    async function setQuestionSetSignature(signature, source = `${SOURCE}:question-set`) {
+        await updateSession({ qsig: signature }, source);
+    }
+
     // === Selected Questions Operations ===
 
     function getSelectedQuestions() {
@@ -347,6 +367,10 @@ export function createAssessmentState(config, stateManager) {
         // Response operations
         getResponse,
         saveResponse,
+
+        // Question set signature (non-randomized resume safety)
+        getQuestionSetSignature,
+        setQuestionSetSignature,
 
         // Selected questions operations
         getSelectedQuestions,

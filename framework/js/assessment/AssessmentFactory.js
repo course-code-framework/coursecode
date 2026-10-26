@@ -16,6 +16,7 @@ import { buildResultsActionButton } from './assessment-results.js';
 import { shuffleArray } from '../utilities/utilities.js';
 import * as AppUI from '../app/AppUI.js';
 import { getVisitedSlides } from '../navigation/NavigationState.js';
+import { computeQuestionSetPrefixSignatures, computeQuestionSetSignature } from './question-set-signature.js';
 
 // Import from the central interaction type catalog
 // This provides unified access to built-in and custom interaction types
@@ -288,6 +289,83 @@ export function createAssessmentInstance(config) {
     }
 
     /**
+     * Fixed-order (non-randomized) assessments key in-progress responses by
+     * question index without persisting the question order. The session keeps
+     * a compact signature of that order instead; this verifies it on resume so
+     * a course update that inserted, removed, reordered or retyped questions
+     * can never score a saved answer against a different question.
+     *
+     * - Signature matches: resume as-is.
+     * - No signature (session saved before signatures existed): assume the
+     *   question set is unchanged, as before, and stamp the current signature.
+     * - Questions only appended after the stored set: every stored index still
+     *   refers to the same question, so resume and re-stamp.
+     * - Anything else: the stored data can't map answers to questions, so the
+     *   in-progress attempt restarts at the intro. Attempt number, attempt
+     *   counts and submitted results (summary) are preserved.
+     *
+     * State mutations apply synchronously; only persistence is fire-and-forget.
+     * @param {Array} questions - The questions this instance renders, in order
+     */
+    function _reconcileFixedQuestionSet(questions) {
+        if (!assessmentState.hasActiveAttempt()) return;
+
+        const logFailure = error => {
+            logger.error(`Failed to persist question set signature: ${error.message}`, {
+                domain: 'assessment', operation: 'reconcile-question-set', assessmentId, stack: error.stack
+            });
+        };
+
+        const prefixSignatures = computeQuestionSetPrefixSignatures(questions);
+        const currentSignature = computeQuestionSetSignature(questions);
+        const storedSignature = assessmentState.getQuestionSetSignature();
+
+        if (storedSignature === currentSignature) return;
+
+        if (storedSignature === null) {
+            assessmentState.setQuestionSetSignature(currentSignature).catch(logFailure);
+            return;
+        }
+
+        const session = assessmentState.getSession() || {};
+        const storedCount = prefixSignatures.indexOf(storedSignature) + 1;
+        const responseIndices = Object.keys(session.responses || {}).map(Number);
+        const notStarted = responseIndices.length === 0 && (session.currentView || 'intro') === 'intro';
+        if (notStarted) {
+            // Nothing recorded against the old questions yet
+            assessmentState.setQuestionSetSignature(currentSignature).catch(logFailure);
+            return;
+        }
+
+        const isAppendOnly = storedCount > 0 &&
+            responseIndices.every(index => Number.isInteger(index) && index >= 0 && index < storedCount);
+        if (isAppendOnly) {
+            logger.info(`[AssessmentFactory:${assessmentId}] ${questions.length - storedCount} question(s) were appended since this attempt started; keeping saved answers.`);
+            assessmentState.setQuestionSetSignature(currentSignature).catch(logFailure);
+            return;
+        }
+
+        const message = `Assessment "${assessmentId}" questions were added, removed or reordered since the learner started this attempt. ` +
+            'Saved answers cannot be matched to questions, so the in-progress attempt was restarted.';
+        logger.warn(`[AssessmentFactory] ${message}`);
+        eventBus.emit('state:recovered', {
+            domain: 'assessment',
+            message,
+            context: { assessmentId, storedSignature, currentSignature },
+            action: 'restarted_changed_assessment'
+        });
+        assessmentState.updateSession({
+            currentView: 'intro',
+            currentQuestionIndex: 0,
+            startTime: null,
+            submitted: false,
+            responses: {},
+            reviewReached: false,
+            qsig: currentSignature
+        }, 'assessment-state:course-update').catch(logFailure);
+    }
+
+    /**
      * Helper to get all available questions from either banks or direct questions array
      */
     function _getAllAvailableQuestions() {
@@ -382,6 +460,9 @@ export function createAssessmentInstance(config) {
                     stack: error.stack
                 });
             });
+        }
+        if (!requiresPersistedOrder) {
+            _reconcileFixedQuestionSet(activeQuestions);
         }
 
         // Create question instances based on active questions

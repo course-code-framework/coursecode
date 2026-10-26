@@ -26,6 +26,7 @@ import {
     formatScoreForDisplay,
     buildResultsActionButton
 } from './assessment-results.js';
+import { computeQuestionSetSignature } from './question-set-signature.js';
 
 /**
  * Creates an object containing all action handlers for an assessment.
@@ -62,6 +63,10 @@ export function createAssessmentActions(stateManager, uiManager, questionInstanc
         await stateManager.startNewAttemptSession();
         if (requiresPersistedOrder) {
             await stateManager.setSelectedQuestions(reselectQuestions ? null : config.questions);
+        } else {
+            // Fixed-order assessments don't persist their question order;
+            // a compact signature lets resume detect a changed question set.
+            await stateManager.setQuestionSetSignature(computeQuestionSetSignature(config.questions));
         }
     }
 

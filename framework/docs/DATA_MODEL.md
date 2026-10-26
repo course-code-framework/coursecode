@@ -208,8 +208,10 @@ Per-assessment state. Each assessment gets its own domain (e.g. `assessment_fina
     startTime: number,             // Date.now() timestamp
     submitted: boolean,
     attemptNumber: number,
-    responses: { [questionId: string]: any },
-    selectedQuestions: string[],   // Question IDs (may be randomized subset)
+    responses: { [questionIndex: string]: any },  // Keyed by position in the active question list
+    selectedQuestions: string[],   // Question IDs in order (randomized/question-bank assessments only)
+    qsig: string,                  // Fixed-order assessments only: short signature of the question ids/types order;
+                                   // a mismatch on resume restarts the attempt unless questions were only appended
     reviewReached: boolean
   },
   discardedAttempts: any[]  // Previous attempt data kept for audit

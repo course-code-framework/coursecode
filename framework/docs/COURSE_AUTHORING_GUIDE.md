@@ -631,6 +631,8 @@ createHotspotQuestion({
 });
 ```
 
+All regions share the same neutral look by default, so styling never reveals the answer. Set `theme` (`'primary'`, `'accent'`, `'correct'`, `'incorrect'`) or a custom `appearance` per hotspot to override — `'correct'`/`'incorrect'` color-code regions and are meant for explore-style activities, not graded questions.
+
 Interaction APIs such as `createHotspotQuestion()` resolve relative asset paths against `course/assets/`. In direct HTML attributes such as `<img src>`, use the packaged path `course/assets/...` as shown in the interactive-image example below. Declarative components may document their own path base; for example, lightbox `href` values are relative to `course/` and normally begin with `assets/`.
 
 **Appearance themes**: `'correct'`, `'incorrect'`, `'primary'`, `'accent'` — or provide custom `appearance` object.

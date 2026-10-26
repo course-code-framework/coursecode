@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
     store: {},
@@ -58,6 +58,15 @@ class FakeVideo {
     }
 }
 
+/** Simulate continuous playback in 1s steps up to `to` seconds (wall clock advances with it). */
+function watchUntil(video, to) {
+    while (video.currentTime < to) {
+        vi.setSystemTime(Date.now() + 1000);
+        video.currentTime = Math.min(to, video.currentTime + 1);
+        video.emit('timeupdate');
+    }
+}
+
 describe('VideoManager multi-player lifecycle', () => {
     let videoManager;
 
@@ -68,6 +77,11 @@ describe('VideoManager multi-player lifecycle', () => {
         vi.stubGlobal('HTMLVideoElement', FakeVideo);
         ({ default: videoManager } = await import('../../../framework/js/managers/video-manager.js'));
         videoManager.initialize();
+        vi.useFakeTimers({ toFake: ['Date'] });
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
     });
 
     it('does not steal the active context when another player is rendered', () => {
@@ -107,8 +121,7 @@ describe('VideoManager multi-player lifecycle', () => {
         });
 
         await first.play();
-        first.currentTime = 95;
-        first.emit('timeupdate');
+        watchUntil(first, 95);
 
         expect(videoManager.isVideoCompleted('video-first')).toBe(true);
         expect(videoManager.isVideoCompleted('video-second')).toBe(false);
@@ -139,5 +152,60 @@ describe('VideoManager multi-player lifecycle', () => {
 
         expect(videoManager.getState().contextId).toBe('video-first');
         expect(videoManager.activeVideo).toBe(first);
+    });
+
+    it('does not complete required video when the learner scrubs ahead', async () => {
+        const video = new FakeVideo();
+        videoManager.attachVideo(video, 'video-first', { src: 'first.mp4', required: true, completionThreshold: 0.9 });
+
+        await video.play();
+        watchUntil(video, 5);
+        video.currentTime = 95;
+        video.emit('timeupdate');
+        video.emit('seeked');
+        watchUntil(video, 99);
+
+        expect(videoManager.isVideoCompleted('video-first')).toBe(false);
+        expect(videoManager.maxPositionReached).toBe(5);
+    });
+
+    it('does not complete when a scrub to the end fires ended', async () => {
+        const video = new FakeVideo();
+        videoManager.attachVideo(video, 'video-first', { src: 'first.mp4', required: true, completionThreshold: 0.9 });
+
+        await video.play();
+        video.currentTime = 99.5;
+        video.emit('seeked');
+        video.currentTime = 100;
+        video.emit('ended');
+
+        expect(videoManager.isVideoCompleted('video-first')).toBe(false);
+    });
+
+    it('completes when watched continuously to the end and persists the watched position', async () => {
+        const video = new FakeVideo();
+        videoManager.attachVideo(video, 'video-first', { src: 'first.mp4', required: true, completionThreshold: 1 });
+
+        await video.play();
+        watchUntil(video, 99.6);
+        video.currentTime = 100;
+        video.emit('ended');
+
+        expect(videoManager.isVideoCompleted('video-first')).toBe(true);
+        expect(mocks.store.video.watched['video-first']).toBe(100);
+    });
+
+    it('restores the watched position, not the scrubbed-to position, on resume', async () => {
+        mocks.store.video = { positions: { 'video-first': 80 }, watched: { 'video-first': 10 } };
+        vi.resetModules();
+        ({ default: videoManager } = await import('../../../framework/js/managers/video-manager.js'));
+        videoManager.initialize();
+
+        const video = new FakeVideo();
+        videoManager.attachVideo(video, 'video-first', { src: 'first.mp4', required: true });
+        video.emit('loadedmetadata');
+
+        expect(video.currentTime).toBe(80);
+        expect(videoManager.maxPositionReached).toBe(10);
     });
 });

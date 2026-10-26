@@ -24,6 +24,13 @@ import {
 } from '../utilities/media-utils.js';
 
 /**
+ * Slack (seconds) allowed when deciding whether playback advanced
+ * continuously. Larger forward jumps are seeks/scrubs and don't count as
+ * watched time for completion.
+ */
+const CONTINUOUS_PLAYBACK_TOLERANCE_SECONDS = 1;
+
+/**
  * @typedef {Object} VideoState
  * @property {string|null} currentSrc - Current video source URL
  * @property {string|null} contextId - Current context identifier
@@ -74,7 +81,10 @@ class VideoManager {
         /** @type {Map<string, boolean>} - Stores completion status for each context */
         this.completionCache = new Map();
 
-        /** @type {number} - Tracks max position reached (handles seeks/replays) */
+        /** @type {Map<string, number>} - Furthest continuously-watched position for each context */
+        this.watchedCache = new Map();
+
+        /** @type {number} - Furthest position reached by continuous playback (seeking ahead doesn't count) */
         this.maxPositionReached = 0;
 
         /** @type {number|null} */
@@ -131,7 +141,11 @@ class VideoManager {
             required: config.required || false,
             completionThreshold: normalizeCompletionThreshold(config.completionThreshold),
             isCompleted: this._isContextCompleted(contextId),
-            maxPositionReached: savedPosition
+            // How far the learner actually watched, not where they scrubbed to.
+            // Older saved state has no watched position; fall back to the saved position.
+            maxPositionReached: this._getWatchedPosition(contextId) ?? savedPosition,
+            lastPlaybackPosition: 0,
+            lastPlaybackWallTime: 0
         };
 
         // Set up event listeners
@@ -216,8 +230,11 @@ class VideoManager {
             if (savedPosition > 0 && savedPosition < video.duration) {
                 video.currentTime = savedPosition;
                 localState.position = savedPosition;
-                localState.maxPositionReached = savedPosition;
             }
+            if (Number.isFinite(video.duration) && video.duration > 0) {
+                localState.maxPositionReached = Math.min(localState.maxPositionReached, video.duration);
+            }
+            this._resetPlaybackTracking(localState, localState.position);
 
             if (this.activeVideo === video) {
                 this.state.duration = localState.duration;
@@ -235,6 +252,7 @@ class VideoManager {
 
         listeners.play = () => {
             this._activateVideo(video);
+            this._resetPlaybackTracking(localState, video.currentTime);
             this.state.isPlaying = true;
             this._startPositionUpdates(video);
             eventBus.emit('video:play', {
@@ -261,13 +279,16 @@ class VideoManager {
         listeners.ended = () => {
             this._activateVideo(video);
             localState.position = video.duration;
-            localState.maxPositionReached = video.duration;
+            // Playback ran continuously to the end: the tail after the last
+            // timeupdate counts as watched (a scrub to the end does not)
+            this._trackContinuousPlayback(video, video.duration, { ended: true });
             this.state.isPlaying = false;
             this.state.position = video.duration;
-            this.maxPositionReached = video.duration;
+            this.maxPositionReached = localState.maxPositionReached;
             this._stopPositionUpdates();
+            this._savePosition();
 
-            // Mark as completed when video ends
+            // Mark as completed if enough was watched
             this._checkAndMarkCompleted();
 
             eventBus.emit('video:ended', { contextId });
@@ -276,16 +297,20 @@ class VideoManager {
         listeners.timeupdate = () => {
             localState.position = video.currentTime;
 
-            // Track max position for completion calculation
-            if (video.currentTime > localState.maxPositionReached) {
-                localState.maxPositionReached = video.currentTime;
-            }
+            // Advance the watched position only for continuous playback, so
+            // scrubbing ahead can't complete required video
+            this._trackContinuousPlayback(video, video.currentTime);
 
             if (this.activeVideo === video) {
                 this.state.position = video.currentTime;
                 this.maxPositionReached = localState.maxPositionReached;
                 this._checkAndMarkCompleted();
             }
+        };
+
+        // A finished seek restarts continuity tracking from the new position
+        listeners.seeked = () => {
+            this._resetPlaybackTracking(localState, video.currentTime);
         };
 
         listeners.volumechange = () => {
@@ -503,7 +528,68 @@ class VideoManager {
         if (!this.state.contextId || !Number.isFinite(this.state.position)) return;
 
         this.positionCache.set(this.state.contextId, this.state.position);
+        const watched = Math.max(this.watchedCache.get(this.state.contextId) || 0, this.maxPositionReached || 0);
+        if (watched > 0) {
+            this.watchedCache.set(this.state.contextId, watched);
+        }
         this._persistPositions();
+    }
+
+    /**
+     * Gets the furthest continuously-watched position saved for a context.
+     * @private
+     * @param {string} contextId - Context identifier
+     * @returns {number|null} Seconds, or null if none was saved
+     */
+    _getWatchedPosition(contextId) {
+        const watched = this.watchedCache.get(contextId);
+        return Number.isFinite(watched) ? watched : null;
+    }
+
+    /**
+     * Restarts continuity tracking from a position (after play, seek or load).
+     * @private
+     * @param {object} localState - The video's tracking state
+     * @param {number} position - Current media position in seconds
+     */
+    _resetPlaybackTracking(localState, position) {
+        localState.lastPlaybackPosition = Number.isFinite(position) ? position : 0;
+        localState.lastPlaybackWallTime = Date.now();
+    }
+
+    /**
+     * Advances maxPositionReached only when playback progressed continuously
+     * from within the already-watched range: the media position may not
+     * advance faster than real time (times playback rate) plus a small
+     * tolerance. Seeks/scrubs forward therefore never count towards completion.
+     * @private
+     * @param {HTMLVideoElement} video - The video element
+     * @param {number} currentPosition - Current media position in seconds
+     * @param {object} [options]
+     * @param {boolean} [options.ended=false] - Called from the 'ended' event
+     */
+    _trackContinuousPlayback(video, currentPosition, { ended = false } = {}) {
+        const localState = video._videoManagerState;
+        if (!localState || !Number.isFinite(currentPosition)) return;
+
+        const previous = localState.lastPlaybackPosition;
+        const now = Date.now();
+        const elapsedSeconds = Math.max(0, (now - localState.lastPlaybackWallTime) / 1000);
+        localState.lastPlaybackPosition = currentPosition;
+        localState.lastPlaybackWallTime = now;
+
+        // Paused/seeking position changes are not watching
+        if (!ended && (video.paused || video.seeking)) return;
+
+        const advance = currentPosition - previous;
+        const rate = Math.max(1, video.playbackRate || 1);
+        const isContinuous = advance >= 0 &&
+            advance <= elapsedSeconds * rate + CONTINUOUS_PLAYBACK_TOLERANCE_SECONDS;
+        const startedWithinWatchedRange = previous <= localState.maxPositionReached + CONTINUOUS_PLAYBACK_TOLERANCE_SECONDS;
+
+        if (isContinuous && startedWithinWatchedRange && currentPosition > localState.maxPositionReached) {
+            localState.maxPositionReached = currentPosition;
+        }
     }
 
     /**
@@ -550,6 +636,11 @@ class VideoManager {
                     this.positionCache = new Map(Object.entries(videoState.positions));
                 }
 
+                // Restore continuously-watched positions
+                if (videoState.watched) {
+                    this.watchedCache = new Map(Object.entries(videoState.watched));
+                }
+
                 // Restore completion cache
                 if (videoState.completions) {
                     this.completionCache = new Map(Object.entries(videoState.completions));
@@ -575,6 +666,7 @@ class VideoManager {
         try {
             const currentState = stateManager.getDomainState('video') || {};
             currentState.positions = Object.fromEntries(this.positionCache);
+            currentState.watched = Object.fromEntries(this.watchedCache);
             stateManager.setDomainState('video', currentState);
         } catch (error) {
             logger.warn('[VideoManager] Failed to persist positions:', error.message);

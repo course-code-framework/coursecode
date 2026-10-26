@@ -8,6 +8,7 @@
  * - sequencing never starts in the correct order
  * - multiple-choice shows every correct answer and doesn't expose them in the DOM
  * - fill-in results escape learner text
+ * - hotspot regions look identical regardless of correctness
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -33,6 +34,7 @@ import {
     metadata as multipleChoiceMetadata
 } from '../../../framework/js/components/interactions/multiple-choice.js';
 import { metadata as fillInMetadata } from '../../../framework/js/components/interactions/fill-in.js';
+import { createHotspotQuestion } from '../../../framework/js/components/interactions/hotspot.js';
 
 beforeEach(() => {
     document.body.innerHTML = '';
@@ -289,6 +291,29 @@ describe('multiple-choice', () => {
         question.render(container);
         expect(container.querySelector('[data-correct]')).toBeNull();
         expect(question.evaluate(['a', 'c']).correct).toBe(true);
+    });
+});
+
+describe('hotspot', () => {
+    it('renders correct and incorrect regions with the same default look', () => {
+        const container = mount();
+        const question = createHotspotQuestion({
+            id: 'hs',
+            prompt: 'Find it',
+            controlled: true,
+            image: { src: 'map.png', alt: 'Map' },
+            hotspots: [
+                { id: 'right', pos: [10, 10, 20, 20], correct: true, label: 'Right' },
+                { id: 'wrong', pos: [50, 50, 20, 20], correct: false, label: 'Wrong' }
+            ]
+        });
+        question.render(container);
+
+        const areas = [...container.querySelectorAll('.hotspot-area')];
+        expect(areas).toHaveLength(2);
+        const look = (el) => [el.style.background, el.style.borderColor, el.style.borderWidth];
+        expect(look(areas[0])).toEqual(look(areas[1]));
+        expect(container.querySelector('[data-correct]')).toBeNull();
     });
 });
 

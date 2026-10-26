@@ -50,7 +50,7 @@ SCORM 1.2 and SCORM 2004 define the LMS runtime/API contract; they do not requir
 
 Treat an older embedded LMS browser as a separate, explicitly tested customer requirement. Do not re-enable Babel/SystemJS as a general compatibility precaution: a legacy JavaScript bundle alone is not evidence that the complete course UI works in that engine.
 
-The framework and generated projects require **Node 20.19+**. Vite, `vite-plugin-static-copy`, and their lockfiles must be upgraded together and verified with a freshly generated project plus every LMS-format build.
+The framework and generated projects require **Node 22.15+** (`puppeteer-core` 25 needs Node 22.12+; 22.15 adds the built-in system CA store used for corporate proxies on Windows). Vite, `vite-plugin-static-copy`, and their lockfiles must be upgraded together and verified with a freshly generated project plus every LMS-format build.
 
 ### LMS Compatibility Warnings
 The preview server (stub player) includes an advanced diagnostic system that monitors API usage and data limits to detect potential issues before deployment to a real LMS.
@@ -437,6 +437,7 @@ Handles LMS data mismatches when course structure changes after learners have st
 |----------|----------|----------|
 | Invalid slide in `cmi.location` | Throws error | Reverts to slide 0 |
 | Missing assessment questions | Throws error | Filters out missing |
+| Fixed-order assessment questions inserted/removed/reordered mid-attempt | Restarts the attempt, warns (answers kept if questions were only appended) | Same |
 | Orphaned engagement/navigation data | Warns | Silently removes |
 | Schema version newer (downgrade) | Throws error | Resets to fresh state |
 | Schema version older (upgrade) | Runs migrations | Runs migrations |
