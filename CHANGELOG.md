@@ -7,8 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-28
+
 ### Added
-- **Claude Code plugin** (`plugin/`, listed by `.claude-plugin/marketplace.json`): bundles the MCP server with five skills (`new-course`, `outline`, `build-slides`, `review`, `publish`). Install with `claude plugin install coursecode --marketplace course-code-framework/coursecode`. No global CLI install is needed: the plugin runs the project's own `coursecode` dependency, or the matching published CLI through `npx` outside a project. The launcher reports an outdated Node.js version with install instructions.
+- **Claude Code plugin** (`plugin/`, listed by `.claude-plugin/marketplace.json`): bundles the MCP server with five skills (`new-course`, `outline`, `build-slides`, `review`, `publish`). Install with `claude plugin marketplace add course-code-framework/coursecode`, then `claude plugin install coursecode@coursecode`. No global CLI install is needed: the plugin runs the project's own `coursecode` dependency, or the matching published CLI through `npx` outside a project. The launcher reports an outdated Node.js version with install instructions.
 - **No browser prerequisite for MCP runtime tools:** besides Chrome and Chromium, the headless browser now finds Edge (preinstalled on Windows) and Brave. With none installed, the first runtime tool call downloads the Chrome Headless Shell build that `puppeteer-core` is tested against (about 100 MB, once) into the shared Puppeteer cache (`~/.cache/puppeteer` or `PUPPETEER_CACHE_DIR`). `@puppeteer/browsers` is now a direct dependency.
 
 - **MCP `coursecode_assessment` tool:** Starts, steps through, and submits graded assessments by pressing the same buttons a learner would, including the unanswered-questions dialog, and reports the view, available actions, and results. `coursecode_interact` answers the assessment question on screen (graded on submit), and `coursecode_state`/`coursecode_navigate` include the assessment state. Backed by new automation methods `getAssessmentState()`, `assessmentAction()` and `answerAssessmentQuestion()`.

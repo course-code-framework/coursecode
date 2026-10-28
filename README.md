@@ -85,7 +85,8 @@ Start with the [User Guide](framework/docs/USER_GUIDE.md) for a complete walkthr
 The fastest way to build with Claude: install the plugin, start Claude Code in an empty folder, and describe the course you want.
 
 ```bash
-claude plugin install coursecode --marketplace course-code-framework/coursecode
+claude plugin marketplace add course-code-framework/coursecode
+claude plugin install coursecode@coursecode
 ```
 
 The plugin bundles the MCP server below and five skills: `/coursecode:new-course`, `/coursecode:outline`, `/coursecode:build-slides`, `/coursecode:review`, and `/coursecode:publish`. It needs Node.js but no global `coursecode` install. See [plugin/README.md](plugin/README.md).

@@ -237,7 +237,8 @@ MCP setup depends on which AI tool you use. In each case, you add a small config
 Install the CourseCode plugin. It sets up the MCP server and adds guided skills for each stage of the workflow:
 
 ```bash
-claude plugin install coursecode --marketplace course-code-framework/coursecode
+claude plugin marketplace add course-code-framework/coursecode
+claude plugin install coursecode@coursecode
 ```
 
 Start Claude Code from your course folder (or an empty folder for a new course). Run `/coursecode:new-course` to begin, or just describe what you want to build.

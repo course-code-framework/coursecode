@@ -5,15 +5,11 @@ Build LMS-ready e-learning courses (SCORM 1.2, SCORM 2004, cmi5, LTI 1.3) by tal
 ## Install
 
 ```bash
-claude plugin install coursecode --marketplace course-code-framework/coursecode
-```
-
-Or add the marketplace and install separately:
-
-```bash
 claude plugin marketplace add course-code-framework/coursecode
 claude plugin install coursecode@coursecode
 ```
+
+Inside Claude Code you can do the same with `/plugin marketplace add course-code-framework/coursecode` and then `/plugin install coursecode@coursecode`.
 
 ## Requirements
 
