@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Plugin API for custom interactions:** `CourseCode.interactionHelpers` exposes the helpers the built-in interactions use (Check Answer and Reset controls, feedback, engagement tracking, LMS reporting, and answer save/restore), so plugins in `course/interactions/` no longer need to import framework internals. The user guide's "Extending with Plugins" section documents the interaction and component contracts with complete examples.
 
+### Changed
+- **Docs:** The README and user guide lead with local build and export; CourseCode Cloud is described as an optional hosted service. The user guide's "Sharing and Deploying" section is now "Exporting and Sharing", ordered from LMS packages to Cloud.
+
 ### Fixed
 - **Custom plugins in tooling:** `coursecode lint`, the MCP catalogs, and the preview's catalog now find custom interactions and components in the course project. They looked inside the installed package instead, so `coursecode lint` warned that every custom component was unknown.
 - **Docs:** Corrected the plugin contract (it described an export the framework never loads), build ZIP location, canvas navigation, proxy build requirements, navigation and gating options, narration setup, and several framework guide paths.

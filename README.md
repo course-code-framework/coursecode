@@ -1,10 +1,10 @@
 # CourseCode
 
-**Open-source, local-first course authoring with no vendor lock-in. Built for AI tools like Claude Code, Codex, Cursor, and [CourseCode Desktop](https://coursecodedesktop.com). No coding required to start, full code control when you need it.**
+Open-source, local-first course authoring for AI coding tools like Claude Code, Codex, and Cursor. No coding required to start, full code control when you need it.
 
-CourseCode creates real project files you can inspect, version, and edit directly instead of relying on restrictive graphical editing tools. Built-in MCP integration means your AI assistant connects directly to your course project and understands the framework immediately.
+CourseCode creates real project files you can inspect, version, and edit directly, instead of locking content inside a graphical editor. Its MCP server connects your AI assistant to the course project so it can preview, lint, and test what it builds.
 
-Bring your own PDFs, Word docs, or other reference documents, use AI to accelerate authoring, and deploy to any LMS without vendor lock-in or subscriptions.
+Bring your own PDFs, Word docs, or other reference documents, use AI to speed up authoring, and publish to any LMS that supports SCORM, cmi5, or LTI.
 
 ## View the demo
 
@@ -12,29 +12,28 @@ Bring your own PDFs, Word docs, or other reference documents, use AI to accelera
 
 ## CourseCode ecosystem
 
-- [Build SCORM courses with the framework](https://coursecodeframework.com/scorm/)
-- [Use CourseCode Desktop if you prefer a GUI](https://coursecodedesktop.com/scorm/)
-- [Use CourseCode Cloud for hosted delivery](https://coursecodecloud.com)
+CourseCode Framework (this repository) is open source and works on its own. Two optional products build on it:
 
-> CourseCode Framework is a standalone tool. Desktop and Cloud are optional. 
+- [CourseCode Desktop](https://coursecodedesktop.com/scorm/): an open-source desktop app for people who prefer a GUI
+- [CourseCode Cloud](https://coursecodecloud.com): a paid hosting service for deploying and delivering courses
+
+Framework documentation lives at [coursecodeframework.com](https://coursecodeframework.com/scorm/) and in [`framework/docs/`](framework/docs/).
 
 ## Features
 
-- **MCP integration**: Works with Claude Code, Codex, Cursor, CourseCode Desktop, and any MCP-capable AI tool — previews, screenshots, linting, and testing without manual file sharing
+- **MCP integration**: Works with Claude Code, Codex, Cursor, CourseCode Desktop, and any MCP-capable AI tool, which can preview, screenshot, lint, and test the course without manual file sharing
 - **No coding required to start**: Describe what you want and let AI help build slides, interactions, and structure
 - **Course modernization**: Use existing SCORM courses, PowerPoints, PDFs, Word docs, scripts, and SME notes as source material for upgraded courses
 - **LMS integration**: SCORM 1.2, SCORM 2004, and cmi5 packaging, plus an LTI 1.3 browser contract for trusted server-backed launches
 - **AI-assisted authoring workflow**: Structured guides and MCP tools for faster course development
 - **Rich UI components**: Images, video, accordions, tabs, and custom sandboxed HTML/JS embeds
 - **Rich interactions**: Multiple choice, drag-drop, fill-in-the-blank, matching, sequencing, and more
-- **Fully accessible**: WCAG 2.1 AA compliant with dark mode, high contrast, and reduced motion
+- **Accessibility**: Designed to meet WCAG 2.1 AA, with dark mode, high contrast, and reduced motion
 - **TTS audio narration**: Built-in player with AI text-to-speech generation (Deepgram, ElevenLabs, OpenAI, Google Cloud, or Azure, using your own API key)
 - **Smart tracking**: Engagement requirements, learning objectives, and progress persistence
 - **Themeable design**: CSS custom properties for easy brand customization
 - **Custom endpoints**: Optional webhooks for error reporting and learning record storage
 - **Live preview**: Visual editing, status dashboard, config panels, catalog browser, and full LMS simulation with debug tools
-- **[CourseCode Cloud](https://coursecodecloud.com)**: Deploy from CLI, share preview links, download any LMS format on demand — no rebuilds
-- **[CourseCode Desktop](https://coursecodedesktop.com)**: Native app for Mac and Windows with AI-assisted editing and built-in preview
 
 ---
 
@@ -54,8 +53,8 @@ Learner courses support Chrome 111+, Edge 111+, Firefox 114+, and Safari 16.4+. 
 
 ### Recommended
 
-- A code or text editor — [VS Code](https://code.visualstudio.com/), [Cursor](https://cursor.com/), or similar
-- An AI coding assistant with MCP support — [Claude Code](https://claude.ai/code), [Cursor](https://cursor.com/), [Windsurf](https://codeium.com/windsurf), etc.
+- A code or text editor, such as [VS Code](https://code.visualstudio.com/), [Cursor](https://cursor.com/), or similar
+- An AI coding assistant with MCP support, such as [Claude Code](https://claude.ai/code), Codex, or [Cursor](https://cursor.com/)
 - [GitHub Desktop](https://desktop.github.com/) for version control
 
 ---
@@ -95,7 +94,7 @@ The plugin bundles the MCP server below and five skills: `/coursecode:new-course
 
 ## MCP Integration
 
-CourseCode includes a built-in [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server. When your AI tool supports MCP, it connects directly to your course project — no manual file sharing needed.
+CourseCode includes a built-in [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server. When your AI tool supports MCP, it connects directly to your course project, so you don't have to paste files into a chat.
 
 ```bash
 coursecode mcp
@@ -137,7 +136,7 @@ my-course/
 
 | Location | What's There |
 |----------|--------------|
-| `course/course-config.js` | Course settings — structure, objectives, navigation rules |
+| `course/course-config.js` | Course settings: structure, objectives, navigation rules |
 | `course/slides/` | Your slide content (one file per slide) |
 | `course/theme.css` | Brand colors and typography |
 | `course/assets/` | Images, audio, and video files |
@@ -148,7 +147,7 @@ All guides are in `framework/docs/`:
 
 | Document | Audience | Purpose |
 |----------|----------|---------|
-| `USER_GUIDE.md` | Humans | Complete guide — workflows, features, deployment |
+| `USER_GUIDE.md` | Humans | Complete guide: workflows, features, exporting and sharing |
 | `COURSE_AUTHORING_GUIDE.md` | AI Agents | Slide authoring, interactions, CSS styling |
 | `COURSE_OUTLINE_GUIDE.md` | AI Agents | How to write effective course outlines |
 | `COURSE_OUTLINE_TEMPLATE.md` | AI Agents | Blank template to start an outline |
@@ -159,7 +158,7 @@ All guides are in `framework/docs/`:
 
 ## AI-Driven Authoring Workflow
 
-Four steps to go from source materials to a deployed course.
+Four steps to go from source materials to a course ready for your LMS.
 
 ### Step 1: Convert Your Source Materials
 
@@ -187,7 +186,7 @@ Ask your AI to build slides from your approved outline.
 - **With MCP**: The AI reads all docs, lints its code, and screenshots slides to verify
 - **Without MCP**: Share your outline and `COURSE_AUTHORING_GUIDE.md` with your AI
 
-### Step 4: Preview, Iterate, and Deploy
+### Step 4: Preview, Iterate, and Export
 
 ```bash
 coursecode preview
@@ -201,52 +200,28 @@ The preview server provides:
 - **Component catalog**: Browse available UI elements with live previews
 - **Debug tools**: Inspect LMS state, test interactions, verify tracking
 
-When ready, deploy:
-
-**With [CourseCode Cloud](https://coursecodecloud.com)**: Push your course and get a live link. Cloud handles hosting, generates any LMS format on demand, and gives you a shareable preview link with optional password protection. No ZIP files, no manual uploads.
+When it's ready, build a package and upload it to your LMS. The ZIP is written to your project folder:
 
 ```bash
-coursecode deploy
+coursecode build                    # cmi5 (default)
+coursecode build --format scorm1.2  # or scorm2004, lti
 ```
 
-For stakeholder review, deploy a preview-only version and password-protect the preview link:
+Other ways to share it:
 
-```bash
-coursecode deploy --preview --password
-```
+- **One file, no server:** a portable HTML course that recipients open by double-clicking. Progress is saved in that browser only.
 
-You can inspect recent deployments and move pointers without rebuilding:
+  ```bash
+  coursecode export html
+  ```
 
-```bash
-coursecode deployments
-coursecode promote --preview
-coursecode promote --production
-coursecode preview-link --password
-```
+- **Review site:** a static copy of the preview for GitHub Pages, Netlify, or any static host.
 
-If the cloud course was deleted but the project still has the old local binding, redeploy with:
+  ```bash
+  coursecode preview --export
+  ```
 
-```bash
-coursecode deploy --repair-binding
-```
-
-**Without Cloud**: Build a ZIP package and upload it to your LMS manually:
-
-```bash
-coursecode build
-```
-
-**Share one file with no server**: Create a portable HTML course that recipients can double-click. Local progress restore is best effort and stays in that browser:
-
-```bash
-coursecode export html
-```
-
-**Share a hosted review preview**: Export the preview shell for GitHub Pages, Netlify, or another static host:
-
-```bash
-coursecode preview --export
-```
+- **Hosted delivery (optional):** [CourseCode Cloud](https://coursecodecloud.com) is a paid hosting service for CourseCode courses. `coursecode deploy` uploads one build; Cloud then serves it, provides a shareable preview link, and generates any LMS format on demand. See [CourseCode Cloud](framework/docs/USER_GUIDE.md#coursecode-cloud-optional) in the user guide.
 
 ---
 
@@ -262,13 +237,10 @@ coursecode preview --export
 | `coursecode mcp` | Start the MCP server for AI integration |
 | `coursecode lint` | Validate course structure and content |
 | `coursecode build` | Build a package for LMS upload |
-| `coursecode deploy` | Build and deploy to CourseCode Cloud |
-| `coursecode deployments` | List recent Cloud deployments |
-| `coursecode promote` | Move the Production or Preview pointer |
-| `coursecode preview-link` | Manage the Cloud preview link |
 | `coursecode narration` | Generate audio narration from text |
+| `coursecode deploy` | Upload a build to CourseCode Cloud (optional; `deployments`, `promote`, and `preview-link` manage it) |
 
-For the full command list and deployment options, see the [User Guide](framework/docs/USER_GUIDE.md#sharing-and-deploying) or run `coursecode --help`.
+For the full command list and sharing options, see the [User Guide](framework/docs/USER_GUIDE.md#exporting-and-sharing) or run `coursecode --help`.
 
 ---
 
@@ -376,7 +348,7 @@ The [User Guide](framework/docs/USER_GUIDE.md) covers everything in detail:
 - Audio and video
 - Theming and branding
 - Navigation and learner flow control
-- Deployment options
+- Exporting and sharing options
 - Troubleshooting
 
 ---
