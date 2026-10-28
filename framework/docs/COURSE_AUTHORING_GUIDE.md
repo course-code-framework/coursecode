@@ -487,7 +487,7 @@ export const narration = {
 audio: { src: '@slides/intro.js' }  // → generates assets/audio/intro.mp3
 ```
 
-Run `npm run narration` to generate.
+Run `coursecode narration` to generate.
 
 ---
 

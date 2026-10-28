@@ -464,7 +464,7 @@ This is ideal for:
 
 Your AI assistant can use the `canvasSlide()` helper to wrap any HTML into a working course slide with just a few lines of code. You still configure engagement, navigation, and tracking in `course-config.js` like any other layout.
 
-Want navigation back? You can selectively opt in to sidebar or footer navigation through config — canvas just starts with everything hidden.
+Canvas always hides the framework's header, sidebar, and footer navigation. If learners need navigation controls, build them into your slide or use another layout.
 
 ### Theming and Branding
 
@@ -481,9 +481,9 @@ Your AI assistant can help — just describe the look you want and share `theme.
 
 Control how learners move through your course:
 
-- **Linear** — Must complete slides in order
-- **Free navigation** — Jump to any slide
-- **Conditional** — Lock slides until requirements are met
+- **Menu and buttons** — by default, learners use the sidebar menu and the Next/Previous buttons
+- **Engagement requirements** — hold the Next button until a slide's activities are done (see below)
+- **Gating** — lock a slide until conditions are met, such as passing an assessment, completing an objective, or spending a minimum time on a slide
 
 ### Engagement Requirements
 
@@ -694,7 +694,7 @@ coursecode build                    # Builds as cmi5 (default)
 coursecode build --format scorm1.2  # Builds as SCORM 1.2
 ```
 
-This creates a ZIP file in `dist/` that you upload directly to your LMS. Every time you update the course, you rebuild and re-upload.
+This creates a ZIP file in your project folder that you upload directly to your LMS. Every time you update the course, you rebuild and re-upload.
 
 ### CDN Deployment (Advanced)
 
@@ -709,7 +709,7 @@ For teams that update courses frequently or serve multiple LMS clients, CourseCo
 - **Multi-tenant** — one CDN deployment serves multiple LMS clients, each with their own access token
 - **Smaller LMS packages** — faster upload and launch times
 
-CDN deployment uses special format variants (`scorm1.2-proxy`, `scorm2004-proxy`, `cmi5-remote`). Configure `accessControl: { enforcement: 'server' }` in `course-config.js`; client credentials are stored separately in the gitignored `.coursecode/access-control.json`.
+CDN deployment uses special format variants (`scorm1.2-proxy`, `scorm2004-proxy`, `cmi5-remote`). In `course-config.js`, set `externalUrl` to the HTTPS address where you will host the course, and set `accessControl: { enforcement: 'server' }`; client credentials are stored separately in the gitignored `.coursecode/access-control.json`.
 
 Generate and add client tokens with:
 
@@ -763,12 +763,12 @@ Open the URL in any browser, log in with your CourseCode account, and enter the 
 
 | Command | Production pointer | Preview pointer |
 |---|---|---|
-| `cc deploy` | Follows your deploy_mode setting | Follows your preview_deploy_mode setting |
-| `cc deploy --promote` | Always moved to new version | Follows your preview_deploy_mode setting |
-| `cc deploy --stage` | Never moved (stays on old version) | Follows your preview_deploy_mode setting |
-| `cc deploy --preview` | **Untouched** (preview-only upload) | Always moved to new version |
-| `cc deploy --promote --preview` | Always moved to new version | Always moved to new version |
-| `cc deploy --stage --preview` | Never moved | Always moved to new version |
+| `coursecode deploy` | Follows your deploy_mode setting | Follows your preview_deploy_mode setting |
+| `coursecode deploy --promote` | Always moved to new version | Follows your preview_deploy_mode setting |
+| `coursecode deploy --stage` | Never moved (stays on old version) | Follows your preview_deploy_mode setting |
+| `coursecode deploy --preview` | **Untouched** (preview-only upload) | Always moved to new version |
+| `coursecode deploy --promote --preview` | Always moved to new version | Always moved to new version |
+| `coursecode deploy --stage --preview` | Never moved | Always moved to new version |
 
 - **Production pointer** — the version learners see when they launch your course.
 - **Preview pointer** — the version served on the cloud preview link (for stakeholder review).
@@ -846,7 +846,7 @@ Create professional voiceover from text:
 coursecode narration
 ```
 
-Audio files are generated to `course/assets/audio/` and automatically linked to your slides.
+Audio files are generated to `course/assets/audio/`. A slide plays its narration when its entry in `course-config.js` includes `audio: { src: '@slides/<slide-file>.js' }`.
 
 ---
 

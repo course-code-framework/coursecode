@@ -11,7 +11,7 @@
  * LAYOUT: 'article' (default) | 'traditional' | 'focused' | 'presentation' | 'canvas'
  * 
  * SCORING (null = disabled):
- *   { type: 'average'|'weighted'|'maximum'|'custom', sources: [...], calculate?: fn }
+ *   { type: 'average'|'weighted'|'minimum'|'maximum'|'custom', sources: [...], calculate?: fn }
  * 
  * OBJECTIVES (auto-managed by criteria OR manual via assessment.assessmentObjective):
  *   { id: 'obj-X', description: 'text', criteria: {type, ...fields}, initialCompletion: 'incomplete'|'completed', initialSuccess: 'unknown'|'passed'|'failed' }
@@ -57,7 +57,7 @@
  *   Flip card tracking: Each flip card must have data-flip-card-id attribute for viewAllFlipCards to work
  * 
  * NAVIGATION.GATING.CONDITIONS:
- *   objectiveStatus: {objectiveId, completion_status?|success_status?} | assessmentStatus: {assessmentId, requires: 'passed'|'failed'} | timeOnSlide: {slideId, minSeconds} | flag: {key, equals?} | custom: {key, equals?}
+ *   objectiveStatus: {objectiveId, completion_status?|success_status?} | assessmentStatus: {assessmentId, requires: 'passed'|'failed'} | timeOnSlide: {slideId, minSeconds} | stateFlag: {key, equals?|exists?} | custom: {key, equals?}
  * 
  * WINDOW AUTO-RESIZE (environment.autoResizeWindow):
  *   { width: 1024, height: 768 } - Resize popup window to these dimensions on load

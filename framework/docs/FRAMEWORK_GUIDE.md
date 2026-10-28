@@ -295,15 +295,19 @@ LTI 1.3 requires a trusted server backend. The backend performs OIDC state/nonce
 | Path | Purpose |
 |------|---------|
 | `framework/js/app/` | Global lifecycle, UI (modals, notifications), state |
-| `framework/js/core/` | Core services: `EventBus`, `runtime` |
+| `framework/js/core/` | `EventBus`, component catalog, interaction catalog |
 | `framework/js/drivers/` | LMS format drivers: SCORM 2004, SCORM 1.2, cmi5, LTI |
 | `framework/js/vendor/` | Third-party libs (`pipwerks.js`) |
 | `framework/js/state/` | State management facade, LMS connection, xAPI service (see `DATA_MODEL.md`) |
-| `framework/js/managers/` | Feature managers: objectives, interactions, engagement, accessibility, etc. |
+| `framework/js/managers/` | Feature managers: assessments, objectives, interactions, accessibility, audio, video, etc. |
+| `framework/js/assessment/` | Assessment flow (State-UI-Actions), results, question-set signatures |
+| `framework/js/engagement/` | Engagement manager, trackers, requirement strategies |
 | `framework/js/components/` | Reusable UI (tabs, dropdowns) & interactions (MCQ, drag-drop) |
 | `framework/js/navigation/` | Navigation: menu, buttons, document gallery |
-| `framework/js/utilities/` | Helpers (incl. `validation-helpers.js` for SCORM 2004 4E validation) |
-| `framework/js/dev/` | Dev-only code (linter, automation API) - tree-shaken in prod |
+| `framework/js/utilities/` | Helpers: logger, breakpoints, icons, reporters, view manager |
+| `framework/js/validation/` | SCORM 2004 4th Edition data validators and runtime HTML checks |
+| `framework/js/automation/` | `CourseCodeAutomation` API (non-production builds with `environment.automation.enabled` only) |
+| `framework/js/dev/` | Runtime linter (dev only, tree-shaken in prod) |
 
 ---
 
@@ -371,7 +375,7 @@ After images are acquired, the module:
 |---------|----------|--------|
 | `stateManager` | `state/` | **Sole public API** for all LMS and state operations |
 | `assessmentManager` | `managers/` | Graded assessments: question banks, randomization, scoring |
-| `engagementManager` | `managers/` | Tracks content interaction (tabs, accordions, scroll, time) |
+| `engagementManager` | `engagement/` | Tracks content interaction (tabs, accordions, scroll, time) |
 | `objectiveManager` | `managers/` | Learning objectives (CMI-backed domain) |
 | `interactionManager` | `managers/` | LMS interaction reporting (CMI-backed, append-only) |
 | `accessibilityManager` | `managers/` | A11y preferences persisted via `stateManager` |
@@ -380,7 +384,7 @@ After images are acquired, the module:
 | `videoManager` | `managers/` | Video playback: position persistence, completion tracking |
 | `scoreManager` | `managers/` | Course-level scoring (dynamically loaded) |
 | `commentManager` | `managers/` | End-of-course comments/ratings |
-| `breakpointManager` | `app/` | Responsive breakpoints, `.bp-*` classes |
+| `breakpointManager` | `utilities/` | Responsive breakpoints, `.bp-*` classes |
 | `navigationState` | `navigation/` | Current slide, visited slides |
 
 ### stateManager: The Sole LMS Gateway

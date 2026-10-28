@@ -28,7 +28,7 @@ Bring your own PDFs, Word docs, or other reference documents, use AI to accelera
 - **Rich UI components**: Images, video, accordions, tabs, and custom sandboxed HTML/JS embeds
 - **Rich interactions**: Multiple choice, drag-drop, fill-in-the-blank, matching, sequencing, and more
 - **Fully accessible**: WCAG 2.1 AA compliant with dark mode, high contrast, and reduced motion
-- **TTS audio narration**: Built-in player with AI text-to-speech generation (ElevenLabs, Deepgram, Google, BYO API Key)
+- **TTS audio narration**: Built-in player with AI text-to-speech generation (Deepgram, ElevenLabs, OpenAI, Google Cloud, or Azure, using your own API key)
 - **Smart tracking**: Engagement requirements, learning objectives, and progress persistence
 - **Themeable design**: CSS custom properties for easy brand customization
 - **Custom endpoints**: Optional webhooks for error reporting and learning record storage
@@ -343,9 +343,10 @@ Require learners to complete activities before advancing:
 ### Gating
 
 Lock slides until conditions are met:
-- Complete previous slides
 - Pass an assessment
 - Achieve a learning objective
+- Spend a minimum time on a slide
+- Set a custom flag, for example after a branching choice
 
 ### Assessments
 
