@@ -96,6 +96,8 @@ export function createViewManager(container, scope = 'local') {
         // Clear container and add new view
         container.innerHTML = '';
         container.appendChild(newElement);
+        // Lets automation and tests see which view is showing
+        container.dataset.view = name;
 
         // Initialize any declarative components within the new view
         initializeDeclarativeComponents(newElement);
@@ -260,6 +262,7 @@ export function createViewManager(container, scope = 'local') {
             }
         }
         container.innerHTML = '';
+        delete container.dataset.view;
         currentViewName = null;
     }
 

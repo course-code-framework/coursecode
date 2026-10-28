@@ -28,7 +28,9 @@ Spot-check a few slides in dark mode and high contrast using `coursecode_navigat
 
 ## 4. Interactions and scoring
 
-For every interaction and assessment question, call `coursecode_interact` with a correct answer and a wrong one. Confirm `correct`, score, and feedback are right. After the final assessment, check `coursecode_state` for completion and success status and the score sent to the LMS.
+For every interaction, call `coursecode_interact` with a correct answer and a wrong one. Confirm `correct`, score, and feedback are right.
+
+Assessments are graded on submit, not per question. Drive each one with `coursecode_assessment`: navigate to it, `start`, answer `question.id` with `coursecode_interact`, `next` through the questions, then `submit` (answer `confirm-unanswered-submit` or `dismiss-unanswered-modal` if a dialog opens). Check `lastResults` against the answers you gave, then run it again with wrong answers using `retake` if retakes are allowed. After the final assessment, check `coursecode_state` for completion and success status and the score sent to the LMS.
 
 ## 5. Content
 

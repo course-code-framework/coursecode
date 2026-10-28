@@ -10,6 +10,7 @@
  * Delegates to domain-specific modules:
  *   api-interactions.js  – discovery, state, mutation, evaluation
  *   api-engagement.js    – engagement, flags, audio
+ *   api-assessment.js    – assessment state and actions
  */
 
 import { logger } from '../utilities/logger.js';
@@ -22,6 +23,7 @@ import objectiveManager from '../managers/objective-manager.js';
 
 import { createInteractionMethods } from './api-interactions.js';
 import { createEngagementMethods } from './api-engagement.js';
+import { createAssessmentMethods } from './api-assessment.js';
 
 /** Automation trace log for observability */
 const automationTrace = [];
@@ -53,6 +55,7 @@ function logTrace(action, details) {
 // Build delegated method sets
 const interactionMethods = createInteractionMethods(logTrace);
 const engagementMethods = createEngagementMethods(logTrace);
+const assessmentMethods = createAssessmentMethods(logTrace);
 
 /**
  * CourseCodeAutomation API
@@ -66,6 +69,11 @@ const CourseCodeAutomationAPI = {
     getCorrectResponse: interactionMethods.getCorrectResponse,
     setResponse: interactionMethods.setResponse,
     checkAnswer: interactionMethods.checkAnswer,
+    // ===== Assessments =====
+    getAssessmentState: assessmentMethods.getAssessmentState,
+    assessmentAction: assessmentMethods.assessmentAction,
+    answerAssessmentQuestion: assessmentMethods.answerQuestion,
+
     checkSlideAnswers() {
         return interactionMethods.checkSlideAnswers.call(
             interactionMethods,
@@ -216,7 +224,7 @@ const CourseCodeAutomationAPI = {
 
     getVersion() {
         return {
-            api: '2.2.0',
+            api: '2.3.0',
             phase: 8,
             features: [
                 'discovery',
@@ -233,7 +241,8 @@ const CourseCodeAutomationAPI = {
                 'audio-completion-simulation',
                 'framework-logs',
                 'lms-state',
-                'accessibility-preferences'
+                'accessibility-preferences',
+                'assessment-actions'
             ]
         };
     }

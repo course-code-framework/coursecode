@@ -307,6 +307,7 @@ Once connected, your AI assistant gains these capabilities:
 | `coursecode_viewport` | Set the preview viewport (named breakpoint or explicit width/height) for responsive testing |
 | `coursecode_screenshot` | Take a screenshot of any slide |
 | `coursecode_interact` | Answer an interaction and check if it's correct |
+| `coursecode_assessment` | Start, answer, and submit a graded assessment the way a learner would |
 | `coursecode_reset` | Clear progress and restart the course |
 | `coursecode_errors` | Check live preview diagnostics (build, runtime, framework, and console issues) |
 | `coursecode_lint` | Run static preflight checks (bad CSS classes, missing components, config issues) |
@@ -318,7 +319,7 @@ Once connected, your AI assistant gains these capabilities:
 | `coursecode_build` | Build the course for LMS deployment |
 | `coursecode_narration` | Generate text-to-speech audio narration for slides |
 
-> **Note:** The preview server must be running before using runtime tools like `coursecode_state`, `coursecode_errors`, `coursecode_screenshot`, or `coursecode_navigate`. If preview is not already running for this project, start it with `coursecode preview` in a terminal. Do not start a second preview server if one is already running.
+> **Note:** The preview server must be running before using runtime tools like `coursecode_state`, `coursecode_errors`, `coursecode_screenshot`, or `coursecode_navigate`. If preview is not already running for this project, start it with `coursecode preview` in a terminal. Do not start a second preview server if one is already running. The tools only drive the preview of the project they run in; to preview two projects at once, start the second with `coursecode preview --port 4174` (the tools search ports 4173–4188).
 
 ### How the Workflow Changes
 

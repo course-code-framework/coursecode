@@ -2,6 +2,7 @@
  * Regression tests for authoring-api hardening:
  * - lint child process gets paths via env, not interpolated JS source
  * - preview status only reports a CourseCode preview as running
+ * - preview status only reports THIS project's preview as running
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import fs from 'fs';
@@ -11,9 +12,11 @@ import path from 'path';
 import {
     buildLintChildEnv,
     buildLintChildScript,
+    findPreview,
     getPreviewStatus,
     lintCourse
 } from '../../lib/authoring-api.js';
+import { getCourseId } from '../../lib/project-utils.js';
 
 describe('lint child process', () => {
     let originalCwd;
@@ -92,5 +95,55 @@ describe('getPreviewStatus', () => {
             res.end();
         });
         expect((await getPreviewStatus(port)).running).toBe(true);
+    });
+
+    function previewFor(courseId) {
+        return (req, res) => {
+            res.setHeader('X-CourseCode-Preview', '1');
+            if (courseId) res.setHeader('X-CourseCode-Course', courseId);
+            res.writeHead(200);
+            res.end();
+        };
+    }
+
+    it('does not report another project\'s preview as running', async () => {
+        await listen(previewFor('aaaaaaaaaaaaaaaa'));
+        const status = await getPreviewStatus(port, { expectedCourseId: 'bbbbbbbbbbbbbbbb' });
+        expect(status).toMatchObject({ running: false, reason: 'other-project', courseId: 'aaaaaaaaaaaaaaaa' });
+        expect(status.message).toMatch(/different CourseCode project/);
+    });
+
+    it('reports this project\'s preview as running', async () => {
+        await listen(previewFor('aaaaaaaaaaaaaaaa'));
+        const status = await getPreviewStatus(port, { expectedCourseId: 'aaaaaaaaaaaaaaaa' });
+        expect(status).toMatchObject({ running: true, reason: 'running' });
+    });
+
+    it('accepts previews that predate the course header', async () => {
+        await listen(previewFor(null));
+        expect((await getPreviewStatus(port, { expectedCourseId: 'aaaaaaaaaaaaaaaa' })).running).toBe(true);
+    });
+
+    it('checks only the given port when one is passed', async () => {
+        await listen(previewFor('aaaaaaaaaaaaaaaa'));
+        expect((await findPreview({ port, expectedCourseId: 'aaaaaaaaaaaaaaaa' })).port).toBe(port);
+        expect((await findPreview({ port, expectedCourseId: 'cccccccccccccccc' })).reason).toBe('other-project');
+    });
+});
+
+describe('getCourseId', () => {
+    it('is stable for a path and differs between projects', () => {
+        const base = fs.mkdtempSync(path.join(os.tmpdir(), 'cc-id-'));
+        try {
+            fs.mkdirSync(path.join(base, 'one', 'course'), { recursive: true });
+            fs.mkdirSync(path.join(base, 'two', 'course'), { recursive: true });
+            const one = getCourseId(path.join(base, 'one', 'course'));
+            expect(one).toMatch(/^[0-9a-f]{16}$/);
+            expect(getCourseId(path.join(base, 'one', '.', 'course'))).toBe(one);
+            expect(getCourseId(path.join(base, 'two', 'course'))).not.toBe(one);
+            expect(one).not.toContain('one');
+        } finally {
+            fs.rmSync(base, { recursive: true, force: true });
+        }
     });
 });

@@ -39,7 +39,7 @@ Start the preview server as a background process so it keeps running:
 npx coursecode preview
 ```
 
-It serves the course at http://localhost:4173 with a simulated LMS and rebuilds on every file change. Tell the author they can open that URL to watch the course as you build it. Start it only once; if a runtime tool says preview is already running, reuse it.
+It serves the course at http://localhost:4173 with a simulated LMS and rebuilds on every file change. Tell the author they can open that URL to watch the course as you build it. Start it only once; if a runtime tool says preview is already running, reuse it. If port 4173 is already in use (for example by another course's preview), add `--port 4174` and give the author that URL instead; the MCP tools find this project's preview on ports 4173–4188.
 
 ## 4. Confirm and hand off
 

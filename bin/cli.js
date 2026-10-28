@@ -307,7 +307,7 @@ program
 program
   .command('mcp')
   .description('Start MCP server for AI agent integration (connects to running preview server)')
-  .option('--port <port>', 'Preview server port to connect to', '4173')
+  .option('--port <port>', 'Preview server port to connect to (default: find this project\'s preview on ports 4173-4188)')
   .action(async (options) => {
     const { startMcpServer } = await import('../lib/mcp-server.js');
     await startMcpServer(options);

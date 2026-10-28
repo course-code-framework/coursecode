@@ -29,6 +29,20 @@ import { logger } from '../utilities/logger.js';
  * @param {string} type - Interaction type name
  * @returns {{ creator: function, metadata: object }|null}
  */
+/** Assessments currently rendered, by id, so automation can answer the question on screen. */
+const renderedAssessments = new Map();
+
+/**
+ * Automation hook for a rendered assessment. Assessment questions are
+ * controlled (not in the interaction registry), so this is how automation
+ * reaches the question being shown.
+ * @param {string} assessmentId
+ * @returns {{getCurrentQuestion: Function}|null}
+ */
+export function getRenderedAssessment(assessmentId) {
+    return renderedAssessments.get(assessmentId) || null;
+}
+
 function getInteractionTypeInfo(type) {
     if (!isRegistered(type)) {
         return null;
@@ -400,6 +414,7 @@ export function createAssessmentInstance(config) {
         }
 
         targetContainer.className = 'assessment-navigator';
+        targetContainer.dataset.assessmentId = assessmentId;
         _currentContainer = targetContainer;
 
         // Load persisted state
@@ -483,6 +498,16 @@ export function createAssessmentInstance(config) {
             assessmentUIWithQuestions  // Pass full UI object for modal access
         );
         assessmentActions.initialize(targetContainer);
+
+        renderedAssessments.set(assessmentId, {
+            /** The question on screen, or null outside the question view. */
+            getCurrentQuestion() {
+                if (assessmentState.getCurrentView() !== 'question') return null;
+                const index = assessmentState.getCurrentQuestionIndex();
+                const instance = questionInstances[index];
+                return instance ? { index, id: finalConfig.questions[index]?.id ?? instance.id, instance } : null;
+            }
+        });
 
         // Determine initial view and set footer visibility.
         // An attempt started after the last submission (retake in progress)
