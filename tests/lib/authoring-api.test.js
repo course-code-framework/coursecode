@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { getWorkflowStatus, isInstalledPackage } from '../../lib/authoring-api.js';
+import { getWorkflowStatus, isInFrameworkCheckout, isInstalledPackage } from '../../lib/authoring-api.js';
 
 let originalCwd;
 let tempDir;
@@ -80,5 +80,20 @@ describe('isInstalledPackage', () => {
 
     it('treats a framework checkout as not installed', () => {
         expect(isInstalledPackage(path.join(os.homedir(), 'code', 'coursecode'))).toBe(false);
+    });
+});
+
+describe('isInFrameworkCheckout', () => {
+    const checkout = path.join(os.homedir(), 'code', 'coursecode');
+
+    it('allows the template fallback only inside a framework checkout', () => {
+        expect(isInFrameworkCheckout(checkout, checkout)).toBe(true);
+        expect(isInFrameworkCheckout(path.join(checkout, 'lib'), checkout)).toBe(true);
+        expect(isInFrameworkCheckout(path.join(os.homedir(), 'new-course'), checkout)).toBe(false);
+    });
+
+    it('never treats an installed package as a checkout', () => {
+        const installed = path.join(tempDir, 'node_modules', 'coursecode');
+        expect(isInFrameworkCheckout(installed, installed)).toBe(false);
     });
 });

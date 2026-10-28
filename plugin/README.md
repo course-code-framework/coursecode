@@ -50,6 +50,10 @@ The preview runs at http://localhost:4173, so you can watch the course change as
 
 Everything else runs locally. The preview server listens on `127.0.0.1` only.
 
+## Developing the framework
+
+To try the plugin against a framework checkout, set `COURSECODE_CLI` to the checkout's `bin/cli.js` (for example in the `env` block of `~/.claude/settings.json`). The MCP server then runs that CLI in every folder instead of the project's or the published one.
+
 ## Links
 
 - [CourseCode framework](https://github.com/course-code-framework/coursecode)

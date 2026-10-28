@@ -23,11 +23,14 @@ if (major < 22 || (major === 22 && minor < 15)) {
 }
 
 const projectCli = path.join(process.cwd(), 'node_modules', 'coursecode', 'bin', 'cli.js');
+// Framework development: run a checkout's CLI everywhere (path to its bin/cli.js)
+const devCli = process.env.COURSECODE_CLI;
 const FALLBACK_VERSION = '0.1.61';
 const args = process.argv.slice(2);
 
-const [command, commandArgs, shell] = fs.existsSync(projectCli)
-    ? [process.execPath, [projectCli, 'mcp', ...args], false]
+const localCli = devCli && fs.existsSync(devCli) ? devCli : fs.existsSync(projectCli) ? projectCli : null;
+const [command, commandArgs, shell] = localCli
+    ? [process.execPath, [localCli, 'mcp', ...args], false]
     : ['npx', ['-y', `coursecode@${FALLBACK_VERSION}`, 'mcp', ...args], process.platform === 'win32'];
 
 const child = spawn(command, commandArgs, { stdio: 'inherit', shell });
