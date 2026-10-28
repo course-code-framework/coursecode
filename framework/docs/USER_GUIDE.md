@@ -544,53 +544,157 @@ CourseCode has a built-in plugin system. You can extend it with your own interac
 | Custom icons | `course/icons.js` | New icons available everywhere |
 | Custom styles | `course/theme.css` | Global CSS for your plugins and brand |
 
-Plugins are just JavaScript files that follow a simple contract. Your AI assistant can write them — describe what you want and share `framework/docs/USER_GUIDE.md` (see "Extending with Plugins") as context.
+Plugins are JavaScript modules that follow the contracts below. Your AI assistant can write them; point it at this section.
 
 ### Custom Interactions
 
-Create a new question or activity type by dropping a `.js` file in `course/interactions/`. It registers automatically.
+Create a new question or activity type by adding a `.js` file to `course/interactions/`. A plugin exports:
 
-A minimal plugin exports one function:
+| Export | Required | Purpose |
+|--------|----------|---------|
+| `schema` | Yes | Must include `type` (kebab-case). Files without `schema.type` are skipped. `description` and `properties` feed linting and AI tooling. |
+| A function whose name starts with `create` | Yes | Takes the interaction's `config` and returns the interaction object. |
+| `metadata` | No | Extra information for tooling. |
+
+The interaction object needs `render(container)`, `getResponse()`, `setResponse(value)`, `checkAnswer()`, `reset()`, and an `evaluate(response)` that returns `{ correct, score, response }`.
+
+`CourseCode.interactionHelpers` provides the same helpers the built-in interactions use: the Check Answer and Reset buttons, feedback messages, engagement tracking, LMS reporting, and saving and restoring the learner's answer. Read them inside your `create` function, not at the top of the file, because plugins load before `CourseCode` is available.
 
 ```javascript
-// course/interactions/rating-scale.js
-export function create(container, config) {
-  let response = null;
-  container.innerHTML = `<div data-interaction-id="${config.id}">...</div>`;
-  return {
-    getResponse: () => response,
-    setResponse: (val) => { response = val; },
-    checkAnswer: () => ({ correct: response === config.correctAnswer, score: 1 }),
-    reset: () => { response = null; }
+// course/interactions/select-answer.js
+export const schema = {
+  type: 'select-answer',
+  description: 'Question answered by picking one option from a dropdown',
+  properties: {
+    options: { type: 'array', required: true, description: 'Answer choices' },
+    correctAnswer: { type: 'string', required: true, description: 'The correct option' }
+  }
+};
+
+export function createSelectAnswerQuestion(config) {
+  const {
+    registerCoreInteraction,
+    createInteractionEventHandler,
+    renderInteractionControls,
+    renderFeedbackContainer,
+    displayFeedback,
+    clearFeedback
+  } = CourseCode.interactionHelpers;
+
+  const { id, prompt, options, correctAnswer } = config;
+  let root = null;
+  const select = () => root.querySelector('select');
+
+  const question = {
+    id,
+    type: 'select-answer',
+
+    render(container) {
+      root = container;
+      container.innerHTML = `
+        <div class="interaction" data-interaction-id="${id}">
+          <label for="${id}-select"><strong>${prompt}</strong></label>
+          <select id="${id}-select" data-testid="${id}-input">
+            <option value="">Choose…</option>
+            ${options.map(o => `<option value="${o}">${o}</option>`).join('')}
+          </select>
+          ${renderInteractionControls(id)}
+          ${renderFeedbackContainer(id)}
+        </div>`;
+      // Handles Check Answer and Reset, engagement tracking, and LMS reporting.
+      container.addEventListener('click', createInteractionEventHandler(question, {
+        ...config,
+        scormType: 'choice',
+        correctPattern: correctAnswer
+      }));
+    },
+
+    getResponse: () => select().value || null,
+    setResponse: (value) => { select().value = value; },
+
+    evaluate(response) {
+      const correct = response === correctAnswer;
+      return { correct, score: correct ? 1 : 0, response };
+    },
+
+    checkAnswer() {
+      const response = question.getResponse();
+      if (!response) {
+        displayFeedback(root, id, 'Please choose an answer.', 'error');
+        return null;
+      }
+      const result = question.evaluate(response);
+      displayFeedback(root, id, result.correct ? 'Correct!' : 'Not quite.', result.correct ? 'correct' : 'incorrect');
+      return result;
+    },
+
+    reset() {
+      select().value = '';
+      clearFeedback(root, id);
+    }
   };
+
+  // Saves and restores the learner's answer and makes it visible to testing tools.
+  registerCoreInteraction(config, question);
+  return question;
 }
 ```
 
-Then use it in a slide:
+The factory is added to `CourseCode` under a name built from `schema.type`: `select-answer` becomes `createSelectAnswerQuestion`. Use it in a slide like a built-in interaction:
 
 ```javascript
-const rating = CourseCode.createRatingScaleQuestion(container, {
-  id: 'my-rating',
-  prompt: 'How would you rate this?',
-  options: ['Poor', 'Fair', 'Good', 'Excellent']
+const question = CourseCode.createSelectAnswerQuestion({
+  id: 'capital',
+  prompt: 'What is the capital of France?',
+  options: ['Berlin', 'Paris', 'Madrid'],
+  correctAnswer: 'Paris'
 });
+question.render(container.querySelector('#capital-question'));
 ```
 
-The factory name is derived from the filename: `rating-scale.js` → `createRatingScaleQuestion`.
-
-For a complete example with schema and metadata (which enable linting and AI tooling), see the "Extending with Plugins" section in `framework/docs/USER_GUIDE.md`.
+`scormType` sets how the answer is reported to the LMS: `choice`, `true-false`, `fill-in`, `matching`, `sequencing`, `numeric`, `likert`, or `other`. The built-in interactions in `framework/js/components/interactions/` use the same helpers and are complete examples.
 
 ### Custom UI Components
 
-Add reusable HTML components (info boxes, custom cards, branded banners) by dropping a `.js` file in `course/components/`. Use them in slides via `data-component`:
+Add reusable HTML components (info boxes, custom cards, branded banners) by adding a `.js` file to `course/components/`. A component exports:
 
-```html
-<div data-component="info-box" data-icon="warning">
-  Important note here
-</div>
+| Export | Required | Purpose |
+|--------|----------|---------|
+| `schema` | Yes | `type` must match the `data-component` value used in slides. Files without `schema.type` are skipped. |
+| `init(element)` | No | Runs for each matching element when a slide renders. May return a cleanup function, or an object with `destroy()`, which runs when the slide is removed. |
+| `styles` | No | A CSS string, added to the page once. |
+| `metadata` | No | Extra information for tooling. |
+
+```javascript
+// course/components/info-box.js
+export const schema = {
+  type: 'info-box',
+  description: 'Highlighted note with a dismiss button',
+  example: `<div data-component="info-box"><p>Remember to save your work.</p></div>`
+};
+
+export const styles = `
+  [data-component="info-box"] { border-left: 4px solid var(--color-primary); padding: 1rem; }
+  [data-component="info-box"].is-dismissed { display: none; }
+`;
+
+export function init(element) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'btn btn-secondary btn-sm';
+  button.textContent = 'Dismiss';
+  const dismiss = () => element.classList.add('is-dismissed');
+  button.addEventListener('click', dismiss);
+  element.append(button);
+  return () => button.removeEventListener('click', dismiss);
+}
 ```
 
-See the "Extending with Plugins" section in `framework/docs/USER_GUIDE.md` for the component contract.
+Use it in any slide:
+
+```html
+<div data-component="info-box"><p>Remember to save your work.</p></div>
+```
 
 ### Custom Icons
 
@@ -605,18 +709,18 @@ export const customIcons = {
 
 ### Custom Styles
 
-`course/theme.css` is always loaded. It's the right place for plugin-specific CSS as well as brand colors and fonts:
+`course/theme.css` is always loaded. Use it for brand colors and fonts, and for plugin CSS you prefer to keep out of JavaScript:
 
 ```css
 /* course/theme.css */
 :root {
-  --primary: #0066cc;
+  --palette-blue: #0066cc; /* primary brand color */
 }
 
-.info-box { border-left: 4px solid var(--primary); padding: 1rem; }
+.my-banner { border: 1px solid var(--border-default); border-radius: var(--radius-md); }
 ```
 
-Use CSS variables from the design system (`--primary`, `--border`, `--radius`, etc.) so your plugins automatically respect the course theme.
+Use the design system's variables (such as `--color-primary`, `--border-default`, and `--radius-md`) so plugins follow the course theme, including dark mode.
 
 ---
 

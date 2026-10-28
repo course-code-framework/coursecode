@@ -676,7 +676,7 @@ createLikertQuestion({
 
 ### Custom Interactions
 
-Add a `.js` file to `course/interactions/`. File `rating-scale.js` → factory `CourseCode.createRatingScaleQuestion()`. See "Extending with Plugins" in `framework/docs/USER_GUIDE.md`.
+Add a `.js` file to `course/interactions/` that exports a `schema` with a `type` and a `create*` function. The factory name comes from `schema.type`: `select-answer` → `CourseCode.createSelectAnswerQuestion(config)`. Build it with `CourseCode.interactionHelpers`, read inside the factory. See "Extending with Plugins" in `framework/docs/USER_GUIDE.md` for the contract and a complete example.
 
 ### Interaction Methods
 

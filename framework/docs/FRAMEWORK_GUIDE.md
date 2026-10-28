@@ -1197,26 +1197,32 @@ Exposed globally via `CourseCode.breakpointManager`.
 
 > **Course Authors:** See "Extending with Plugins" in `framework/docs/USER_GUIDE.md`. Steps below are for framework developers.
 
-1. Create file in `framework/js/components/interactions/`
-2. Export `create(container, config)`, `metadata`, and `schema`
-3. Register with `catalogInteraction()` in `core/interaction-catalog.js` (auto-discovered via `import.meta.glob`)
-4. Add CSS to `framework/css/interactions/`
-5. Update automation API if needed for testing support
-6. Add to `COURSE_AUTHORING_GUIDE.md` if has author-facing classes
+1. Create a file in `framework/js/components/interactions/`. It is auto-discovered by `core/interaction-catalog.js` via `import.meta.glob`; no manual registration.
+2. Export `schema` (with `type`), `metadata`, and a `create<Type>Question(config)` factory. The catalog skips modules without `schema.type` and picks the first export whose name starts with `create`; `CourseCode.create<PascalType>Question` is derived from `schema.type`.
+3. Add CSS to `framework/css/interactions/`
+4. Update automation API if needed for testing support
+5. Add to `COURSE_AUTHORING_GUIDE.md` if has author-facing classes
 
 ### Required Contract
 
 ```javascript
-export function create(container, config) {
-  // config must have: id, (type-specific props)
-  // Must set data-interaction-id on root element
-  // Must emit events for state changes
-  // Must support getResponse() / setResponse() for automation
-  return {
+export function createExampleQuestion(config) {
+  // config must have: id, prompt, (type-specific props)
+  const question = {
+    id: config.id,
+    type: 'example',
+    render: (container) => { /* set data-interaction-id on the root element */ },
     getResponse: () => currentResponse,
-    setResponse: (val) => { /* update UI and state */ },
-    checkAnswer: () => ({ correct, score, feedback }),
+    setResponse: (val) => { /* update UI */ },
+    evaluate: (response) => ({ correct, score, response }),
+    checkAnswer: () => { /* show feedback; return evaluate(getResponse()) or null */ },
     reset: () => { /* clear to initial state */ }
   };
+  if (!config.controlled) registerCoreInteraction(config, question);
+  return question;
 }
 ```
+
+### Public Plugin Helpers
+
+`window.CourseCode.interactionHelpers` exposes `registerCoreInteraction`, `createInteractionEventHandler`, `renderInteractionControls`, `renderFeedbackContainer`, `displayFeedback`, `clearFeedback`, and `validateContainer` from `interaction-base.js` for custom interactions in `course/interactions/`. This is a public API documented in `USER_GUIDE.md`: keep these names and signatures stable, and treat a breaking change as a semver-major change. `tests/e2e/course-init.e2e.test.js` guards the exported names.
