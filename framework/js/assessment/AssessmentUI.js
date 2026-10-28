@@ -11,6 +11,7 @@ import { createViewManager } from '../utilities/view-manager.js';
 import { iconManager } from '../utilities/icons.js';
 import * as Modal from '../components/ui-components/modal.js';
 import { logger } from '../utilities/logger.js';
+import { formatScoreForDisplay } from './assessment-results.js';
 
 /**
  * Shows a modal when there are unanswered questions and submission is attempted.
@@ -406,7 +407,7 @@ export function createAssessmentUI(config, stateManager, questionInstances) {
         <div class="cols-3 gap-4">
             <div class="p-3 bg-gray-50 rounded text-center border">
                 <div class="text-xs font-bold text-muted uppercase">Score</div>
-                <div class="text-xl font-bold">${scorePercentage.toFixed(0)}%</div>
+                <div class="text-xl font-bold">${formatScoreForDisplay(scorePercentage, results.passingScore ?? settings.passingScore)}%</div>
             </div>
             <div class="p-3 bg-gray-50 rounded text-center border">
                 <div class="text-xs font-bold text-muted uppercase">Correct</div>

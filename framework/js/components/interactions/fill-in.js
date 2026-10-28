@@ -113,8 +113,9 @@ export const metadata = {
     formatUserResponse: (question, response) => {
         let html = '<ul class="list-disc pl-4 m-0">';
         const responseObj = parseResponse(response, 'object') || {};
+        // Learner-typed text: escape before it reaches the results innerHTML
         Object.entries(responseObj).forEach(([key, value]) => {
-            html += `<li class="response-item"><strong>${key}:</strong> ${value}</li>`;
+            html += `<li class="response-item"><strong>${escapeHTML(String(key))}:</strong> ${escapeHTML(String(value ?? ''))}</li>`;
         });
         html += '</ul>';
         return html;

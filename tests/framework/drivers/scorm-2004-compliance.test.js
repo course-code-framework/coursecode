@@ -508,8 +508,10 @@ describe('SCORM 2004 Spec: Suspend Data', () => {
         driver.setSuspendData(testData);
         const compressed = reads[SCORM_2004_SPEC.suspendData.element];
 
-        // Must be decompressible back to original
-        const json = LZString.decompressFromUTF16(compressed);
+        // Must be ASCII-only (prefixed) and decompressible back to original
+        expect(compressed.startsWith('CC04:')).toBe(true);
+        expect([...compressed].every(char => char.charCodeAt(0) <= 127)).toBe(true);
+        const json = LZString.decompressFromEncodedURIComponent(compressed.slice('CC04:'.length));
         expect(JSON.parse(json)).toEqual(testData);
     });
 

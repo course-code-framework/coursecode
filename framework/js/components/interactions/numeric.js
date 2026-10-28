@@ -8,6 +8,7 @@ import {
     validateContainer,
     registerCoreInteraction
 } from './interaction-base.js';
+import { escapeHTML } from '../../utilities/utilities.js';
 
 // Metadata for numeric interaction type
 export const metadata = {
@@ -31,7 +32,7 @@ export const metadata = {
         }
         return html;
     },
-    formatUserResponse: (question, response) => `<p class="response-item">${response}</p>`
+    formatUserResponse: (question, response) => `<p class="response-item">${escapeHTML(String(response ?? ''))}</p>`
 };
 
 // Schema for validation, linting, and AI-assisted authoring

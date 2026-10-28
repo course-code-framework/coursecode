@@ -467,3 +467,105 @@ describe('XapiStatementService: destroy', () => {
         expect(service._subscriptions).toEqual([]);
     });
 });
+
+
+// ─── Absent scores / non-applicable correctness ─────────────────────
+
+describe('XapiStatementService: absent values are omitted, not zeroed', () => {
+    let driver;
+
+    beforeEach(() => {
+        driver = createMockDriver();
+        service.initialize(driver);
+    });
+
+    it('treats a null objective score (objective-manager default) as absent', () => {
+        eventBus.emit('objective:updated', { id: 'obj-1', completion_status: 'incomplete', score: null });
+
+        expect(driver.sendObjectiveStatement.mock.calls[0][0].score).toBeUndefined();
+    });
+
+    it.each(['neutral', 'unanticipated', undefined])('omits correctness for result %s (likert/survey)', result => {
+        eventBus.emit('interaction:recorded', { id: 'survey-1', type: 'likert', learner_response: '4', result });
+
+        expect(driver.sendInteractionStatement.mock.calls[0][0].correct).toBeUndefined();
+    });
+});
+
+
+// ─── Bounded retry queue ─────────────────────────────────────────────
+
+describe('XapiStatementService: retry queue', () => {
+    const settle = () => new Promise(resolve => setTimeout(resolve, 0));
+
+    it('retries a failed statement after the next successful commit with the same id and timestamp', async () => {
+        const driver = createMockDriver();
+        driver.sendSlideStatement
+            .mockRejectedValueOnce(new Error('offline'))
+            .mockResolvedValue(undefined);
+        service.initialize(driver);
+
+        eventBus.emit('navigation:changed', { fromSlideId: null, toSlideId: 's1' });
+        eventBus.emit('navigation:changed', { fromSlideId: 's1', toSlideId: 's2' });
+        await settle();
+        expect(service._retryQueue).toHaveLength(1);
+
+        service._nextRetryAt = 0;
+        eventBus.emit('state:commitSuccess');
+        await settle();
+
+        expect(driver.sendSlideStatement).toHaveBeenCalledTimes(2);
+        const [first, retry] = driver.sendSlideStatement.mock.calls.map(([payload]) => payload);
+        expect(retry.statementId).toBe(first.statementId);
+        expect(retry.timestamp).toBe(first.timestamp);
+        expect(service._retryQueue).toHaveLength(0);
+    });
+
+    it('backs off: does not retry before the backoff window elapses', async () => {
+        const driver = createMockDriver();
+        driver.sendObjectiveStatement.mockRejectedValueOnce(new Error('offline'));
+        service.initialize(driver);
+
+        eventBus.emit('objective:updated', { id: 'obj-1' });
+        await settle();
+        eventBus.emit('state:commitSuccess');
+        await settle();
+
+        expect(driver.sendObjectiveStatement).toHaveBeenCalledTimes(1);
+        expect(service._retryQueue).toHaveLength(1);
+    });
+
+    it('caps the queue at 50, dropping the oldest', async () => {
+        const driver = createMockDriver();
+        driver.sendObjectiveStatement.mockRejectedValue(new Error('offline'));
+        service.initialize(driver);
+
+        for (let i = 0; i < 60; i++) {
+            eventBus.emit('objective:updated', { id: `obj-${i}` });
+        }
+        await settle();
+
+        expect(service._retryQueue).toHaveLength(50);
+        expect(service._retryQueue[0].payload.id).toBe('obj-10');
+    });
+
+    it('flushes queued statements before termination and then gives up', async () => {
+        const driver = createMockDriver();
+        driver.sendAssessmentStatement
+            .mockRejectedValueOnce(new Error('offline'))
+            .mockResolvedValue(undefined);
+        driver.sendObjectiveStatement.mockRejectedValue(new Error('still offline'));
+        service.initialize(driver);
+
+        eventBus.emit('assessment:submitted', { assessmentId: 'quiz', results: { scorePercentage: 80, passed: true } });
+        eventBus.emit('objective:updated', { id: 'obj-1' });
+        await settle();
+        expect(service._retryQueue).toHaveLength(2);
+
+        await service._handleBeforeTerminate();
+
+        expect(driver.sendAssessmentStatement).toHaveBeenCalledTimes(2);
+        expect(driver.sendObjectiveStatement).toHaveBeenCalledTimes(2);
+        expect(service._retryQueue).toHaveLength(0);
+    });
+});

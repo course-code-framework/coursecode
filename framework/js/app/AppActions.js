@@ -23,12 +23,59 @@ export { showNotification };
 export function initAppActions() {
     _initEventListeners();
 
+    // Slide start times are persisted (engagement reads them while a slide is
+    // open), but any left in restored state belong to a previous session whose
+    // timer was never ended. Counting from them would add the time the learner
+    // was away from the course, so discard them before navigation starts.
+    _discardStaleSlideTimers();
+
     // Listen for navigation events to handle timing and completion
     eventBus.on('navigation:beforeChange', ({ fromSlideId }) => endSessionTimer(fromSlideId));
     eventBus.on('navigation:changed', ({ toSlideId }) => startSessionTimer(toSlideId));
     eventBus.on('navigation:completeCheck', checkCompletion);
 
+    // Close the running slide timer when the page goes away so this session's
+    // time is credited. Capture phase so it runs before the LMS connection's
+    // own pagehide save.
+    window.addEventListener('pagehide', _endCurrentSlideTimer, { capture: true });
+    // Restored from the back/forward cache: resume timing the current slide
+    window.addEventListener('pageshow', (event) => {
+        const currentSlideId = event.persisted ? NavigationState.getCurrentSlideId() : null;
+        if (currentSlideId) startSessionTimer(currentSlideId);
+    });
+
     logger.debug('AppActions initialized.');
+}
+
+/**
+ * Removes slide start times restored from a previous session.
+ * @private
+ */
+function _discardStaleSlideTimers() {
+    try {
+        const sessionData = stateManager.getDomainState('sessionData');
+        if (sessionData?.slideStartTimes && Object.keys(sessionData.slideStartTimes).length > 0) {
+            stateManager.setDomainState('sessionData', { ...sessionData, slideStartTimes: {} });
+            logger.debug('[AppActions] Discarded slide timers left over from a previous session');
+        }
+    } catch (error) {
+        logger.warn(`[AppActions] Could not reset stale slide timers: ${error.message}`);
+    }
+}
+
+/**
+ * Ends the timer for the slide currently shown (exit, pagehide).
+ * @private
+ */
+function _endCurrentSlideTimer() {
+    try {
+        const currentSlideId = NavigationState.getCurrentSlideId();
+        if (currentSlideId) {
+            endSessionTimer(currentSlideId);
+        }
+    } catch (error) {
+        logger.warn(`[AppActions] Could not end slide timer: ${error.message}`);
+    }
 }
 
 /**
@@ -185,6 +232,9 @@ export function setExitFlag() {
 function _finalizeCurrentSlideProgress() {
     const currentSlideId = NavigationState.getCurrentSlideId();
     if (currentSlideId) {
+        // Credit time on the current slide before the session is suspended
+        _endCurrentSlideTimer();
+
         NavigationState.addVisitedSlide(currentSlideId);
 
         // Update progress one final time using the same dynamic sequence rules

@@ -388,8 +388,19 @@ export function createMatchingQuestion(config) {
                     if (item && target) {
                         item.classList.add('matched');
                         target.classList.add('matched');
-                        item.disabled = true;
-                        target.disabled = true;
+
+                        // Mirror live matching: immediate mode locks a pair once it is
+                        // confirmed correct; deferred mode keeps pairs re-matchable, so
+                        // a restored response must stay interactive.
+                        if (feedbackMode === 'immediate') {
+                            const isCorrect = _pairsData.correctAnswers[itemId] === matchText;
+                            if (isCorrect) {
+                                item.classList.add('correct');
+                                target.classList.add('correct');
+                                item.disabled = true;
+                                target.disabled = true;
+                            }
+                        }
 
                         if (feedbackMode === 'deferred') {
                             const color = _colors[state.colorIndex % _colors.length];

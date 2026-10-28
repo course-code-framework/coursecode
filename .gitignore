@@ -3,6 +3,7 @@
 
 # Build output
 /dist
+framework/dist/
 /coverage
 
 # Log files

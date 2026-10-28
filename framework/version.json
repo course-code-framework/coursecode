@@ -10,7 +10,7 @@
     "LTI 1.3"
   ],
   "compatibility": {
-    "node": ">=20.19.0",
+    "node": ">=22.15.0",
     "learner_browsers": {
       "chrome": ">=111",
       "edge": ">=111",

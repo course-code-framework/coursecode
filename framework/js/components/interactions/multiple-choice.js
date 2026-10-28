@@ -27,11 +27,25 @@ export const metadata = {
     },
     formatCorrectAnswer: (question, correctAnswer) => {
         let html = '<ul class="list-disc pl-4 m-0">';
-        const correctAnswers = Array.isArray(correctAnswer) ? correctAnswer : [correctAnswer];
         const choices = question.choices || [];
 
+        // getCorrectAnswer() returns a JSON array string for multi-select
+        let correctAnswers = correctAnswer;
+        if (typeof correctAnswers === 'string' && correctAnswers.trim().startsWith('[')) {
+            try {
+                correctAnswers = JSON.parse(correctAnswers);
+            } catch (_error) {
+                // Not JSON - treat as a single choice value
+            }
+        }
+        if (!Array.isArray(correctAnswers)) {
+            correctAnswers = (correctAnswers === undefined || correctAnswers === null || correctAnswers === '')
+                ? (question.multiple ? choices.filter(c => c.correct).map(c => c.value) : [])
+                : [correctAnswers];
+        }
+
         correctAnswers.forEach(answer => {
-            const choice = choices.find(c => c.value === answer || c.correct);
+            const choice = choices.find(c => c.value === answer);
             if (choice) {
                 html += `<li class="correct-item">${choice.text}</li>`;
             } else {
@@ -152,7 +166,6 @@ export function createMultipleChoiceQuestion(config) {
                           id="${choiceId}"
                           name="${id}_choice"
                           value="${choice.value}"
-                          ${choice.correct ? 'data-correct="true"' : ''}
                           ${isChecked ? 'checked' : ''}
                           aria-describedby="${id}_feedback ${choiceId}_description"
                           aria-label="${choice.text}"

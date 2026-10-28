@@ -25,6 +25,13 @@ import {
 } from '../utilities/media-utils.js';
 
 /**
+ * Slack (seconds) allowed when deciding whether playback advanced
+ * continuously. Larger forward jumps are seeks/scrubs and don't count as
+ * listened time for completion.
+ */
+const CONTINUOUS_PLAYBACK_TOLERANCE_SECONDS = 1;
+
+/**
  * @typedef {Object} AudioState
  * @property {string|null} currentSrc - Current audio source URL
  * @property {string|null} contextId - Current context (slideId, modalId, or tabId)
@@ -79,8 +86,17 @@ class AudioManager {
         /** @type {number|null} */
         this.updateInterval = null;
         
-        /** @type {number} - Tracks max position reached (handles seeks/replays) */
+        /** @type {number} - Furthest position reached by continuous playback (seeking ahead doesn't count) */
         this.maxPositionReached = 0;
+
+        /** @type {Map<string, number>} - Furthest continuously-heard position for each context */
+        this.heardCache = new Map();
+
+        /** @type {number} - Media position at the last playback sample */
+        this._lastPlaybackPosition = 0;
+
+        /** @type {number} - Wall-clock time (ms) of the last playback sample */
+        this._lastPlaybackWallTime = 0;
         
         /** @type {boolean} - Flag to ignore errors during intentional source switches */
         this._isSwitchingSource = false;
@@ -158,6 +174,7 @@ class AudioManager {
         });
 
         audio.addEventListener('play', () => {
+            this._resetPlaybackTracking(audio.currentTime);
             this.state.isPlaying = true;
             this._startPositionUpdates();
             this._emitStateChange('play');
@@ -183,6 +200,10 @@ class AudioManager {
             this.state.isPlaying = false;
             this.state.position = this.audio.duration;
             this._stopPositionUpdates();
+
+            // Playback ran continuously to the end: the tail after the last
+            // timeupdate counts as heard.
+            this._trackContinuousPlayback(this.audio.duration, { ended: true });
             
             // Mark as completed when audio ends (100% listened)
             this._checkAndMarkCompleted();
@@ -194,13 +215,18 @@ class AudioManager {
         audio.addEventListener('timeupdate', () => {
             this.state.position = audio.currentTime;
             
-            // Track max position for completion calculation
-            if (audio.currentTime > this.maxPositionReached) {
-                this.maxPositionReached = audio.currentTime;
-            }
+            // Advance the heard position only for continuous playback, so
+            // scrubbing ahead can't complete required audio
+            this._trackContinuousPlayback(audio.currentTime);
             
             // Check for completion threshold during playback
             this._checkAndMarkCompleted();
+        });
+
+        // A finished seek (native controls or seek()) restarts continuity
+        // tracking from the new position
+        audio.addEventListener('seeked', () => {
+            this._resetPlaybackTracking(audio.currentTime);
         });
 
         audio.addEventListener('error', (_e) => {
@@ -300,12 +326,19 @@ class AudioManager {
                 if (savedPosition > 0 && savedPosition < this.audio.duration) {
                     this.audio.currentTime = savedPosition;
                     this.state.position = savedPosition;
-                    // Also restore maxPositionReached for correct completion tracking
-                    this.maxPositionReached = savedPosition;
+                    // Restore how far the learner actually listened (not where
+                    // they may have scrubbed to). Older saved state has no heard
+                    // position; fall back to the saved position.
+                    const heardPosition = this._getHeardPosition(contextId);
+                    this.maxPositionReached = heardPosition === null
+                        ? savedPosition
+                        : Math.min(heardPosition, this.audio.duration);
                 } else {
                     this.audio.currentTime = 0;
                     this.state.position = 0;
+                    this.maxPositionReached = Math.min(this._getHeardPosition(contextId) || 0, this.audio.duration || 0);
                 }
+                this._resetPlaybackTracking(this.state.position);
                 
                 // Emit progress event to sync UI with restored position
                 eventBus.emit('audio:progress', {
@@ -453,6 +486,7 @@ class AudioManager {
         this.audio.currentTime = 0;
         this.state.position = 0;
         this.maxPositionReached = 0;
+        this._resetPlaybackTracking(0);
         this._clearSavedPosition(this.state.contextId);
         
         // Emit progress event to sync UI immediately
@@ -483,6 +517,7 @@ class AudioManager {
         const clampedPosition = Math.max(0, Math.min(position, this.audio.duration));
         this.audio.currentTime = clampedPosition;
         this.state.position = clampedPosition;
+        this._resetPlaybackTracking(clampedPosition);
         
         eventBus.emit('audio:seek', { 
             contextId: this.state.contextId,
@@ -797,7 +832,65 @@ class AudioManager {
         if (!this.state.contextId || !Number.isFinite(this.state.position)) return;
         
         this.positionCache.set(this.state.contextId, this.state.position);
+        const heard = Math.max(this.heardCache.get(this.state.contextId) || 0, this.maxPositionReached || 0);
+        if (heard > 0) {
+            this.heardCache.set(this.state.contextId, heard);
+        }
         this._persistPositions();
+    }
+
+    /**
+     * Gets the furthest continuously-heard position saved for a context.
+     * @private
+     * @param {string} contextId - Context identifier
+     * @returns {number|null} Seconds, or null if none was saved
+     */
+    _getHeardPosition(contextId) {
+        const heard = this.heardCache.get(contextId);
+        return Number.isFinite(heard) ? heard : null;
+    }
+
+    /**
+     * Restarts continuity tracking from a position (after play, seek or load).
+     * @private
+     * @param {number} position - Current media position in seconds
+     */
+    _resetPlaybackTracking(position) {
+        this._lastPlaybackPosition = Number.isFinite(position) ? position : 0;
+        this._lastPlaybackWallTime = Date.now();
+    }
+
+    /**
+     * Advances maxPositionReached only when playback progressed continuously
+     * from within the already-heard range: the media position may not advance
+     * faster than real time (times playback rate) plus a small tolerance.
+     * Seeks/scrubs forward therefore never count towards completion.
+     * @private
+     * @param {number} currentPosition - Current media position in seconds
+     * @param {object} [options]
+     * @param {boolean} [options.ended=false] - Called from the 'ended' event
+     */
+    _trackContinuousPlayback(currentPosition, { ended = false } = {}) {
+        if (!Number.isFinite(currentPosition)) return;
+
+        const previous = this._lastPlaybackPosition;
+        const now = Date.now();
+        const elapsedSeconds = Math.max(0, (now - this._lastPlaybackWallTime) / 1000);
+        this._lastPlaybackPosition = currentPosition;
+        this._lastPlaybackWallTime = now;
+
+        // Paused/seeking position changes are not listening
+        if (!ended && (this.audio.paused || this.audio.seeking)) return;
+
+        const advance = currentPosition - previous;
+        const rate = Math.max(1, this.audio.playbackRate || 1);
+        const isContinuous = advance >= 0 &&
+            advance <= elapsedSeconds * rate + CONTINUOUS_PLAYBACK_TOLERANCE_SECONDS;
+        const startedWithinHeardRange = previous <= this.maxPositionReached + CONTINUOUS_PLAYBACK_TOLERANCE_SECONDS;
+
+        if (isContinuous && startedWithinHeardRange && currentPosition > this.maxPositionReached) {
+            this.maxPositionReached = currentPosition;
+        }
     }
 
     /**
@@ -827,10 +920,12 @@ class AudioManager {
     _persistPositions() {
         try {
             const positions = Object.fromEntries(this.positionCache);
+            const heard = Object.fromEntries(this.heardCache);
             const audioState = stateManager.getDomainState('audio') || {};
             stateManager.setDomainState('audio', {
                 ...audioState,
-                positions
+                positions,
+                heard
             });
         } catch (error) {
             logger.warn('[AudioManager] Failed to persist positions:', error.message);
@@ -865,6 +960,11 @@ class AudioManager {
             // Restore positions
             if (audioState.positions) {
                 this.positionCache = new Map(Object.entries(audioState.positions));
+            }
+
+            // Restore continuously-heard positions (completion tracking)
+            if (audioState.heard) {
+                this.heardCache = new Map(Object.entries(audioState.heard));
             }
 
             // Restore completion states
@@ -955,9 +1055,14 @@ class AudioManager {
     resetCompletion(contextId) {
         this.completionCache.delete(contextId);
         this._persistCompletions();
+        // Listening progress must be earned again
+        if (this.heardCache.delete(contextId)) {
+            this._persistPositions();
+        }
         
         if (this.state.contextId === contextId) {
             this.state.isCompleted = false;
+            this.maxPositionReached = 0;
         }
     }
 
@@ -968,7 +1073,10 @@ class AudioManager {
     resetAllCompletions() {
         this.completionCache.clear();
         this._persistCompletions();
+        this.heardCache.clear();
+        this._persistPositions();
         this.state.isCompleted = false;
+        this.maxPositionReached = 0;
     }
 }
 

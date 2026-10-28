@@ -118,13 +118,15 @@ coursecode preview                    # Open http://localhost:4173
 
 Live preview includes source-editing endpoints, so it binds to loopback by default and protects mutations with a per-process token. Treat `--host 0.0.0.0` as deliberate developer-machine access, not as a deployment mode.
 
+The server also rejects requests whose `Host` header isn't this machine (DNS-rebinding protection). If you reach the preview through a tunnel or port forwarder (GitHub Codespaces, ngrok, a reverse proxy), list its hostname: `COURSECODE_PREVIEW_ALLOWED_HOSTS=my-space-4173.app.github.dev coursecode preview`.
+
 ### Static Export
 
 Generate a self-contained folder for stakeholder sharing (Netlify, GitHub Pages, etc.):
 
 ```bash
 coursecode preview --export                    # Build and create ./course-preview
-coursecode preview --export -p "secret"        # With password protection
+coursecode preview --export -p "secret"        # With a soft password gate (not real security)
 coursecode preview --export --skip-build       # Use existing dist/
 coursecode preview --export -o ./stakeholder   # Custom output directory
 coursecode preview --export --no-content       # Exclude content viewer
@@ -628,6 +630,8 @@ createHotspotQuestion({
   ]
 });
 ```
+
+All regions share the same neutral look by default, so styling never reveals the answer. Set `theme` (`'primary'`, `'accent'`, `'correct'`, `'incorrect'`) or a custom `appearance` per hotspot to override — `'correct'`/`'incorrect'` color-code regions and are meant for explore-style activities, not graded questions.
 
 Interaction APIs such as `createHotspotQuestion()` resolve relative asset paths against `course/assets/`. In direct HTML attributes such as `<img src>`, use the packaged path `course/assets/...` as shown in the interactive-image example below. Declarative components may document their own path base; for example, lightbox `href` values are relative to `course/` and normally begin with `assets/`.
 

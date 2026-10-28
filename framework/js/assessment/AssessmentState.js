@@ -52,6 +52,9 @@ export function createAssessmentState(config, stateManager) {
         responses: {},
         selectedQuestions: null, // Array of question IDs only (for bank mode) - NOT full configs to save space
         reviewReached: false, // True once user reaches review screen (allows jump to review)
+        // qsig (string, non-randomized assessments only): compact signature of
+        // the question order the index-keyed responses belong to. Stamped when
+        // an attempt starts; left out of the defaults so it costs nothing until set.
     };
 
     function _getAssessmentDomainState() {
@@ -113,6 +116,41 @@ export function createAssessmentState(config, stateManager) {
         const domainState = _getAssessmentDomainState();
         delete domainState.session;
         await _setAssessmentDomainState(domainState, source);
+    }
+
+    /**
+     * Replaces the session with a fresh, not-yet-started attempt (intro view).
+     * The attempt number is stamped from the summary so the session is
+     * recognisably newer than summary.lastResults and takes precedence over
+     * the previous attempt's results on resume. Summary (attempt counts,
+     * lastResults, attempt history) is left untouched.
+     */
+    async function startNewAttemptSession(source = `${SOURCE}:new-attempt`) {
+        const domainState = _getAssessmentDomainState();
+        domainState.session = {
+            ...DEFAULT_SESSION,
+            responses: {},
+            attemptNumber: _resolveAttemptNumber(domainState.summary)
+        };
+        await _setAssessmentDomainState(domainState, source);
+    }
+
+    /**
+     * Whether the persisted session is an attempt started after the last
+     * submitted result (e.g. a retake in progress). Such a session must win
+     * over summary.lastResults when choosing the view to restore.
+     * @returns {boolean}
+     */
+    function hasActiveAttempt() {
+        const session = getSession();
+        if (!session || session.submitted) return false;
+
+        const lastResults = getSummary()?.lastResults;
+        if (!lastResults) return true;
+
+        // Sessions without a newer attempt number are leftovers of the
+        // attempt whose results are already stored.
+        return (session.attemptNumber || 0) > (lastResults.attemptNumber || 0);
     }
 
     // === State Property Getters ===
@@ -196,6 +234,23 @@ export function createAssessmentState(config, stateManager) {
         domainState.session.responses[key] = storedResponse;
 
         await _setAssessmentDomainState(domainState, `${SOURCE}:response`);
+    }
+
+    // === Question Set Signature Operations ===
+
+    /**
+     * Signature of the question order the session's index-keyed responses
+     * were recorded against (see question-set-signature.js). Null for
+     * sessions saved before signatures existed.
+     * @returns {string|null}
+     */
+    function getQuestionSetSignature() {
+        const session = getSession();
+        return typeof session?.qsig === 'string' ? session.qsig : null;
+    }
+
+    async function setQuestionSetSignature(signature, source = `${SOURCE}:question-set`) {
+        await updateSession({ qsig: signature }, source);
     }
 
     // === Selected Questions Operations ===
@@ -291,6 +346,8 @@ export function createAssessmentState(config, stateManager) {
         initializeSession,
         updateSession,
         clearSession,
+        startNewAttemptSession,
+        hasActiveAttempt,
 
         // State property getters
         getCurrentView,
@@ -310,6 +367,10 @@ export function createAssessmentState(config, stateManager) {
         // Response operations
         getResponse,
         saveResponse,
+
+        // Question set signature (non-randomized resume safety)
+        getQuestionSetSignature,
+        setQuestionSetSignature,
 
         // Selected questions operations
         getSelectedQuestions,

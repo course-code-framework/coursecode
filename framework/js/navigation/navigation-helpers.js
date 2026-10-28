@@ -9,12 +9,38 @@
 import { courseConfig } from '../../../course/course-config.js';
 
 /**
+ * Whether the course is running in a preview/development context where
+ * learner-facing gating may be bypassed:
+ * - a non-production build (`coursecode dev` / preview server use --mode development), or
+ * - a production build hosted by the CourseCode stub player (static preview
+ *   export), detected by the stub player's same-origin parent window.
+ *
+ * Production builds launched from an LMS never qualify, so a learner cannot
+ * self-certify completion by adding ?skipGating=true to the launch URL.
+ * @returns {boolean}
+ */
+export function isPreviewContext() {
+    // Only an explicit non-production Vite mode counts; an unknown mode
+    // (non-Vite environment) is treated like production.
+    const buildMode = import.meta?.env?.MODE;
+    if (buildMode && buildMode !== 'production') return true;
+    if (import.meta?.env?.VITE_COURSECODE_LOCAL) return true;
+
+    try {
+        // Cross-origin parents (LMS players) throw here and are not previews
+        return window.parent !== window && Boolean(window.parent?.STUB_CONFIG);
+    } catch (_error) {
+        return false;
+    }
+}
+
+/**
  * Checks if gating should be bypassed.
  * 
  * Bypass conditions (any of):
  * 1. Development mode + disableGating config = true
- * 2. URL parameter ?skipGating=true (for static preview exports)
- * 3. Global flag window.__SCORM_PREVIEW_SKIP_GATING (set by stub player)
+ * 2. URL parameter ?skipGating=true (preview contexts only, e.g. static preview exports)
+ * 3. Global flag window.__SCORM_PREVIEW_SKIP_GATING (set by stub player; preview contexts only)
  * 
  * @returns {boolean} True if gating should be bypassed
  */
@@ -22,15 +48,19 @@ export function shouldBypassGating() {
     // Test override: force gating on regardless of other flags
     if (window.__FORCE_GATING === true) return false;
 
-    // Check URL parameter (works in any mode - for preview exports)
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('skipGating') === 'true') {
-        return true;
-    }
-    
-    // Check global flag (set by stub LMS player)
-    if (window.__SCORM_PREVIEW_SKIP_GATING === true) {
-        return true;
+    // Preview-only switches. Never honoured in a production build delivered
+    // through an LMS (see isPreviewContext).
+    if (isPreviewContext()) {
+        // Check URL parameter (for preview exports and the preview server)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('skipGating') === 'true') {
+            return true;
+        }
+
+        // Check global flag (set by stub LMS player)
+        if (window.__SCORM_PREVIEW_SKIP_GATING === true) {
+            return true;
+        }
     }
     
     // Check dev mode config

@@ -24,6 +24,11 @@ import {
 } from './engagement-progress.js';
 import * as trackers from './engagement-trackers.js';
 
+/** How often timeOnSlide requirements are evaluated */
+const TIME_TRACKING_INTERVAL_MS = 100;
+/** Minimum spacing between engagement:progress events from time tracking */
+const TIME_PROGRESS_MIN_INTERVAL_MS = 1000;
+
 class EngagementManager {
     constructor() {
         this.domain = 'engagement';
@@ -185,18 +190,31 @@ class EngagementManager {
 
         logger.debug(`[EngagementManager] Starting time tracking for: ${slideId}`);
 
+        // Evaluate frequently so completion is detected promptly, but only emit
+        // progress when what the learner sees changes (the tooltip/percentage
+        // tick once per second) and at most once per second. Each progress
+        // event triggers a full navigation sync().
+        let lastSignature = null;
+        let lastEmitAt = 0;
+
         const intervalId = setInterval(() => {
             const evaluation = this.evaluateRequirements(slideId);
             if (!evaluation.complete) {
-                eventBus.emit('engagement:progress', {
-                    slideId,
-                    complete: false,
-                    progress: evaluation.progress
-                });
+                const signature = `${evaluation.progress?.percentage}|${evaluation.progress?.tooltip}`;
+                const now = Date.now();
+                if (signature !== lastSignature && now - lastEmitAt >= TIME_PROGRESS_MIN_INTERVAL_MS) {
+                    lastSignature = signature;
+                    lastEmitAt = now;
+                    eventBus.emit('engagement:progress', {
+                        slideId,
+                        complete: false,
+                        progress: evaluation.progress
+                    });
+                }
             } else {
                 this._stopTimeTracking(slideId);
             }
-        }, 100);
+        }, TIME_TRACKING_INTERVAL_MS);
 
         this._timeTrackingIntervals.set(slideId, intervalId);
     }

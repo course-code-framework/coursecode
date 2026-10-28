@@ -11,6 +11,8 @@ export function generateManifest(
 ): { filename: string; content: string }
 
 export function getSchemaFiles(format: string): string[]
+export const PREVIEW_ONLY_BUILD_FILES: readonly string[]
+export function isPreviewOnlyBuildFile(relativePath: string): boolean
 
 // Content Parsing
 export function parseCourse(coursePath: string): Promise<Record<string, unknown>>
@@ -34,7 +36,7 @@ export function createRemotePackage(options: Record<string, unknown>): Promise<s
 export function createExternalPackagesForClients(options: Record<string, unknown>): Promise<void>
 
 // Build Linter
-export function lintCourse(courseConfig: Record<string, unknown>, coursePath: string): { errors: string[]; warnings: string[] }
+export function lintCourse(courseConfig: Record<string, unknown>, coursePath: string): Promise<{ errors: string[]; warnings: string[] }>
 export function lint(options?: Record<string, unknown>): Promise<void>
 
 // Validation Rules

@@ -13,7 +13,7 @@
  * - Validated-claim extraction from trusted launch HTML
  * - AGS score passback through a server-side proxy on terminate
  * - State persistence via host endpoint
- * - Emergency save via sendBeacon
+ * - Emergency save via keepalive fetch (grade) and sendBeacon (state)
  */
 
 import { HttpDriverBase } from './http-driver-base.js';
@@ -168,7 +168,8 @@ export class LtiDriver extends HttpDriverBase {
     }
 
     /**
-     * Emergency save using sendBeacon for page unload scenarios.
+     * Emergency save for page unload: pending grade via keepalive fetch, then
+     * bookmark and suspend_data via sendBeacon.
      */
     emergencySave() {
         if (this._mock || this._isTerminated) {
@@ -186,22 +187,32 @@ export class LtiDriver extends HttpDriverBase {
         const stateKey = this._getStateKey();
         if (!stateKey) return;
 
-        if (this._suspendDataDirty && this._suspendDataCache !== null) {
-            const payload = {
-                key: stateKey,
-                type: 'suspend_data',
-                data: this._suspendDataCache
-            };
-            const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
-            const sent = navigator.sendBeacon(this._stateEndpoint, blob);
-            if (sent) {
-                logger.debug('[LtiDriver] Emergency save: suspend_data sent via sendBeacon');
-            } else {
-                logger.warn('[LtiDriver] Emergency save: sendBeacon failed for suspend_data');
+        // Highest priority first: the pending grade is the smallest and most
+        // important payload, and keepalive/beacon requests share a 64KiB budget.
+        // The grade outbox stays pending in the bookmark (gradePending), so the
+        // next launch re-sends it if this request does not land.
+        if (this._gradeDirty && this._agsProxyEndpoint) {
+            try {
+                fetch(this._agsProxyEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/vnd.ims.lis.v1.score+json'
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(this._buildScorePayload()),
+                    keepalive: true
+                }).then(response => {
+                    if (!response.ok) throw new Error(`${response.status} ${response.statusText || ''}`.trim());
+                    logger.debug('[LtiDriver] Emergency save: grade sent via keepalive');
+                }).catch(error => {
+                    logger.warn('[LtiDriver] Emergency save: grade keepalive failed; it will be re-sent on next launch', error?.message);
+                });
+            } catch (error) {
+                logger.warn('[LtiDriver] Emergency save: grade keepalive could not start', error?.message);
             }
         }
 
-        if (this._bookmarkDirty) {
+        if (this._bookmarkDirty || this._gradeDirty) {
             const payload = {
                 key: stateKey,
                 type: 'bookmark',
@@ -220,6 +231,21 @@ export class LtiDriver extends HttpDriverBase {
                 logger.debug('[LtiDriver] Emergency save: bookmark sent via sendBeacon');
             } else {
                 logger.warn('[LtiDriver] Emergency save: sendBeacon failed for bookmark');
+            }
+        }
+
+        if (this._suspendDataDirty && this._suspendDataCache !== null) {
+            const payload = {
+                key: stateKey,
+                type: 'suspend_data',
+                data: this._suspendDataCache
+            };
+            const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+            const sent = navigator.sendBeacon(this._stateEndpoint, blob);
+            if (sent) {
+                logger.debug('[LtiDriver] Emergency save: suspend_data sent via sendBeacon');
+            } else {
+                logger.warn('[LtiDriver] Emergency save: sendBeacon failed for suspend_data');
             }
         }
     }
@@ -435,9 +461,13 @@ export class LtiDriver extends HttpDriverBase {
         const dirty = this._suspendDataDirty || this._bookmarkDirty || this._gradeDirty;
         if (!dirty) return;
 
+        // Snapshot and clear dirty flags before sending so writes made while
+        // the request is in flight stay dirty; restore them on failure.
+        const sentSuspendData = this._suspendDataDirty;
+        const sentBookmark = this._bookmarkDirty;
         const payload = {
             key: stateKey,
-            suspendData: this._suspendDataDirty ? this._suspendDataCache : undefined,
+            suspendData: sentSuspendData ? this._suspendDataCache : undefined,
             bookmark: this._bookmarkCache,
             completionStatus: this._completionStatus,
             successStatus: this._successStatus,
@@ -445,22 +475,28 @@ export class LtiDriver extends HttpDriverBase {
             gradePending: this._gradeDirty,
             gradeFingerprint: this._currentGradeFingerprint()
         };
-
-        const response = await fetch(this._stateEndpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            credentials: 'same-origin',
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            throw new Error(`State persistence failed: ${response.status} ${response.statusText}`);
-        }
-
         this._suspendDataDirty = false;
         this._bookmarkDirty = false;
+
+        try {
+            const response = await fetch(this._stateEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`State persistence failed: ${response.status} ${response.statusText}`);
+            }
+        } catch (error) {
+            if (sentSuspendData) this._suspendDataDirty = true;
+            if (sentBookmark) this._bookmarkDirty = true;
+            throw error;
+        }
+
         logger.debug('[LtiDriver] State persisted');
     }
 
@@ -468,11 +504,7 @@ export class LtiDriver extends HttpDriverBase {
     // Private: AGS Score Passback
     // =========================================================================
 
-    async _postScore() {
-        if (!this._agsProxyEndpoint) {
-            return false;
-        }
-
+    _buildScorePayload() {
         const scorePayload = {
             userId: this._claims.sub,
             comment: '',
@@ -484,6 +516,13 @@ export class LtiDriver extends HttpDriverBase {
             scorePayload.scoreGiven = this._score * 100;
             scorePayload.scoreMaximum = 100;
         }
+        return scorePayload;
+    }
+
+    async _postScore() {
+        if (!this._agsProxyEndpoint) {
+            return false;
+        }
 
         const response = await fetch(this._agsProxyEndpoint, {
             method: 'POST',
@@ -491,7 +530,7 @@ export class LtiDriver extends HttpDriverBase {
                 'Content-Type': 'application/vnd.ims.lis.v1.score+json'
             },
             credentials: 'same-origin',
-            body: JSON.stringify(scorePayload)
+            body: JSON.stringify(this._buildScorePayload())
         });
 
         if (!response.ok) {
@@ -508,9 +547,17 @@ export class LtiDriver extends HttpDriverBase {
             this._gradeDirty = false;
             return;
         }
-        await this._postScore();
+        // Clear before sending (the payload is built synchronously) so a
+        // score reported while the request is in flight is sent next time.
+        const fingerprint = this._currentGradeFingerprint();
         this._gradeDirty = false;
-        this._gradeFingerprint = this._currentGradeFingerprint();
+        try {
+            await this._postScore();
+        } catch (error) {
+            this._gradeDirty = true;
+            throw error;
+        }
+        this._gradeFingerprint = fingerprint;
         // Acknowledge the outbox only after AGS accepts the score. If this
         // persistence fails, the next launch safely retries the latest grade.
         this._bookmarkDirty = true;

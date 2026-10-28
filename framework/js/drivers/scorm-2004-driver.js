@@ -12,6 +12,46 @@ import { ScormDriverBase } from './scorm-driver-base.js';
 import { eventBus } from '../core/event-bus.js';
 import { logger } from '../utilities/logger.js';
 import LZString from 'lz-string';
+import {
+    SUSPEND_DATA_CORRUPT,
+    SUSPEND_TRIM_TIERS,
+    trimSuspendState,
+    createSuspendOverflowError
+} from './suspend-data-trimming.js';
+
+const SCORM2004_SUSPEND_PREFIX = 'CC04:';
+const SCORM2004_SUSPEND_LIMIT = 64000;
+
+/**
+ * Encodes suspend_data with an ASCII-only alphabet. The former UTF-16 lz-string
+ * output contains non-ASCII and C1 control characters that some LMSs mangle.
+ */
+function encodeScorm2004SuspendState(state) {
+    return SCORM2004_SUSPEND_PREFIX + LZString.compressToEncodedURIComponent(JSON.stringify(state));
+}
+
+function decodeScorm2004SuspendState(value) {
+    let jsonString;
+    if (value.startsWith(SCORM2004_SUSPEND_PREFIX)) {
+        jsonString = LZString.decompressFromEncodedURIComponent(value.slice(SCORM2004_SUSPEND_PREFIX.length));
+    } else {
+        // Legacy UTF-16 state is read as-is; the next successful save
+        // migrates it to the ASCII-safe format.
+        jsonString = LZString.decompressFromUTF16(value);
+    }
+    if (!jsonString) {
+        const error = new Error('SCORM 2004 resume state is corrupted or truncated; refusing to start with empty progress');
+        error.code = SUSPEND_DATA_CORRUPT;
+        throw error;
+    }
+    try {
+        return JSON.parse(jsonString);
+    } catch (parseError) {
+        const error = new Error(`Failed to parse suspend data as JSON: ${parseError.message}`);
+        error.code = SUSPEND_DATA_CORRUPT;
+        throw error;
+    }
+}
 
 function parseFiniteNumber(value, fallback = null) {
     if (value === null || value === undefined || String(value).trim() === '') return fallback;
@@ -394,20 +434,13 @@ export class Scorm2004Driver extends ScormDriverBase {
             return null;
         }
 
-        // Decompress lz-string data
-        const jsonString = LZString.decompressFromUTF16(data);
-        if (!jsonString) {
-            throw new Error('SCORM 2004 resume state is corrupted or truncated; refusing to start with empty progress');
-        }
-
         try {
-            const parsed = JSON.parse(jsonString);
+            const parsed = decodeScorm2004SuspendState(data);
             logger.debug(`[Scorm2004Driver] Successfully parsed suspend_data with ${Object.keys(parsed).length} domain(s)`);
             return parsed;
         } catch (error) {
-            const msg = `Failed to parse suspend data as JSON: ${error.message}`;
-            logger.error(msg, { domain: 'scorm', operation: 'GetSuspendData', stack: error.stack });
-            throw new Error(msg);
+            logger.error(error.message, { domain: 'scorm', operation: 'GetSuspendData', stack: error.stack });
+            throw error;
         }
     }
 
@@ -446,8 +479,15 @@ export class Scorm2004Driver extends ScormDriverBase {
             throw new Error(msg);
         }
 
-        // Compress using lz-string
-        const compressed = LZString.compressToUTF16(serialized);
+        // Compress using ASCII-safe lz-string; trim optional data only when
+        // the full state does not fit the SCORM 2004 limit.
+        let compressed = encodeScorm2004SuspendState(data);
+        const untrimmedLength = compressed.length;
+        let trimTier = null;
+        for (let tier = 0; compressed.length > SCORM2004_SUSPEND_LIMIT && tier < SUSPEND_TRIM_TIERS.length; tier++) {
+            compressed = encodeScorm2004SuspendState(trimSuspendState(data, tier));
+            trimTier = SUSPEND_TRIM_TIERS[tier].name;
+        }
         const originalSizeKB = (serialized.length / 1024).toFixed(2);
         const compressedSizeKB = (compressed.length / 1024).toFixed(2);
         const compressionRatio = ((1 - compressed.length / serialized.length) * 100).toFixed(1);
@@ -463,11 +503,20 @@ export class Scorm2004Driver extends ScormDriverBase {
             compressionRatio: parseFloat(compressionRatio)
         });
 
-        // Progressive warnings (SCORM 2004 has 64KB limit)
-        if (compressed.length > 64000) {
-            logger.error(`[Scorm2004Driver] ⚠️ CRITICAL: suspend_data is ${compressedSizeKB}KB compressed (over 64KB). Many LMSs will reject this!`);
-            eventBus.emit('suspend-data:critical', { bytes: compressed.length });
-            throw new Error(`SCORM 2004 suspend_data exceeds the 64000-character safety limit (${compressed.length})`);
+        // Progressive warnings (SCORM 2004 has 64000-character SPM)
+        if (compressed.length > SCORM2004_SUSPEND_LIMIT) {
+            logger.error(`[Scorm2004Driver] ⚠️ CRITICAL: suspend_data is ${compressedSizeKB}KB compressed even after trimming (over 64KB); previous suspend_data is kept`);
+            eventBus.emit('suspend-data:critical', { bytes: compressed.length, limit: SCORM2004_SUSPEND_LIMIT, format: 'scorm2004' });
+            throw createSuspendOverflowError('SCORM 2004', compressed.length, SCORM2004_SUSPEND_LIMIT);
+        } else if (trimTier) {
+            logger.warn(`[Scorm2004Driver] suspend_data trimmed to tier "${trimTier}" to fit the 64000-character limit (${untrimmedLength} → ${compressed.length})`);
+            eventBus.emit('suspend-data:warning', {
+                bytes: compressed.length,
+                untrimmedBytes: untrimmedLength,
+                limit: SCORM2004_SUSPEND_LIMIT,
+                trimTier,
+                format: 'scorm2004'
+            });
         } else if (compressed.length > 32000) {
             logger.warn(`[Scorm2004Driver] ⚠️ WARNING: suspend_data is ${compressedSizeKB}KB compressed (over 32KB). Approaching critical threshold.`);
             eventBus.emit('suspend-data:warning', { bytes: compressed.length });
@@ -798,3 +847,10 @@ export class Scorm2004Driver extends ScormDriverBase {
         }
     }
 }
+
+// Exported for unit testing and the proxy driver
+export {
+    encodeScorm2004SuspendState,
+    decodeScorm2004SuspendState,
+    SCORM2004_SUSPEND_LIMIT
+};

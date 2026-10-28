@@ -50,7 +50,7 @@ SCORM 1.2 and SCORM 2004 define the LMS runtime/API contract; they do not requir
 
 Treat an older embedded LMS browser as a separate, explicitly tested customer requirement. Do not re-enable Babel/SystemJS as a general compatibility precaution: a legacy JavaScript bundle alone is not evidence that the complete course UI works in that engine.
 
-The framework and generated projects require **Node 20.19+**. Vite, `vite-plugin-static-copy`, and their lockfiles must be upgraded together and verified with a freshly generated project plus every LMS-format build.
+The framework and generated projects require **Node 22.15+** (`puppeteer-core` 25 needs Node 22.12+; 22.15 adds the built-in system CA store used for corporate proxies on Windows). Vite, `vite-plugin-static-copy`, and their lockfiles must be upgraded together and verified with a freshly generated project plus every LMS-format build.
 
 ### LMS Compatibility Warnings
 The preview server (stub player) includes an advanced diagnostic system that monitors API usage and data limits to detect potential issues before deployment to a real LMS.
@@ -72,7 +72,7 @@ The framework supports multiple LMS formats:
 | `scorm1.2` | SCORM 1.2 (legacy LMS) | 4KB suspend_data (Strict Diet Mode found in `scorm-12-driver.js`) |
 | `lti` | LTI 1.3 (remote-hosted, JWT launch) | Unlimited (host-dependent) |
 
-> **Note on SCORM 1.2 Strict Diet Mode:** The framework preserves the complete CourseCode state and compresses it into an ASCII-safe representation. If the compressed value still exceeds SCORM 1.2's 4,096-character limit, the write fails loudly instead of silently discarding learner state. Courses that exceed the limit must reduce persisted data or use SCORM 2004, cmi5, or LTI.
+> **Note on SCORM 1.2 Strict Diet Mode:** The framework preserves the complete CourseCode state and compresses it into an ASCII-safe representation. If the compressed value exceeds SCORM 1.2's 4,096-character limit, non-essential data is trimmed in tiers (first the interaction history already stored in native `cmi.interactions`, then archived attempt summaries, then media/timer session data) and `suspend-data:warning` is emitted. If even the resume core doesn't fit, `suspend-data:critical` and `state:suspendDataFailed` are emitted and suspend_data is skipped for that commit — status, score and location are still committed. SCORM 2004 applies the same tiers at its 64,000-character limit. Courses that routinely trim should reduce persisted data or use SCORM 2004, cmi5, or LTI.
 
 **Set format in `course-config.js`** (for local CLI builds):
 ```javascript
@@ -396,7 +396,7 @@ After images are acquired, the module:
 | `state-validation.js` | State hydration, migration, validation |
 | `transaction-log.js` | Ring buffer for debugging |
 
-> **Persistence encoding:** SCORM 2004 uses `lz-string` UTF-16 compression. SCORM 1.2 uses an ASCII-safe `CC12:` encoded representation because legacy LMS implementations may reject UTF-16 suspend data. cmi5 and LTI persist structured JSON through their HTTP state endpoints. These format differences are transparent to framework consumers.
+> **Persistence encoding:** SCORM 2004 and SCORM 1.2 use ASCII-safe `lz-string` encodings prefixed `CC04:` and `CC12:`, because some LMS implementations mangle or reject UTF-16 suspend data (legacy UTF-16 values are still read on resume). Unreadable suspend_data doesn't lock the learner out: the course starts fresh, emits `state:recovered`, and leaves the stored value untouched until the learner makes progress. cmi5 and LTI persist structured JSON through their HTTP state endpoints. These format differences are transparent to framework consumers.
 
 #### Domain API
 
@@ -437,6 +437,7 @@ Handles LMS data mismatches when course structure changes after learners have st
 |----------|----------|----------|
 | Invalid slide in `cmi.location` | Throws error | Reverts to slide 0 |
 | Missing assessment questions | Throws error | Filters out missing |
+| Fixed-order assessment questions inserted/removed/reordered mid-attempt | Restarts the attempt, warns (answers kept if questions were only appended) | Same |
 | Orphaned engagement/navigation data | Warns | Silently removes |
 | Schema version newer (downgrade) | Throws error | Resets to fresh state |
 | Schema version older (upgrade) | Runs migrations | Runs migrations |

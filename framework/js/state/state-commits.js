@@ -28,6 +28,62 @@ export class CommitScheduler {
         this._autoBatchSuspendDirty = false;
         this._inFlightCommit = null;
         this._retryDelayMs = AUTO_BATCH_DELAY_MS;
+
+        // While held, suspend_data is not written (native status, score and
+        // location still commit). Used to avoid overwriting unreadable LMS
+        // resume state until the learner makes new progress.
+        this._suspendHold = null;
+    }
+
+    /**
+     * Stops suspend_data writes until releaseSuspendHold() is called.
+     * @param {string} reason
+     */
+    holdSuspendData(reason) {
+        this._suspendHold = { reason };
+    }
+
+    releaseSuspendHold() {
+        if (!this._suspendHold) return;
+        logger.info(`[StateManager] Resuming suspend_data writes (held: ${this._suspendHold.reason})`);
+        this._suspendHold = null;
+    }
+
+    get isSuspendHeld() {
+        return this._suspendHold !== null;
+    }
+
+    /**
+     * Writes suspend_data without letting a failure block the LMS commit.
+     * Status, score and location are persisted natively, so an oversized or
+     * rejected suspend_data must never prevent commit/terminate.
+     * @returns {boolean} True if suspend_data was written
+     */
+    syncSuspendData() {
+        if (this._suspendHold) {
+            logger.debug(`[StateManager] suspend_data write skipped (held: ${this._suspendHold.reason})`);
+            return false;
+        }
+
+        try {
+            this._lms.setSuspendData(this._domains.state);
+            return true;
+        } catch (error) {
+            const overflow = error?.code === 'SUSPEND_DATA_OVERFLOW';
+            logger.error('[StateManager] suspend_data could not be written; committing status, score and location without it', {
+                domain: 'state',
+                operation: 'setSuspendData',
+                overflow,
+                error: error?.message,
+                stack: error?.stack
+            });
+            eventBus.emit('state:suspendDataFailed', {
+                error: error?.message,
+                overflow,
+                classification: classifyLmsError(error)
+            });
+            return false;
+        }
     }
 
     /**
@@ -107,7 +163,7 @@ export class CommitScheduler {
 
             logger.debug('[StateManager] Committing state:', stateSnapshot);
 
-            this._lms.setSuspendData(this._domains.state);
+            this.syncSuspendData();
             this._inFlightCommit = this._lms.commit();
             await this._inFlightCommit;
             logger.debug('[StateManager] State committed to LMS');
@@ -169,8 +225,10 @@ export class CommitScheduler {
         this._autoBatchSuspendDirty = false;
 
         try {
+            // A failed suspend_data write is retried on the next domain
+            // write; it must not block committing the native CMI values.
             if (needsSuspendSync) {
-                this._lms.setSuspendData(this._domains.state);
+                this.syncSuspendData();
             }
 
             this._inFlightCommit = this._lms.commit();

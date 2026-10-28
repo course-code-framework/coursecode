@@ -54,7 +54,8 @@
  *
  * Optional:
  * @property {function(): void} [ping] - Keep-alive ping
- * @property {function(): void} [emergencySave] - Synchronous emergency save using sendBeacon
+ * @property {function(): void} [emergencySave] - Synchronous best-effort save on pagehide that also ends
+ *   the session (SCORM: commit + Terminate; cmi5: pending outcomes + Terminated via keepalive)
  *
  * Optional xAPI (cmi5 only):
  * @property {function(Object): Promise<void>} [sendObjectiveStatement] - Send objective xAPI statement

@@ -25,6 +25,29 @@ import { logger } from '../utilities/logger.js';
 const STATE_ID_SUSPEND_DATA = 'https://w3id.org/xapi/cmi5/state/suspend_data';
 const STATE_ID_BOOKMARK = 'https://w3id.org/xapi/cmi5/state/bookmark';
 
+// cmi5-defined statement vocabulary (mirrors @xapi/cmi5) for unload-time statements
+const CMI5_CATEGORY = { id: 'https://w3id.org/xapi/cmi5/context/categories/cmi5' };
+const MOVE_ON_CATEGORY = { id: 'https://w3id.org/xapi/cmi5/context/categories/moveon' };
+const MASTERY_SCORE_EXTENSION = 'https://w3id.org/xapi/cmi5/context/extensions/masteryscore';
+const LIFECYCLE_VERBS = {
+    completed: { id: 'http://adlnet.gov/expapi/verbs/completed', display: { 'en-US': 'completed' } },
+    passed: { id: 'http://adlnet.gov/expapi/verbs/passed', display: { 'en-US': 'passed' } },
+    failed: { id: 'http://adlnet.gov/expapi/verbs/failed', display: { 'en-US': 'failed' } },
+    terminated: { id: 'http://adlnet.gov/expapi/verbs/terminated', display: { 'en-US': 'terminated' } }
+};
+
+// Browsers cap the combined body size of in-flight keepalive requests at 64KiB.
+const KEEPALIVE_BUDGET_BYTES = 60 * 1024;
+
+function byteLength(text) {
+    return typeof TextEncoder !== 'undefined' ? new TextEncoder().encode(text).length : text.length * 3;
+}
+
+function isClientRejection(error) {
+    const status = error?.response?.status ?? error?.status;
+    return Number.isInteger(status) && status >= 400 && status < 500;
+}
+
 function sanitizeInitializationMessage(message) {
     return String(message || 'Unknown cmi5 initialization error')
         .replace(/(https?:\/\/[^\s?#]+)\?[^\s)]+/gi, '$1?[redacted]')
@@ -120,6 +143,13 @@ export class Cmi5Driver extends HttpDriverBase {
         this._sentResult = false;
         this._sentSuccessStatus = null;
         this._outcomeDirty = false;
+        this._outcomeFlush = null;
+        this._resultSkipLogged = null;
+
+        // Outcome statements sent during an unload whose delivery could not be
+        // confirmed. If the LMS rejects the resend on the next launch as a
+        // duplicate, the outcome is treated as already recorded.
+        this._unconfirmedOutcomes = null;
     }
 
     // =========================================================================
@@ -253,9 +283,31 @@ export class Cmi5Driver extends HttpDriverBase {
             return this._terminateMock();
         }
 
+        // State and outcome failures are logged but must never prevent the
+        // Terminated statement: without it the LMS keeps the session open.
+        let persistError = null;
         try {
             await this._persistState();
+        } catch (error) {
+            persistError = error;
+            logger.error('[Cmi5Driver] Failed to persist state before termination:', error);
+        }
+
+        try {
             await this._flushOutcomeStatements();
+        } catch (error) {
+            logger.error('[Cmi5Driver] Failed to send outcome statements before termination; sending Terminated anyway:', error);
+        }
+
+        if (persistError) {
+            try {
+                await this._persistState();
+            } catch (error) {
+                logger.error('[Cmi5Driver] Retry of state persistence before termination failed:', error);
+            }
+        }
+
+        try {
             const returnURL = this._cmi5.getLaunchData?.()?.returnURL || null;
             await this._cmi5.terminate();
             logger.debug('[Cmi5Driver] Sent Terminated statement');
@@ -306,27 +358,101 @@ export class Cmi5Driver extends HttpDriverBase {
         const registration = params.registration;
         const activityId = encodeURIComponent(params.activityId);
         const agent = encodeURIComponent(JSON.stringify(params.actor));
-        const stateId = encodeURIComponent(STATE_ID_SUSPEND_DATA);
+        const stateUrl = stateId =>
+            `${endpoint}/activities/state?stateId=${encodeURIComponent(stateId)}&activityId=${activityId}&agent=${agent}&registration=${registration}`;
 
-        if (this._suspendDataDirty && this._suspendDataCache !== null) {
-            const suspendDataUrl = `${endpoint}/activities/state?stateId=${stateId}&activityId=${activityId}&agent=${agent}&registration=${registration}`;
-            this._sendAuthenticatedKeepalive(suspendDataUrl, this._suspendDataCache, authToken, 'suspend_data');
+        // Requests in priority order within the shared keepalive budget:
+        // pending Completed/Passed/Failed plus Terminated, then the
+        // bookmark, then suspend_data (the largest and least critical).
+        const requests = [];
+        const { statements, outcomes } = this._buildUnloadStatements(params);
+        requests.push({ label: 'statements', method: 'POST', url: `${endpoint}/statements`, body: JSON.stringify(statements) });
+
+        if (outcomes.complete || outcomes.result) {
+            this._unconfirmedOutcomes = outcomes;
+            this._bookmarkDirty = true;
         }
-
         if (this._bookmarkDirty) {
-            const bookmarkStateId = encodeURIComponent(STATE_ID_BOOKMARK);
-            const bookmarkUrl = `${endpoint}/activities/state?stateId=${bookmarkStateId}&activityId=${activityId}&agent=${agent}&registration=${registration}`;
-            const bookmarkData = {
-                location: this._bookmarkCache,
-                completionStatus: this._completionStatus,
-                successStatus: this._successStatus,
-                score: this._score,
-                sentComplete: this._sentComplete,
-                sentResult: this._sentResult,
-                sentSuccessStatus: this._sentSuccessStatus
-            };
-            this._sendAuthenticatedKeepalive(bookmarkUrl, bookmarkData, authToken, 'bookmark');
+            requests.push({ label: 'bookmark', method: 'PUT', url: stateUrl(STATE_ID_BOOKMARK), body: JSON.stringify(this._bookmarkState()) });
         }
+        if (this._suspendDataDirty && this._suspendDataCache !== null) {
+            requests.push({ label: 'suspend_data', method: 'PUT', url: stateUrl(STATE_ID_SUSPEND_DATA), body: JSON.stringify(this._suspendDataCache) });
+        }
+
+        let budget = KEEPALIVE_BUDGET_BYTES;
+        for (const request of requests) {
+            const size = byteLength(request.body);
+            const keepalive = size <= budget;
+            if (keepalive) {
+                budget -= size;
+            } else {
+                logger.warn(`[Cmi5Driver] Emergency save: ${request.label} (${size} bytes) exceeds the remaining keepalive budget; sending without keepalive`);
+            }
+            this._sendAuthenticatedUnloadRequest({ ...request, authToken, keepalive });
+        }
+
+        // Terminated has been sent; nothing more may be sent in this session.
+        this._isTerminated = true;
+    }
+
+    /**
+     * Builds the cmi5-defined statements still owed at unload, ending with
+     * Terminated. Mirrors the @xapi/cmi5 statement shapes.
+     * @returns {{ statements: object[], outcomes: { complete: boolean, result: string|null } }}
+     */
+    _buildUnloadStatements(params) {
+        const launchData = this._cmi5.getLaunchData?.() || {};
+        const initializedAt = this._cmi5.getInitializedDate?.();
+        const elapsedMs = initializedAt ? Date.now() - new Date(initializedAt).getTime() : 0;
+        const duration = `PT${Math.max(0, elapsedMs / 1000).toFixed(2)}S`;
+        const masteryScore = this._getMasteryScore();
+        const statements = [];
+        const outcomes = { complete: false, result: null };
+
+        const lifecycle = (verb, result, extra = {}) => {
+            const base = launchData.contextTemplate || {};
+            return {
+                ...(typeof crypto !== 'undefined' && crypto.randomUUID ? { id: crypto.randomUUID() } : {}),
+                actor: params.actor,
+                timestamp: new Date().toISOString(),
+                verb: LIFECYCLE_VERBS[verb],
+                object: { objectType: 'Activity', id: params.activityId },
+                result: { ...result, duration },
+                context: {
+                    ...base,
+                    registration: params.registration,
+                    contextActivities: {
+                        ...(base.contextActivities || {}),
+                        category: [
+                            ...(base.contextActivities?.category || []),
+                            CMI5_CATEGORY,
+                            ...(extra.moveOn ? [MOVE_ON_CATEGORY] : [])
+                        ]
+                    },
+                    ...(extra.masteryScore !== undefined
+                        ? { extensions: { ...(base.extensions || {}), [MASTERY_SCORE_EXTENSION]: extra.masteryScore } }
+                        : {})
+                }
+            };
+        };
+
+        if ((launchData.launchMode || 'Normal') === 'Normal') {
+            if (this._completionStatus === 'completed' && !this._sentComplete) {
+                statements.push(lifecycle('completed', { completion: true }, { moveOn: true }));
+                outcomes.complete = true;
+            }
+            const resultVerb = this._pendingResultVerb();
+            if (resultVerb) {
+                statements.push(lifecycle(resultVerb, {
+                    ...(this._score !== null ? { score: { scaled: this._score } } : {}),
+                    success: resultVerb === 'passed'
+                }, { moveOn: true, masteryScore: masteryScore ?? undefined }));
+                outcomes.result = resultVerb;
+            }
+        }
+
+        statements.push(lifecycle('terminated', {}));
+        return { statements, outcomes };
     }
 
     _navigateToReturnUrl(returnURL) {
@@ -470,9 +596,11 @@ export class Cmi5Driver extends HttpDriverBase {
             context: this._buildAllowedStatementContext(params)
         };
 
-        if (data.score !== undefined || data.duration || ['completed', 'passed', 'failed'].includes(data.verb)) {
+        // null/undefined/NaN mean "no score" — never report them as scaled 0.
+        const hasScore = Number.isFinite(data.score);
+        if (hasScore || data.duration || ['completed', 'passed', 'failed'].includes(data.verb)) {
             statement.result = {};
-            if (data.score !== undefined) {
+            if (hasScore) {
                 statement.result.score = { scaled: data.score };
             }
             if (data.duration) {
@@ -487,7 +615,7 @@ export class Cmi5Driver extends HttpDriverBase {
         }
 
         try {
-            await this._cmi5.sendXapiStatement(statement);
+            await this._cmi5.sendXapiStatement(this._withStatementIdentity(statement, data));
             logger.debug(`[Cmi5Driver] Sent objective statement: ${data.verb} for ${data.id}`);
         } catch (error) {
             logger.error('[Cmi5Driver] Failed to send objective statement:', error);
@@ -539,7 +667,8 @@ export class Cmi5Driver extends HttpDriverBase {
             },
             result: {
                 response: String(data.response),
-                success: data.correct
+                // Omitted for likert/survey/neutral responses where correctness does not apply
+                ...(typeof data.correct === 'boolean' ? { success: data.correct } : {})
             },
             context: this._buildAllowedStatementContext(params)
         };
@@ -560,8 +689,9 @@ export class Cmi5Driver extends HttpDriverBase {
         }
 
         try {
-            await this._cmi5.sendXapiStatement(statement);
-            logger.debug(`[Cmi5Driver] Sent interaction statement: ${data.id} (${data.correct ? 'correct' : 'incorrect'})`);
+            await this._cmi5.sendXapiStatement(this._withStatementIdentity(statement, data));
+            const outcome = typeof data.correct === 'boolean' ? (data.correct ? 'correct' : 'incorrect') : 'not scored';
+            logger.debug(`[Cmi5Driver] Sent interaction statement: ${data.id} (${outcome})`);
         } catch (error) {
             logger.error('[Cmi5Driver] Failed to send interaction statement:', error);
             throw error;
@@ -615,7 +745,7 @@ export class Cmi5Driver extends HttpDriverBase {
         }
 
         try {
-            await this._cmi5.sendXapiStatement(statement);
+            await this._cmi5.sendXapiStatement(this._withStatementIdentity(statement, data));
             logger.debug(`[Cmi5Driver] Sent assessment statement: ${data.id} (${data.passed ? 'passed' : 'failed'}) attempt ${data.attemptNumber}`);
         } catch (error) {
             logger.error('[Cmi5Driver] Failed to send assessment statement:', error);
@@ -658,7 +788,7 @@ export class Cmi5Driver extends HttpDriverBase {
         }
 
         try {
-            await this._cmi5.sendXapiStatement(statement);
+            await this._cmi5.sendXapiStatement(this._withStatementIdentity(statement, data));
             logger.debug(`[Cmi5Driver] Sent slide statement: experienced ${data.id} (${data.duration || 'no duration'})`);
         } catch (error) {
             logger.error('[Cmi5Driver] Failed to send slide statement:', error);
@@ -747,6 +877,7 @@ export class Cmi5Driver extends HttpDriverBase {
                     (this._sentResult && ['passed', 'failed'].includes(this._successStatus)
                         ? this._successStatus
                         : null);
+                this._unconfirmedOutcomes = bookmarkData.unconfirmedOutcomes || null;
                 logger.debug('[Cmi5Driver] Loaded bookmark from State API:', this._bookmarkCache);
             }
         } catch (error) {
@@ -760,27 +891,50 @@ export class Cmi5Driver extends HttpDriverBase {
         const params = this._cmi5.getLaunchParameters();
         const xapi = this._cmi5.xapi;
 
+        // Clear dirty flags before each request (snapshotting the payload) so a
+        // write made while the request is in flight stays dirty; re-set them
+        // if the request fails.
         if (this._suspendDataDirty && this._suspendDataCache !== null) {
+            const suspendData = this._suspendDataCache;
+            this._suspendDataDirty = false;
             try {
                 await xapi.setState({
                     agent: params.actor,
                     activityId: params.activityId,
                     stateId: STATE_ID_SUSPEND_DATA,
                     registration: params.registration,
-                    state: this._suspendDataCache
+                    state: suspendData
                 });
-                this._suspendDataDirty = false;
                 logger.debug('[Cmi5Driver] Persisted suspend_data');
             } catch (error) {
+                this._suspendDataDirty = true;
                 logger.error('[Cmi5Driver] Failed to persist suspend_data:', error);
                 throw error;
             }
         }
 
         if (this._bookmarkDirty) {
-            await this._persistBookmark();
             this._bookmarkDirty = false;
+            try {
+                await this._persistBookmark();
+            } catch (error) {
+                this._bookmarkDirty = true;
+                throw error;
+            }
         }
+    }
+
+    _bookmarkState() {
+        return {
+            location: this._bookmarkCache,
+            completionStatus: this._completionStatus,
+            successStatus: this._successStatus,
+            score: this._score,
+            sentComplete: this._sentComplete,
+            sentResult: this._sentResult,
+            sentSuccessStatus: this._sentSuccessStatus,
+            ...(this._unconfirmedOutcomes ? { unconfirmedOutcomes: this._unconfirmedOutcomes } : {})
+        };
     }
 
     async _persistBookmark() {
@@ -793,15 +947,7 @@ export class Cmi5Driver extends HttpDriverBase {
                 activityId: params.activityId,
                 stateId: STATE_ID_BOOKMARK,
                 registration: params.registration,
-                state: {
-                    location: this._bookmarkCache,
-                    completionStatus: this._completionStatus,
-                    successStatus: this._successStatus,
-                    score: this._score,
-                    sentComplete: this._sentComplete,
-                    sentResult: this._sentResult,
-                    sentSuccessStatus: this._sentSuccessStatus
-                }
+                state: this._bookmarkState()
             });
             logger.debug('[Cmi5Driver] Persisted bookmark');
         } catch (error) {
@@ -810,10 +956,20 @@ export class Cmi5Driver extends HttpDriverBase {
         }
     }
 
+    /**
+     * Persists sent flags immediately after a lifecycle statement succeeds so
+     * a later failure cannot cause a duplicate statement on the next launch.
+     * A failed write leaves the bookmark dirty for the next commit to retry
+     * without blocking the remaining outcome statements.
+     */
     async _persistSentFlags() {
-        this._bookmarkDirty = true;
-        await this._persistBookmark();
         this._bookmarkDirty = false;
+        try {
+            await this._persistBookmark();
+        } catch (error) {
+            this._bookmarkDirty = true;
+            logger.warn('[Cmi5Driver] Sent flags not yet persisted; will retry on next commit:', error?.message);
+        }
     }
 
     _buildAllowedStatementContext(params, additions = {}) {
@@ -845,19 +1001,85 @@ export class Cmi5Driver extends HttpDriverBase {
         };
     }
 
+    /**
+     * Applies a caller-supplied statement id and timestamp so a retried
+     * statement keeps its original identity and time instead of the retry's.
+     */
+    _withStatementIdentity(statement, data) {
+        if (data?.statementId) statement.id = data.statementId;
+        if (data?.timestamp) statement.timestamp = data.timestamp;
+        return statement;
+    }
+
     _activityObjectId(activityId, collection, itemId) {
         const base = String(activityId).replace(/\/$/, '');
         return `${base}/${collection}/${encodeURIComponent(String(itemId))}`;
     }
 
+    /**
+     * Mastery score from launch data, or null. Mirrors @xapi/cmi5, which treats
+     * any value that coerces to a number as a mastery score.
+     */
+    _getMasteryScore() {
+        const raw = this._cmi5?.getLaunchData?.()?.masteryScore;
+        if (raw === undefined || Number.isNaN(Number(raw))) return null;
+        return Number(raw);
+    }
+
+    /**
+     * Decides which result verb may be sent for the current success status.
+     * When the LMS supplies a masteryScore, cmi5 requires the AU to judge
+     * pass/fail against it (and @xapi/cmi5 refuses Passed below mastery), so
+     * the score decides. A Passed with no score cannot satisfy a mastery
+     * score, so nothing is sent until a score is reported; Failed needs no
+     * score.
+     * @returns {'passed'|'failed'|null}
+     */
+    _resolveResultVerb() {
+        if (!['passed', 'failed'].includes(this._successStatus)) return null;
+        const masteryScore = this._getMasteryScore();
+        if (masteryScore === null) return this._successStatus;
+
+        let verb;
+        if (this._score === null) {
+            verb = this._successStatus === 'failed' ? 'failed' : null;
+        } else {
+            verb = this._score >= masteryScore ? 'passed' : 'failed';
+        }
+
+        if (verb !== this._successStatus) {
+            const key = `${this._successStatus}:${this._score}:${masteryScore}`;
+            if (this._resultSkipLogged !== key) {
+                this._resultSkipLogged = key;
+                logger.warn(verb
+                    ? `[Cmi5Driver] Reported "${this._successStatus}" overridden to "${verb}": score ${this._score} vs masteryScore ${masteryScore}`
+                    : `[Cmi5Driver] Passed not sent: masteryScore ${masteryScore} requires a score but none was reported`);
+            }
+        }
+        return verb;
+    }
+
+    /** The result verb still owed to the LMS, or null. */
+    _pendingResultVerb() {
+        const verb = this._resolveResultVerb();
+        if (!verb) return null;
+        const pending = !this._sentResult ||
+            (this._sentSuccessStatus !== null && this._sentSuccessStatus !== verb);
+        return pending ? verb : null;
+    }
+
     async _flushOutcomeStatements() {
+        // Serialize flushes: a commit racing terminate must not send the
+        // same lifecycle statement twice.
+        const run = (this._outcomeFlush || Promise.resolve()).then(() => this._sendPendingOutcomes());
+        this._outcomeFlush = run.catch(() => {});
+        return run;
+    }
+
+    async _sendPendingOutcomes() {
         const pendingCompletion = this._completionStatus === 'completed' && !this._sentComplete;
-        const hasResult = ['passed', 'failed'].includes(this._successStatus);
-        const pendingResult = hasResult && (
-            !this._sentResult ||
-            (this._sentSuccessStatus !== null && this._sentSuccessStatus !== this._successStatus)
-        );
-        if (this._mock || !this._cmi5 || (!this._outcomeDirty && !pendingCompletion && !pendingResult)) return;
+        const resultVerb = this._mock || !this._cmi5 ? null : this._pendingResultVerb();
+        if (this._mock || !this._cmi5 || (!this._outcomeDirty && !pendingCompletion && !resultVerb)) return;
 
         const launchMode = this._cmi5.getLaunchData?.()?.launchMode || 'Normal';
         if (launchMode !== 'Normal') {
@@ -865,61 +1087,84 @@ export class Cmi5Driver extends HttpDriverBase {
             return;
         }
 
-        let changed = false;
-        if (this._completionStatus === 'completed' && !this._sentComplete) {
-            await this._cmi5.complete();
-            this._sentComplete = true;
-            changed = true;
-            logger.debug('[Cmi5Driver] Sent Completed statement');
-        }
-
-        if (pendingResult) {
-            const scoreObj = this._score !== null ? { scaled: this._score } : undefined;
-            if (this._successStatus === 'passed') {
-                await this._cmi5.pass(scoreObj);
-                this._sentResult = true;
-                this._sentSuccessStatus = 'passed';
-                changed = true;
-                logger.debug('[Cmi5Driver] Sent Passed statement');
-            } else if (this._successStatus === 'failed') {
-                await this._cmi5.fail(scoreObj);
-                this._sentResult = true;
-                this._sentSuccessStatus = 'failed';
-                changed = true;
-                logger.debug('[Cmi5Driver] Sent Failed statement');
-            }
-        }
-
         this._outcomeDirty = false;
-        if (changed) await this._persistSentFlags();
+        try {
+            if (pendingCompletion) {
+                await this._sendLifecycleStatement('complete', () => this._cmi5.complete());
+                this._sentComplete = true;
+                logger.debug('[Cmi5Driver] Sent Completed statement');
+                await this._persistSentFlags();
+            }
+
+            if (resultVerb) {
+                const scoreObj = this._score !== null ? { scaled: this._score } : undefined;
+                await this._sendLifecycleStatement('result', () => (resultVerb === 'passed'
+                    ? this._cmi5.pass(scoreObj)
+                    : this._cmi5.fail(scoreObj)), resultVerb);
+                this._sentResult = true;
+                this._sentSuccessStatus = resultVerb;
+                logger.debug(`[Cmi5Driver] Sent ${resultVerb === 'passed' ? 'Passed' : 'Failed'} statement`);
+                await this._persistSentFlags();
+            }
+        } catch (error) {
+            this._outcomeDirty = true;
+            throw error;
+        }
     }
 
-    _sendAuthenticatedKeepalive(url, state, authToken, label) {
+    /**
+     * Sends one lifecycle statement. When an unload-time send of the same
+     * outcome could not be confirmed and the LMS now rejects the resend, the
+     * earlier statement is assumed recorded rather than failing every commit.
+     */
+    async _sendLifecycleStatement(kind, send, verb = null) {
+        try {
+            await send();
+        } catch (error) {
+            const unconfirmed = kind === 'complete'
+                ? this._unconfirmedOutcomes?.complete === true
+                : this._unconfirmedOutcomes?.result === verb;
+            if (!unconfirmed || !isClientRejection(error)) throw error;
+            logger.warn(`[Cmi5Driver] LMS rejected resend of unload-time ${kind} statement; treating it as already recorded`);
+        }
+        if (this._unconfirmedOutcomes) {
+            const remaining = { ...this._unconfirmedOutcomes, [kind]: kind === 'complete' ? false : null };
+            this._unconfirmedOutcomes = remaining.complete || remaining.result ? remaining : null;
+        }
+    }
+
+    _sendAuthenticatedUnloadRequest({ url, method, body, authToken, label, keepalive }) {
         const authorization = /^(Basic|Bearer)\s/i.test(authToken)
             ? authToken
             : `Basic ${authToken}`;
-        fetch(url, {
-            method: 'PUT',
-            headers: {
-                'Authorization': authorization,
-                'X-Experience-API-Version': '1.0.3',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(state),
-            keepalive: true
-        }).then(response => {
-            if (!response.ok) {
-                throw new Error(`${response.status} ${response.statusText || ''}`.trim());
-            }
-            logger.debug(`[Cmi5Driver] Emergency save: ${label} persisted`);
-        }).catch(error => {
-            logger.error(`[Cmi5Driver] Emergency save failed for ${label}`, {
-                domain: 'cmi5',
-                operation: 'emergencySave',
-                label,
-                error: error.message,
-                stack: error.stack
-            });
+        try {
+            fetch(url, {
+                method,
+                headers: {
+                    'Authorization': authorization,
+                    'X-Experience-API-Version': '1.0.3',
+                    'Content-Type': 'application/json'
+                },
+                body,
+                keepalive
+            }).then(response => {
+                if (!response.ok) {
+                    throw new Error(`${response.status} ${response.statusText || ''}`.trim());
+                }
+                logger.debug(`[Cmi5Driver] Emergency save: ${label} persisted`);
+            }).catch(error => this._logUnloadFailure(label, error));
+        } catch (error) {
+            this._logUnloadFailure(label, error);
+        }
+    }
+
+    _logUnloadFailure(label, error) {
+        logger.error(`[Cmi5Driver] Emergency save failed for ${label}`, {
+            domain: 'cmi5',
+            operation: 'emergencySave',
+            label,
+            error: error?.message,
+            stack: error?.stack
         });
     }
 

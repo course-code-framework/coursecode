@@ -67,7 +67,7 @@ A complete guide to creating interactive e-learning courses with AI assistance. 
 ### What You'll Need
 
 **Required:**
-- [Node.js](https://nodejs.org/) (version 20.19 or later)
+- [Node.js](https://nodejs.org/) (version 22.15 or later)
 
 **Recommended:**
 - A text editor like [VS Code](https://code.visualstudio.com/) or [Notepad++](https://notepad-plus-plus.org/)
@@ -632,8 +632,9 @@ coursecode preview --export --nojekyll
 coursecode preview --export --no-content
 ```
 
-- `-o, --output`: choose output folder
-- `-p, --password`: add password protection to shared preview
+- `-o, --output`: choose output folder. The export replaces this folder, so it must be new, empty, or a previous preview export (refuses the project root, `course/`, `dist/`, your home directory, etc.)
+- `--force`: replace a non-empty output folder that is not a previous preview export
+- `-p, --password`: add a soft password gate to the shared preview. This only hides the player UI: the course files are still published alongside it and can be downloaded directly, so do not rely on it to protect confidential content
 - `--skip-build`: export from existing `dist/` without rebuilding
 - `--nojekyll`: add `.nojekyll` (important for GitHub Pages)
 - `--no-content`: hide the content viewer panel in exported preview

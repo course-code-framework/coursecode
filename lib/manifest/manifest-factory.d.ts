@@ -6,5 +6,9 @@ export function generateManifest(
 ): { filename: string; content: string }
 
 export function getSchemaFiles(
-  format: 'scorm2004' | 'scorm1.2' | 'scorm1.2-proxy' | 'scorm2004-proxy' | 'cmi5' | 'lti'
+  format: 'scorm2004' | 'scorm1.2' | 'scorm1.2-proxy' | 'scorm2004-proxy' | 'cmi5' | 'cmi5-remote' | 'lti'
 ): string[]
+
+export const PREVIEW_ONLY_BUILD_FILES: readonly string[]
+
+export function isPreviewOnlyBuildFile(relativePath: string): boolean

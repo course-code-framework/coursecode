@@ -4,7 +4,8 @@
  * Extends ScormDriverBase for shared pipwerks initialization and connection management.
  *
  * Handles communication with the LMS API and element mapping from 2004 to 1.2.
- * Implements Strict Diet Mode to stay within 4KB suspend_data limit.
+ * Implements Strict Diet Mode with progressive trimming tiers to stay within
+ * the 4KB suspend_data limit.
  *
  * Uses the industry-standard pipwerks SCORM wrapper for battle-tested
  * API discovery across complex iframe/opener hierarchies.
@@ -15,6 +16,13 @@ import { eventBus } from '../core/event-bus.js';
 import { logger } from '../utilities/logger.js';
 import LZString from 'lz-string';
 import { serializeInteractionForScorm12 } from '../validation/scorm-validators.js';
+import {
+    SUSPEND_DATA_OVERFLOW,
+    SUSPEND_DATA_CORRUPT,
+    SUSPEND_TRIM_TIERS,
+    trimSuspendState,
+    createSuspendOverflowError
+} from './suspend-data-trimming.js';
 
 const SCORM12_SUSPEND_PREFIX = 'CC12:';
 
@@ -112,17 +120,41 @@ function convertTimestamp2004To12(timestamp) {
     return match ? `${match[1]}:${match[2]}:${match[3]}` : '00:00:00';
 }
 
+const SCORM12_SUSPEND_LIMIT = 4096;
+
 /**
  * Produces the compact suspend-data representation used by SCORM 1.2.
- * Version 2 is lossless: the previous diet silently discarded objective,
- * engagement, response, metadata, and extension-domain state on every save.
+ * Version 2 keeps every resume-relevant domain (the previous diet silently
+ * discarded objective, engagement, response, metadata, and extension-domain
+ * state on every save). Higher tiers trim progressively more optional data.
  */
-function createScorm12DietState(fullState, currentSlide = null) {
-    const state = { ...fullState };
-    if (fullState.navigation && currentSlide) {
-        state.navigation = { ...fullState.navigation, currentSlide };
+function createScorm12DietState(fullState, currentSlide = null, tier = 0) {
+    const lastTier = Math.min(Math.max(tier, 0), SUSPEND_TRIM_TIERS.length - 1);
+    const state = trimSuspendState(fullState, lastTier);
+    if (state.navigation && currentSlide) {
+        state.navigation = { ...state.navigation, currentSlide };
     }
-    return { v: 2, s: state };
+    return lastTier > 0 ? { v: 2, s: state, t: lastTier } : { v: 2, s: state };
+}
+
+/**
+ * Encodes suspend_data using the least aggressive trimming tier that fits.
+ * @returns {{ encoded: string, tier: number, tierName: string, untrimmedLength: number }}
+ * @throws {Error} code SUSPEND_DATA_OVERFLOW when even resume-core state is too large
+ */
+function encodeScorm12SuspendStateWithinLimit(fullState, currentSlide = null, limit = SCORM12_SUSPEND_LIMIT) {
+    let untrimmedLength = null;
+    let length = 0;
+    for (let tier = 0; tier < SUSPEND_TRIM_TIERS.length; tier++) {
+        const encoded = encodeScorm12SuspendState(createScorm12DietState(fullState, currentSlide, tier));
+        length = encoded.length;
+        if (untrimmedLength === null) untrimmedLength = length;
+        if (length <= limit) {
+            return { encoded, tier, tierName: SUSPEND_TRIM_TIERS[tier].name, untrimmedLength };
+        }
+    }
+
+    throw createSuspendOverflowError('SCORM 1.2', length, limit);
 }
 
 function expandScorm12DietState(dietState) {
@@ -449,7 +481,9 @@ export class Scorm12Driver extends ScormDriverBase {
             return this._expandDietState(parsed);
         } catch (error) {
             logger.error('[Scorm12Driver] Failed to decode suspend_data:', error);
-            throw new Error(`SCORM 1.2 resume state cannot be safely restored: ${error.message}`);
+            const corruptError = new Error(`SCORM 1.2 resume state cannot be safely restored: ${error.message}`);
+            corruptError.code = SUSPEND_DATA_CORRUPT;
+            throw corruptError;
         }
     }
 
@@ -458,23 +492,32 @@ export class Scorm12Driver extends ScormDriverBase {
             throw new Error('Cannot set suspend data: data is null or undefined');
         }
 
-        // STRICT DIET MODE: Always prune, never adaptive
-        const dietData = createScorm12DietState(data, this._cache.bookmark || null);
-
-        const compressed = encodeScorm12SuspendState(dietData);
-
-        const compressedSizeKB = (compressed.length / 1024).toFixed(2);
-        logger.debug(`[Scorm12Driver] Diet suspend_data: ${compressedSizeKB}KB compressed`);
-
-        if (compressed.length > 4000) {
-            logger.error(`[Scorm12Driver] ⚠️ CRITICAL: Strict diet still exceeds 4KB! (${compressedSizeKB}KB)`);
-            eventBus.emit('suspend-data:critical', { bytes: compressed.length, format: 'scorm1.2' });
-        }
-        if (compressed.length > 4096) {
-            throw new Error(`SCORM 1.2 suspend_data exceeds the 4096-character limit (${compressed.length})`);
+        let result;
+        try {
+            result = encodeScorm12SuspendStateWithinLimit(data, this._cache.bookmark || null);
+        } catch (error) {
+            if (error.code === SUSPEND_DATA_OVERFLOW) {
+                logger.error(`[Scorm12Driver] CRITICAL: suspend_data does not fit in ${error.limit} characters even after trimming (${error.bytes}); previous suspend_data is kept`);
+                eventBus.emit('suspend-data:critical', { bytes: error.bytes, limit: error.limit, format: 'scorm1.2' });
+            }
+            throw error;
         }
 
-        this._rawSet('cmi.suspend_data', compressed);
+        const { encoded, tier, tierName, untrimmedLength } = result;
+        logger.debug(`[Scorm12Driver] Diet suspend_data: ${(encoded.length / 1024).toFixed(2)}KB compressed (tier ${tierName})`);
+
+        if (tier > 0) {
+            logger.warn(`[Scorm12Driver] suspend_data trimmed to tier "${tierName}" to fit the ${SCORM12_SUSPEND_LIMIT}-character limit (${untrimmedLength} → ${encoded.length})`);
+            eventBus.emit('suspend-data:warning', {
+                bytes: encoded.length,
+                untrimmedBytes: untrimmedLength,
+                limit: SCORM12_SUSPEND_LIMIT,
+                trimTier: tierName,
+                format: 'scorm1.2'
+            });
+        }
+
+        this._rawSet('cmi.suspend_data', encoded);
         return true;
     }
 
@@ -482,8 +525,8 @@ export class Scorm12Driver extends ScormDriverBase {
     // Strict Diet Mode Implementation
     // =========================================================================
 
-    _createDietState(fullState) {
-        return createScorm12DietState(fullState, this._cache.bookmark || null);
+    _createDietState(fullState, tier = 0) {
+        return createScorm12DietState(fullState, this._cache.bookmark || null, tier);
     }
 
     _expandDietState(dietState) {
@@ -639,5 +682,8 @@ export {
     createScorm12DietState,
     expandScorm12DietState,
     encodeScorm12SuspendState,
-    decodeScorm12SuspendState
+    encodeScorm12SuspendStateWithinLimit,
+    decodeScorm12SuspendState,
+    SCORM12_SUSPEND_LIMIT,
+    SUSPEND_DATA_OVERFLOW
 };

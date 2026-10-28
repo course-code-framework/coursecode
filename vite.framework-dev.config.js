@@ -60,6 +60,9 @@ async function loadCourseConfig() {
   const lmsFormat = process.env.LMS_FORMAT || config.format || 'cmi5';
   return {
     title: config.metadata?.title || 'SCORM Course',
+    // Stable package/course identifier (SCORM manifest ID, cmi5 course IRI).
+    // When omitted, it is derived from the title.
+    identifier: config.metadata?.identifier || null,
     description: config.metadata?.description || 'SCORM 2004 4th Edition Course',
     version: config.metadata?.version || '1.0.0',
     author: config.metadata?.author || 'Unknown',

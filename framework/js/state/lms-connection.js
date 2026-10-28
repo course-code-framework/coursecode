@@ -55,6 +55,11 @@ class LMSConnection {
         // Compatibility profile (influences timeout behavior and guardrails)
         this.compatibilityMode = 'auto';
 
+        // The actual driver commit/terminate promise. A timeout rejects the
+        // caller but cannot cancel the request, so the next operation chains
+        // after this instead of overlapping it.
+        this._activeOperation = null;
+
         // Operation diagnostics
         this.diagnostics = {
             profile: 'balanced',
@@ -148,7 +153,11 @@ class LMSConnection {
         const driver = this._getDriver();
         const timeoutMs = this._getOperationTimeoutMs('terminate');
         try {
-            const result = await this._withTimeout(driver.terminate(), timeoutMs, 'terminate');
+            const result = await this._withTimeout(
+                this._runSerialized(() => driver.terminate()),
+                timeoutMs,
+                'terminate'
+            );
             this._markOperationSuccess('terminate');
             return result;
         } catch (error) {
@@ -238,7 +247,12 @@ class LMSConnection {
     async commit() {
         const timeoutMs = this._getOperationTimeoutMs('commit');
         try {
-            const result = await this._withTimeout(this._getDriver().commit(), timeoutMs, 'commit');
+            const driver = this._getDriver();
+            const result = await this._withTimeout(
+                this._runSerialized(() => driver.commit()),
+                timeoutMs,
+                'commit'
+            );
             this._markOperationSuccess('commit');
             return result;
         } catch (error) {
@@ -341,7 +355,11 @@ class LMSConnection {
                 });
             }
 
-            // Use the driver's best-effort unload transport when available.
+            // The driver finishes the session with its synchronous/keepalive
+            // unload transport: SCORM drivers commit and Terminate/LMSFinish
+            // synchronously; cmi5 flushes pending outcome statements plus
+            // Terminated; LTI flushes the pending grade. A concurrent async
+            // terminate() is coalesced because the driver reports terminated.
             if (this.driver?.emergencySave) {
                 try {
                     this.driver.emergencySave();
@@ -355,12 +373,13 @@ class LMSConnection {
                         stack: error.stack
                     });
                 }
+                if (this.isTerminated) this._stopKeepAlive();
                 return;
             }
 
-            // For SCORM formats, use synchronous exitCourseWithSuspend
+            // Fallback for drivers without an unload transport. Browsers do
+            // not wait for this to settle, so it is best-effort only.
             try {
-                // Delegate to StateManager to save exit status
                 const exitPromise = stateManager.exitCourseWithSuspend();
                 if (exitPromise && typeof exitPromise.catch === 'function') {
                     exitPromise.catch(error => {
@@ -443,6 +462,25 @@ class LMSConnection {
 
         const profileTimeouts = timeoutMatrix[profile] || timeoutMatrix.balanced;
         return profileTimeouts[operation] || 8000;
+    }
+
+    /**
+     * Starts a driver operation once any previous one has settled. The
+     * operation starts synchronously when nothing is in flight.
+     * @param {function(): Promise<any>} operation
+     * @returns {Promise<any>} The operation's own promise (not the timeout)
+     */
+    _runSerialized(operation) {
+        const previous = this._activeOperation;
+        const run = previous
+            ? previous.then(() => operation())
+            : new Promise(resolve => resolve(operation()));
+        const tracked = run.then(() => {}, () => {});
+        this._activeOperation = tracked;
+        tracked.then(() => {
+            if (this._activeOperation === tracked) this._activeOperation = null;
+        });
+        return run;
     }
 
     async _withTimeout(promise, timeoutMs, operation) {

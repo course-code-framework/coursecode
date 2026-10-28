@@ -11,17 +11,28 @@
  */
 
 import { logger } from '../utilities/logger.js';
-import LZString from 'lz-string';
+import { eventBus } from '../core/event-bus.js';
 import {
     mapStatusTo12,
     mapObjectiveStatusTo12,
     convertTimeFormat2004To12,
     convertTimestamp2004To12,
-    createScorm12DietState,
     expandScorm12DietState,
-    encodeScorm12SuspendState,
-    decodeScorm12SuspendState
+    encodeScorm12SuspendStateWithinLimit,
+    decodeScorm12SuspendState,
+    SUSPEND_DATA_OVERFLOW
 } from './scorm-12-driver.js';
+import {
+    encodeScorm2004SuspendState,
+    decodeScorm2004SuspendState,
+    SCORM2004_SUSPEND_LIMIT
+} from './scorm-2004-driver.js';
+import {
+    SUSPEND_DATA_CORRUPT,
+    SUSPEND_TRIM_TIERS,
+    trimSuspendState,
+    createSuspendOverflowError
+} from './suspend-data-trimming.js';
 import { serializeInteractionForScorm12 } from '../validation/scorm-validators.js';
 
 // Message timeout (ms) — if proxy doesn't respond, something is wrong
@@ -62,6 +73,7 @@ export class ProxyDriver {
         this._handshake = null;
 
         this._suspendDataCache = null;
+        this._suspendDataError = null;
 
         this._handleMessage = this._handleMessage.bind(this);
         this._isListening = false;
@@ -400,24 +412,39 @@ export class ProxyDriver {
 
     getSuspendData() {
         this._ensureConnected();
+        if (this._suspendDataError) throw this._suspendDataError;
         return this._suspendDataCache;
     }
 
     setSuspendData(data) {
         this._ensureConnected();
-        const state = this._baseFormat === 'scorm1.2'
-            ? createScorm12DietState(data, this._cache.bookmark || null)
-            : data;
-        const value = this._isScorm12()
-            ? encodeScorm12SuspendState(state)
-            : LZString.compressToUTF16(JSON.stringify(state));
-        const limit = this._baseFormat === 'scorm1.2' ? 4096 : 64000;
-        if (value.length > limit) {
-            throw new Error(`${this.getFormat()} suspend_data exceeds the ${limit}-character limit (${value.length})`);
+        let value;
+        try {
+            value = this._isScorm12()
+                ? encodeScorm12SuspendStateWithinLimit(data, this._cache.bookmark || null).encoded
+                : this._encodeScorm2004WithinLimit(data);
+        } catch (error) {
+            if (error.code === SUSPEND_DATA_OVERFLOW) {
+                logger.error(`ProxyDriver: ${error.message}; previous suspend_data is kept`);
+                eventBus.emit('suspend-data:critical', { bytes: error.bytes, limit: error.limit, format: this.getFormat() });
+            }
+            throw error;
         }
         this._sendSetValue('cmi.suspend_data', value);
         this._suspendDataCache = data;
+        this._suspendDataError = null;
         return true;
+    }
+
+    _encodeScorm2004WithinLimit(data) {
+        let value = encodeScorm2004SuspendState(data);
+        for (let tier = 0; value.length > SCORM2004_SUSPEND_LIMIT && tier < SUSPEND_TRIM_TIERS.length; tier++) {
+            value = encodeScorm2004SuspendState(trimSuspendState(data, tier));
+        }
+        if (value.length > SCORM2004_SUSPEND_LIMIT) {
+            throw createSuspendOverflowError('SCORM 2004', value.length, SCORM2004_SUSPEND_LIMIT);
+        }
+        return value;
     }
 
     // =========================================================================
@@ -547,10 +574,14 @@ export class ProxyDriver {
             try {
                 const parsed = is12
                     ? decodeScorm12SuspendState(results.suspendData)
-                    : JSON.parse(LZString.decompressFromUTF16(results.suspendData));
+                    : decodeScorm2004SuspendState(results.suspendData);
                 this._suspendDataCache = is12 ? expandScorm12DietState(parsed) : parsed;
             } catch (error) {
-                throw new Error(`ProxyDriver: Resume state cannot be safely restored: ${error.message}`);
+                // Surfaced through getSuspendData() so state hydration can
+                // start fresh without overwriting the unreadable LMS value.
+                this._suspendDataError = new Error(`ProxyDriver: Resume state cannot be safely restored: ${error.message}`);
+                this._suspendDataError.code = SUSPEND_DATA_CORRUPT;
+                logger.error(this._suspendDataError.message);
             }
         }
 

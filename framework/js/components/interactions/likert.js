@@ -135,6 +135,10 @@ export function createLikertQuestion(config) {
     }
 
     let _container = null;
+    // setResponse() re-renders into the same container; keep a reference so the
+    // previous click handler is removed instead of stacking.
+    let _clickHandler = null;
+    let _clickHandlerContainer = null;
 
     const questionObj = {
         id,
@@ -146,7 +150,7 @@ export function createLikertQuestion(config) {
 
             // Parse initial response
             const initialValue = normalizeInitialResponse(initialResponse);
-            const initialAnswers = typeof initialValue === 'object' ? initialValue : {};
+            const initialAnswers = initialValue && typeof initialValue === 'object' ? initialValue : {};
 
             let html = `
                 <div class="interaction likert" data-interaction-id="${id}">
@@ -179,7 +183,8 @@ export function createLikertQuestion(config) {
                 `;
 
                 scale.forEach(option => {
-                    const isChecked = initialAnswers[q.id] === option.value;
+                    // Responses read back from the DOM are strings; scale values may be numbers
+                    const isChecked = initialAnswers[q.id] !== undefined && String(initialAnswers[q.id]) === String(option.value);
                     const inputId = `likert-${id}-${q.id}-${option.value}`;
 
                     html += `
@@ -209,8 +214,13 @@ export function createLikertQuestion(config) {
 
             container.innerHTML = html;
 
-            // Attach standard interaction handlers
-            container.addEventListener('click', createInteractionEventHandler(questionObj, config));
+            // Attach standard interaction handlers (replacing any from a previous render)
+            if (_clickHandler && _clickHandlerContainer) {
+                _clickHandlerContainer.removeEventListener('click', _clickHandler);
+            }
+            _clickHandler = createInteractionEventHandler(questionObj, config);
+            _clickHandlerContainer = container;
+            container.addEventListener('click', _clickHandler);
         },
 
         getResponse: () => {
@@ -242,7 +252,7 @@ export function createLikertQuestion(config) {
             if (correctAnswers) {
                 let correctCount = 0;
                 Object.entries(correctAnswers).forEach(([qId, correctVal]) => {
-                    if (responses[qId] !== correctVal) {
+                    if (responses[qId] === undefined || String(responses[qId]) !== String(correctVal)) {
                         isCorrect = false;
                     } else {
                         correctCount++;

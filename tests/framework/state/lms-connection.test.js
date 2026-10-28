@@ -161,4 +161,76 @@ describe('LMSConnection diagnostics and compatibility', () => {
             })
         );
     });
+
+    it('does not start an overlapping commit after a timeout while the first request still runs', async () => {
+        const conn = new LMSConnection();
+        conn.format = 'scorm2004';
+        conn.setCompatibilityMode('strict-scorm12'); // commit timeout 5s
+        let releaseFirst;
+        const commit = vi.fn()
+            .mockImplementationOnce(() => new Promise(resolve => { releaseFirst = resolve; }))
+            .mockResolvedValue(true);
+        conn.driver = createDriverStub({ commit });
+
+        const first = conn.commit();
+        first.catch(() => {});
+        await vi.advanceTimersByTimeAsync(5001);
+        await expect(first).rejects.toThrow(/timed out/i);
+
+        const second = conn.commit();
+        await vi.advanceTimersByTimeAsync(10);
+        expect(commit).toHaveBeenCalledTimes(1);
+
+        releaseFirst(true);
+        await expect(second).resolves.toBe(true);
+        expect(commit).toHaveBeenCalledTimes(2);
+    });
+
+    it('chains terminate after an in-flight commit', async () => {
+        const conn = new LMSConnection();
+        conn.format = 'cmi5';
+        const order = [];
+        let releaseCommit;
+        conn.driver = createDriverStub({
+            commit: vi.fn(() => new Promise(resolve => { releaseCommit = () => { order.push('commit'); resolve(true); }; })),
+            terminate: vi.fn(async () => { order.push('terminate'); return true; })
+        });
+
+        const committing = conn.commit();
+        const terminating = conn.terminate();
+        await vi.advanceTimersByTimeAsync(0);
+        expect(conn.driver.terminate).not.toHaveBeenCalled();
+
+        releaseCommit();
+        await committing;
+        await terminating;
+        expect(order).toEqual(['commit', 'terminate']);
+    });
+
+    it('finishes the session through the driver unload transport on pagehide', () => {
+        const addEventListener = vi.fn();
+        vi.stubGlobal('window', { addEventListener });
+        vi.spyOn(stateManager, 'prepareEmergencySave').mockImplementation(() => {});
+        const exitSpy = vi.spyOn(stateManager, 'exitCourseWithSuspend');
+
+        let terminated = false;
+        const conn = new LMSConnection();
+        conn.format = 'scorm1.2';
+        conn.driver = createDriverStub({
+            emergencySave: vi.fn(() => { terminated = true; }),
+            isTerminated: vi.fn(() => terminated)
+        });
+        conn.keepAliveInterval = setInterval(() => {}, 1000);
+        conn.setupLifecycleHandlers();
+
+        const pagehideHandler = addEventListener.mock.calls.find(([event]) => event === 'pagehide')[1];
+        pagehideHandler();
+        pagehideHandler();
+
+        expect(stateManager.prepareEmergencySave).toHaveBeenCalledOnce();
+        expect(conn.driver.emergencySave).toHaveBeenCalledOnce();
+        expect(conn.keepAliveInterval).toBeNull();
+        expect(exitSpy).not.toHaveBeenCalled();
+    });
 });
+

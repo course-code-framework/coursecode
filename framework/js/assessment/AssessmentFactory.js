@@ -12,9 +12,11 @@ import stateManager from '../state/index.js';
 import { createAssessmentState } from './AssessmentState.js';
 import { createAssessmentUI } from './AssessmentUI.js';
 import { createAssessmentActions } from './AssessmentActions.js';
+import { buildResultsActionButton } from './assessment-results.js';
 import { shuffleArray } from '../utilities/utilities.js';
 import * as AppUI from '../app/AppUI.js';
 import { getVisitedSlides } from '../navigation/NavigationState.js';
+import { computeQuestionSetPrefixSignatures, computeQuestionSetSignature } from './question-set-signature.js';
 
 // Import from the central interaction type catalog
 // This provides unified access to built-in and custom interaction types
@@ -287,6 +289,83 @@ export function createAssessmentInstance(config) {
     }
 
     /**
+     * Fixed-order (non-randomized) assessments key in-progress responses by
+     * question index without persisting the question order. The session keeps
+     * a compact signature of that order instead; this verifies it on resume so
+     * a course update that inserted, removed, reordered or retyped questions
+     * can never score a saved answer against a different question.
+     *
+     * - Signature matches: resume as-is.
+     * - No signature (session saved before signatures existed): assume the
+     *   question set is unchanged, as before, and stamp the current signature.
+     * - Questions only appended after the stored set: every stored index still
+     *   refers to the same question, so resume and re-stamp.
+     * - Anything else: the stored data can't map answers to questions, so the
+     *   in-progress attempt restarts at the intro. Attempt number, attempt
+     *   counts and submitted results (summary) are preserved.
+     *
+     * State mutations apply synchronously; only persistence is fire-and-forget.
+     * @param {Array} questions - The questions this instance renders, in order
+     */
+    function _reconcileFixedQuestionSet(questions) {
+        if (!assessmentState.hasActiveAttempt()) return;
+
+        const logFailure = error => {
+            logger.error(`Failed to persist question set signature: ${error.message}`, {
+                domain: 'assessment', operation: 'reconcile-question-set', assessmentId, stack: error.stack
+            });
+        };
+
+        const prefixSignatures = computeQuestionSetPrefixSignatures(questions);
+        const currentSignature = computeQuestionSetSignature(questions);
+        const storedSignature = assessmentState.getQuestionSetSignature();
+
+        if (storedSignature === currentSignature) return;
+
+        if (storedSignature === null) {
+            assessmentState.setQuestionSetSignature(currentSignature).catch(logFailure);
+            return;
+        }
+
+        const session = assessmentState.getSession() || {};
+        const storedCount = prefixSignatures.indexOf(storedSignature) + 1;
+        const responseIndices = Object.keys(session.responses || {}).map(Number);
+        const notStarted = responseIndices.length === 0 && (session.currentView || 'intro') === 'intro';
+        if (notStarted) {
+            // Nothing recorded against the old questions yet
+            assessmentState.setQuestionSetSignature(currentSignature).catch(logFailure);
+            return;
+        }
+
+        const isAppendOnly = storedCount > 0 &&
+            responseIndices.every(index => Number.isInteger(index) && index >= 0 && index < storedCount);
+        if (isAppendOnly) {
+            logger.info(`[AssessmentFactory:${assessmentId}] ${questions.length - storedCount} question(s) were appended since this attempt started; keeping saved answers.`);
+            assessmentState.setQuestionSetSignature(currentSignature).catch(logFailure);
+            return;
+        }
+
+        const message = `Assessment "${assessmentId}" questions were added, removed or reordered since the learner started this attempt. ` +
+            'Saved answers cannot be matched to questions, so the in-progress attempt was restarted.';
+        logger.warn(`[AssessmentFactory] ${message}`);
+        eventBus.emit('state:recovered', {
+            domain: 'assessment',
+            message,
+            context: { assessmentId, storedSignature, currentSignature },
+            action: 'restarted_changed_assessment'
+        });
+        assessmentState.updateSession({
+            currentView: 'intro',
+            currentQuestionIndex: 0,
+            startTime: null,
+            submitted: false,
+            responses: {},
+            reviewReached: false,
+            qsig: currentSignature
+        }, 'assessment-state:course-update').catch(logFailure);
+    }
+
+    /**
      * Helper to get all available questions from either banks or direct questions array
      */
     function _getAllAvailableQuestions() {
@@ -325,7 +404,6 @@ export function createAssessmentInstance(config) {
 
         // Load persisted state
         let summary = assessmentState.getSummary();
-        const session = assessmentState.getSession();
 
         // Initialize summary if this is first time rendering (fire-and-forget)
         if (!summary) {
@@ -335,6 +413,34 @@ export function createAssessmentInstance(config) {
             // Use optimistic local value until persist completes
             summary = { attempts: 0 };
         }
+
+        // Returning from remedial content after a failed attempt starts the
+        // next attempt (Intro screen). This must happen BEFORE questions are
+        // resolved so a randomized assessment draws a new selection, and it
+        // persists a real new-attempt session so a reload doesn't fall back to
+        // the old results. An attempt already in progress is left alone.
+        // We don't increment attempts here; submit does that.
+        const fromSlide = context.fromSlide;
+        const remedialSlideIds = config.settings?.remedialSlideIds || [];
+        const isReturningFromRemedial = fromSlide && remedialSlideIds.includes(fromSlide);
+        if (isReturningFromRemedial && summary?.lastResults && !summary.lastResults.passed && !assessmentState.hasActiveAttempt()) {
+            const reselect = config.settings?.randomizeOnRetake !== false &&
+                Boolean(config.questionBanks || config.settings?.randomizeQuestions);
+            const previousSelection = assessmentState.getSelectedQuestions();
+            const logFailure = error => {
+                logger.error(`Failed to start attempt after remedial review: ${error.message}`, {
+                    domain: 'assessment', operation: 'remedial-return', assessmentId, stack: error.stack
+                });
+            };
+            // State mutations apply synchronously (before question resolution
+            // below); only persistence is fire-and-forget.
+            assessmentState.startNewAttemptSession().catch(logFailure);
+            if (!reselect && previousSelection) {
+                assessmentState.setSelectedQuestions(previousSelection).catch(logFailure);
+            }
+        }
+
+        const session = assessmentState.getSession();
 
         // Resolve active questions for this session
         activeQuestions = _resolveActiveQuestions();
@@ -354,6 +460,9 @@ export function createAssessmentInstance(config) {
                     stack: error.stack
                 });
             });
+        }
+        if (!requiresPersistedOrder) {
+            _reconcileFixedQuestionSet(activeQuestions);
         }
 
         // Create question instances based on active questions
@@ -375,41 +484,45 @@ export function createAssessmentInstance(config) {
         );
         assessmentActions.initialize(targetContainer);
 
-        // Check for auto-restart from remedial
-        const fromSlide = context.fromSlide;
-        const remedialSlideIds = config.settings?.remedialSlideIds || [];
-        const isReturningFromRemedial = fromSlide && remedialSlideIds.includes(fromSlide);
-
-        if (isReturningFromRemedial && summary?.lastResults && !summary.lastResults.passed) {
-             // Clear session to force a fresh start (Intro screen)
-             // We don't increment attempts here; handleStart does that when user clicks Start
-             assessmentState.clearSession().then(() => {
-                 AppUI.showFooter();
-                 viewManager.showView('intro');
-             });
-             return;
-        }
-
-        // Determine initial view and set footer visibility
+        // Determine initial view and set footer visibility.
+        // An attempt started after the last submission (retake in progress)
+        // takes precedence over the previous attempt's results.
         const savedResults = summary?.lastResults;
-        if (savedResults) {
-            // Show completed results (summary only - details not persisted to save space)
-            // Prepare display data since we don't have full details anymore
-            const displayData = _prepareResumedResultsDisplayData(savedResults, finalConfig);
-            AppUI.showFooter();
-            viewManager.showView('results', displayData);
-            return;
-        }
+        if (assessmentState.hasActiveAttempt()) {
+            // Restore in-progress session (re-read: question resolution may
+            // have restarted a session whose questions changed)
+            let currentView = assessmentState.getCurrentView();
 
-        if (session && !session.submitted) {
-            // Restore in-progress session
-            const currentView = session.currentView || 'intro';
+            // Guard against a stored question index that no longer exists
+            // (e.g. questions removed in a course update).
+            if (currentView === 'question') {
+                const storedIndex = assessmentState.getCurrentQuestionIndex();
+                const lastIndex = activeQuestions.length - 1;
+                if (lastIndex < 0) {
+                    currentView = 'intro';
+                } else if (storedIndex > lastIndex || storedIndex < 0) {
+                    logger.warn(`[AssessmentFactory:${assessmentId}] Stored question index ${storedIndex} is out of range (${activeQuestions.length} questions). Clamping.`);
+                    assessmentState.setCurrentQuestionIndex(Math.min(Math.max(storedIndex, 0), lastIndex)).catch(error => {
+                        logger.error(`Failed to persist clamped question index: ${error.message}`, { domain: 'assessment', operation: 'clamp-question-index', assessmentId });
+                    });
+                }
+            }
+
             if (currentView === 'question' || currentView === 'review') {
                 AppUI.hideFooter();
             } else {
                 AppUI.showFooter();
             }
             viewManager.showView(currentView);
+            return;
+        }
+
+        if (savedResults) {
+            // Show completed results (summary only - details not persisted to save space)
+            // Prepare display data since we don't have full details anymore
+            const displayData = _prepareResumedResultsDisplayData(savedResults, finalConfig);
+            AppUI.showFooter();
+            viewManager.showView('results', displayData);
             return;
         }
 
@@ -428,7 +541,6 @@ export function createAssessmentInstance(config) {
     function _prepareResumedResultsDisplayData(resultsSummary, config) {
         const summary = assessmentState.getSummary();
         const currentAttempts = summary?.attempts || 0;
-        const { attemptsBeforeRemedial, attemptsBeforeRestart, allowRetake, settings: _settings } = config;
 
         // Reconstruct minimal results object for display
         // Note: detailed question-by-question review not available on resume (only summary)
@@ -437,55 +549,19 @@ export function createAssessmentInstance(config) {
             totalQuestions: resultsSummary.totalQuestions,
             correctCount: resultsSummary.correctCount,
             scorePercentage: resultsSummary.scorePercentage,
+            passingScore: resultsSummary.passingScore,
             passed: resultsSummary.passed,
             details: null  // Not available after resume - only summary stats
         };
 
-        // Determine action button (same logic as in AssessmentActions)
-        let actionButton = null;
-
-        if (attemptsBeforeRestart && currentAttempts >= attemptsBeforeRestart) {
-            actionButton = {
-                type: 'restart',
-                action: 'restart-course',
-                label: 'Restart Course',
-                message: `You've completed ${currentAttempts} attempt(s). You must restart the course to try again.`,
-                messageType: 'error'
-            };
-        } else {
-            // Check remedial logic
-            let showRemedial = false;
-            if (attemptsBeforeRemedial && currentAttempts >= attemptsBeforeRemedial && !resultsSummary.passed) {
-                const remedialSlideIds = config.settings?.remedialSlideIds || (config.settings?.remedialSlideId ? [config.settings.remedialSlideId] : []);
-                
-                // Check if remedial content has already been viewed
-                const visitedSlides = getVisitedSlides() || [];
-                
-                const remedialViewed = remedialSlideIds.length > 0 && remedialSlideIds.every(id => visitedSlides.includes(id));
-
-                if (remedialSlideIds.length > 0 && !remedialViewed) {
-                    showRemedial = true;
-                    actionButton = {
-                        type: 'remedial',
-                        action: 'go-to-remedial',
-                        label: 'Review Content',
-                        message: `Please review the content before attempting again (Attempt ${currentAttempts}/${attemptsBeforeRestart || '∞'}).`,
-                        messageType: 'warning',
-                        attemptsMessage: `Attempts: ${currentAttempts}${attemptsBeforeRestart ? `/${attemptsBeforeRestart}` : ''}`
-                    };
-                }
-            }
-            
-            // Fallback to standard retake if remedial not shown
-            if (!showRemedial && allowRetake !== false && !resultsSummary.passed) {
-                actionButton = {
-                    type: 'retake',
-                    action: 'retake',
-                    label: 'Retake Assessment',
-                    attemptsMessage: `Attempts: ${currentAttempts}${attemptsBeforeRestart ? `/${attemptsBeforeRestart}` : ''}`
-                };
-            }
-        }
+        // Determine action button with the same rules as live results. Retake
+        // limits live under config.settings (attemptsBeforeRemedial,
+        // attemptsBeforeRestart, allowRetake, remedialSlideIds).
+        const actionButton = buildResultsActionButton(config.settings || {}, {
+            passed: resultsSummary.passed,
+            currentAttempts,
+            visitedSlides: getVisitedSlides() || []
+        });
 
         return {
             ...resultsForDisplay,

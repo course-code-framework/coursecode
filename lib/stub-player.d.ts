@@ -3,6 +3,7 @@ export interface StubPlayerConfig {
   launchUrl: string
   storageKey: string
   passwordHash?: string
+  passwordSalt?: string
   isLive?: boolean
   liveReload?: boolean
   courseContent?: string

@@ -5,7 +5,7 @@
   "type": "module",
   "description": "CourseCode project",
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22.15.0"
   },
   "scripts": {
     "dev": "vite build --mode development --watch",
@@ -23,7 +23,8 @@
   "devDependencies": {
     "archiver": "^8.0.0",
     "eslint": "^9.39.4",
-    "vite": "~8.1.4",
+    "globals": "^17.7.0",
+    "vite": "~8.1.6",
     "vite-plugin-static-copy": "^4.1.1"
   },
   "overrides": {

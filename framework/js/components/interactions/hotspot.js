@@ -69,10 +69,9 @@ export function expandHotspot(hotspot) {
     // Use named theme
     appearance = HOTSPOT_DEFAULTS.appearance[hotspot.theme];
   } else {
-    // Use default based on correctness
-    appearance = hotspot.correct
-      ? HOTSPOT_DEFAULTS.appearance.correct
-      : HOTSPOT_DEFAULTS.appearance.incorrect;
+    // Same neutral look for every region, so styling never reveals the answer.
+    // Authors can still opt into theme: 'correct' / 'incorrect' explicitly.
+    appearance = HOTSPOT_DEFAULTS.appearance.primary;
   }
 
   // Expand feedback shorthand
@@ -254,7 +253,6 @@ export function createHotspotQuestion(config) {
             role="checkbox"
             class="${baseClasses.join(' ')}"
             data-hotspot-id="${spot.id}"
-            data-correct="${spot.correct}"
             data-default-bg="${spot.backgroundColor}"
             data-selected-bg="${spot.selectedBackgroundColor}"
             data-default-border="${spot.borderColor}"

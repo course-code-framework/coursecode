@@ -656,7 +656,7 @@ describe('cmi5 Spec: Allowed statement envelope', () => {
         try {
             driver.emergencySave();
             await Promise.resolve();
-            const [, options] = globalThis.fetch.mock.calls[0];
+            const [, options] = globalThis.fetch.mock.calls.find(([url]) => url.includes('suspend_data'));
             expect(options.keepalive).toBe(true);
             expect(options.method).toBe('PUT');
             expect(options.headers.Authorization).toBe('Basic launch-token');

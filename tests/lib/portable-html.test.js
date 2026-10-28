@@ -38,6 +38,19 @@ describe('portable HTML assembly', () => {
         expect(Object.keys(assets)).toEqual(['course/assets/images/sample.svg']);
     });
 
+    it('also indexes percent-encoded asset URLs (e.g. gallery manifest src)', () => {
+        const buildDir = fs.mkdtempSync(path.join(os.tmpdir(), 'coursecode-portable-test-'));
+        temporaryDirectories.push(buildDir);
+        const docPath = path.join(buildDir, 'course', 'assets', 'docs', 'My File #1.pdf');
+        fs.mkdirSync(path.dirname(docPath), { recursive: true });
+        fs.writeFileSync(docPath, '%PDF');
+
+        const assets = collectPortableAssets(buildDir);
+
+        expect(assets['course/assets/docs/My File #1.pdf']).toMatch(/^data:application\/pdf;base64,/);
+        expect(assets['course/assets/docs/My%20File%20%231.pdf']).toBe(assets['course/assets/docs/My File #1.pdf']);
+    });
+
     it('injects the asset map before the module and leaves no local asset reference', () => {
         const source = '<!doctype html><html><head><link href="data:text/css;base64,eA=="></head><body><img src="./course/assets/a.png"><script type="module">window.ready=true</script></body></html>';
         const output = assemblePortableHtml(source, {
