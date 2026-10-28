@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-28
+
 ### Added
 - **Plugin API for custom interactions:** `CourseCode.interactionHelpers` exposes the helpers the built-in interactions use (Check Answer and Reset controls, feedback, engagement tracking, LMS reporting, and answer save/restore), so plugins in `course/interactions/` no longer need to import framework internals. The user guide's "Extending with Plugins" section documents the interaction and component contracts with complete examples.
 
