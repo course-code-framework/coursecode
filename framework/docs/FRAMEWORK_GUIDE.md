@@ -833,9 +833,12 @@ environment: {
 | | `getInteractionMetadata(id)` | `{id, type, registeredAt}` |
 | **State Access** | `getResponse(id)` | Current response (format varies by type) |
 | | `getCorrectResponse(id)` | Correct answer (needs `exposeCorrectAnswers`) |
-| **State Mutation** | `setResponse(id, response)` | Sets response |
-| **Evaluation** | `checkAnswer(id)` | `{correct, score, feedback, ...}` |
+| **State Mutation** | `setResponse(id, response)` | Sets response; throws if it names an unknown choice, blank, or item, or the interaction drops it |
+| **Evaluation** | `checkAnswer(id)` | `{correct, score, feedback, ...}`; throws if the interaction has no response |
 | | `checkSlideAnswers(slideId?)` | `[{interactionId, type, evaluation}, ...]` |
+| **Assessments** | `getAssessmentState()` | `{id, view, questionIndex, question, actions, modalOpen, attempts, lastResults}` or `null` |
+| | `assessmentAction(action, {questionIndex}?)` | Presses that assessment button (`start`, `next`, `submit`, …) and resolves with the new state |
+| | `answerAssessmentQuestion(id, response)` | Answers the question on screen; graded on submit |
 | **Navigation** | `getCourseStructure()` | Structure array from config |
 | | `getCurrentSlide()` | Current slide ID or null |
 | | `goToSlide(slideId, context?)` | Navigate with optional context |
@@ -907,6 +910,7 @@ If the preview is not running, runtime tools fail fast with a clear error messag
 ### How the Headless Browser Works
 
 - On the **first runtime tool call**, the MCP launches headless Chrome and connects to the already-running preview server
+- It only connects to **this project's** preview: each preview sends an `X-CourseCode-Course` id, and the MCP searches ports 4173–4188 for the one serving its course (`coursecode mcp --port <port>` pins a port instead). Two projects can preview side by side, e.g. the second with `coursecode preview --port 4174`
 - The browser auto-reconnects when Vite rebuilds (file changes trigger SSE reload)
 - All tool calls execute instantly via `page.evaluate()` — no manual waits needed
 
@@ -918,8 +922,9 @@ Tool results include machine-readable `structuredContent` plus text content for 
 |------|---------|--------|
 | `coursecode_state` | Full course snapshot + live diagnostics | `{slide, toc, interactions, engagement, lmsState, apiLog, diagnostics, issues, errors, frameworkLogs, consoleLogs}` |
 | `coursecode_errors` | Live diagnostic rollup only | `{build, runtime, framework, console, issues, errors, count, clean}` — same diagnostic sources as `coursecode_state`, without the state payload |
-| `coursecode_navigate` | Go to slide by ID | `{slide, interactions, engagement, accessibility}` |
-| `coursecode_interact` | Set response + evaluate | `{interactionId, response}` → `{correct, score, feedback}` |
+| `coursecode_navigate` | Go to slide by ID | `{slide, interactions, engagement, assessment, accessibility}` |
+| `coursecode_interact` | Set response + evaluate | `{interactionId, response}` → `{correct, score, feedback}`; for an assessment question → `{answered, gradedOn: 'submit', assessment}` |
+| `coursecode_assessment` | Read or drive the assessment on the current slide | Optional `action` (`start`, `next`, `prev`, `jump-to-review`, `review-question`, `back-to-questions`, `submit`, `confirm-unanswered-submit`, `dismiss-unanswered-modal`, `retake`, …) → `{assessment, slide, interactions}` |
 | `coursecode_screenshot` | Visual capture (JPEG) | Optional `slideId` to navigate first, `fullPage` for scroll capture |
 | `coursecode_viewport` | Set viewport size | Breakpoint name or `{width, height}` → persists until changed |
 | `coursecode_reset` | Clear learner state | No input; clears local state and reloads |
@@ -953,6 +958,7 @@ Use MCP tools for all course interaction — never use external browser tools:
 - `coursecode_viewport(breakpoint)` → set viewport for responsive testing
 - `coursecode_screenshot(slideId)` → navigate + capture in one call
 - `coursecode_interact(id, response)` → answer + evaluate in one call
+- `coursecode_assessment(action)` → start, step through, and submit graded assessments
 
 ### Architecture
 
@@ -963,7 +969,7 @@ MCP Server (IDE) ──puppeteer──▶ Headless Chrome ──HTTP──▶ Pr
 ```
 
 - **Preview not running?** → Tools return a clear error. Start preview externally in a terminal, then retry.
-- **Chrome not found?** → Install Google Chrome or set `CHROME_PATH` env var
+- **Browser download failed?** → MCP runtime tools use Chrome, Edge, Chromium, or Brave when installed, and otherwise download Chrome Headless Shell once to `~/.cache/puppeteer` (or `PUPPETEER_CACHE_DIR`). Behind a blocking proxy, install Google Chrome or set `CHROME_PATH`
 
 ### Pre-Release Responsive Checks (Framework)
 

@@ -232,6 +232,17 @@ Without MCP, you describe problems to your AI and paste code back and forth. Wit
 
 MCP setup depends on which AI tool you use. In each case, you add a small configuration that tells the tool how to launch CourseCode's MCP server.
 
+#### Claude Code
+
+Install the CourseCode plugin. It sets up the MCP server and adds guided skills for each stage of the workflow:
+
+```bash
+claude plugin marketplace add course-code-framework/coursecode
+claude plugin install coursecode@coursecode
+```
+
+Start Claude Code from your course folder (or an empty folder for a new course). Run `/coursecode:new-course` to begin, or just describe what you want to build.
+
 #### Claude Desktop
 
 Open **Settings → Developer → Edit Config** and add:
@@ -297,6 +308,7 @@ Once connected, your AI assistant gains these capabilities:
 | `coursecode_viewport` | Set the preview viewport (named breakpoint or explicit width/height) for responsive testing |
 | `coursecode_screenshot` | Take a screenshot of any slide |
 | `coursecode_interact` | Answer an interaction and check if it's correct |
+| `coursecode_assessment` | Start, answer, and submit a graded assessment the way a learner would |
 | `coursecode_reset` | Clear progress and restart the course |
 | `coursecode_errors` | Check live preview diagnostics (build, runtime, framework, and console issues) |
 | `coursecode_lint` | Run static preflight checks (bad CSS classes, missing components, config issues) |
@@ -304,11 +316,11 @@ Once connected, your AI assistant gains these capabilities:
 | `coursecode_interaction_catalog` | Browse available interaction types (multiple choice, drag-drop, etc.) |
 | `coursecode_css_catalog` | Browse available CSS classes by category |
 | `coursecode_icon_catalog` | Browse available icons by name/category |
-
 | `coursecode_workflow_status` | Get guidance on what to do next based on your project's current state |
 | `coursecode_build` | Build the course for LMS deployment |
+| `coursecode_narration` | Generate text-to-speech audio narration for slides |
 
-> **Note:** The preview server must be running before using runtime tools like `coursecode_state`, `coursecode_errors`, `coursecode_screenshot`, or `coursecode_navigate`. If preview is not already running for this project, start it with `coursecode preview` in a terminal. Do not start a second preview server if one is already running.
+> **Note:** The preview server must be running before using runtime tools like `coursecode_state`, `coursecode_errors`, `coursecode_screenshot`, or `coursecode_navigate`. If preview is not already running for this project, start it with `coursecode preview` in a terminal. Do not start a second preview server if one is already running. The tools only drive the preview of the project they run in; to preview two projects at once, start the second with `coursecode preview --port 4174` (the tools search ports 4173–4188).
 
 ### How the Workflow Changes
 

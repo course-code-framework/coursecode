@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { getWorkflowStatus } from '../../lib/authoring-api.js';
+import { getWorkflowStatus, isInFrameworkCheckout, isInstalledPackage } from '../../lib/authoring-api.js';
 
 let originalCwd;
 let tempDir;
@@ -68,5 +68,32 @@ describe('getWorkflowStatus', () => {
         expect(status.stage).toBe('outline-creation');
         expect(status.stageNumber).toBe(2);
         expect(status.checklist.hasOutline).toBe(false);
+    });
+});
+
+describe('isInstalledPackage', () => {
+    it('treats project, global, and npx installs as installed packages', () => {
+        expect(isInstalledPackage(path.join(tempDir, 'node_modules', 'coursecode'))).toBe(true);
+        expect(isInstalledPackage(path.join('/usr', 'local', 'lib', 'node_modules', 'coursecode'))).toBe(true);
+        expect(isInstalledPackage(path.join(os.homedir(), '.npm', '_npx', 'abc123', 'node_modules', 'coursecode'))).toBe(true);
+    });
+
+    it('treats a framework checkout as not installed', () => {
+        expect(isInstalledPackage(path.join(os.homedir(), 'code', 'coursecode'))).toBe(false);
+    });
+});
+
+describe('isInFrameworkCheckout', () => {
+    const checkout = path.join(os.homedir(), 'code', 'coursecode');
+
+    it('allows the template fallback only inside a framework checkout', () => {
+        expect(isInFrameworkCheckout(checkout, checkout)).toBe(true);
+        expect(isInFrameworkCheckout(path.join(checkout, 'lib'), checkout)).toBe(true);
+        expect(isInFrameworkCheckout(path.join(os.homedir(), 'new-course'), checkout)).toBe(false);
+    });
+
+    it('never treats an installed package as a checkout', () => {
+        const installed = path.join(tempDir, 'node_modules', 'coursecode');
+        expect(isInFrameworkCheckout(installed, installed)).toBe(false);
     });
 });

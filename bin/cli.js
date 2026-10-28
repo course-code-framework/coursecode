@@ -6,7 +6,7 @@
  * Commands:
  *   coursecode create <name>  - Create a new course project
  *   coursecode init [name]    - Initialize the current directory
- *   coursecode dev            - Start development server
+ *   coursecode dev            - Build in watch mode (outputs to dist/)
  *   coursecode build          - Build course package
  *   coursecode export html    - Create a portable single-file course
  *   coursecode upgrade        - Upgrade framework in current project
@@ -101,7 +101,7 @@ program
   .description('Create a new course project (use "." for the current directory)')
   .option('--blank', 'Create without example slides (clean starter)')
   .option('--no-install', 'Skip npm install')
-  .option('--start', 'Auto-start dev server after creation (skip prompt)')
+  .option('--start', 'Start the preview server after creation')
   .action(async (name, options) => {
     const { create } = await import('../lib/create.js');
     await create(name, options);
@@ -112,7 +112,7 @@ program
   .description('Initialize the current directory as a CourseCode project')
   .option('--blank', 'Create without example content (clean starter)')
   .option('--no-install', 'Skip npm install')
-  .option('--start', 'Auto-start dev server after creation (skip prompt)')
+  .option('--start', 'Start the preview server after creation')
   .action(async (name, options) => {
     const { create } = await import('../lib/create.js');
     await create(name || '.', { ...options, currentDirectory: true });
@@ -307,7 +307,7 @@ program
 program
   .command('mcp')
   .description('Start MCP server for AI agent integration (connects to running preview server)')
-  .option('--port <port>', 'Preview server port to connect to', '4173')
+  .option('--port <port>', 'Preview server port to connect to (default: find this project\'s preview on ports 4173-4188)')
   .action(async (options) => {
     const { startMcpServer } = await import('../lib/mcp-server.js');
     await startMcpServer(options);

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "coursecode": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/mcp/coursecode-mcp.mjs"
+      ]
+    }
+  }
+}

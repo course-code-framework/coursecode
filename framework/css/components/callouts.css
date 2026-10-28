@@ -128,14 +128,16 @@
   border-left-color: var(--callout-accent);
 }
 
-/* Focus state for interactive/clickable callouts */
-.callout:focus-within {
+/* Keyboard focus on a control inside a callout. Headings that navigation
+   focuses for screen readers (tabindex="-1") don't count, and mouse focus
+   doesn't show. */
+.callout:has(:focus-visible:not([tabindex="-1"])) {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--focus-ring-offset);
 }
 
 /* Don't show focus outline when video player elements are focused inside callout */
-.callout:has(.video-player-wrapper):focus-within {
+.callout:has(.video-player-wrapper):has(:focus-visible) {
   outline: none;
 }
 
@@ -1234,7 +1236,7 @@
   transform: translateY(0) scale(var(--motion-press-scale));
 }
 
-.callout--actionable:focus-within {
+.callout--actionable:has(:focus-visible:not([tabindex="-1"])) {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--focus-ring-offset);
 }
