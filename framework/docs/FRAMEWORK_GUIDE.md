@@ -1,4 +1,4 @@
-# SCORM Framework Development Guide
+# CourseCode Framework Development Guide
 
 > **Intended Audience: AI Agents** — This document is a machine-readable reference for AI agents developing the framework itself. For human-readable documentation, see `USER_GUIDE.md`.
 
