@@ -47,5 +47,6 @@ Changes under `template/` ship to every new course project. Keep framework-dev-o
 - **`dist/` never contains preview/stub-player assets.**
 - **State schema changes:** bump `STATE_SCHEMA_VERSION` in `state-validation.js` and add a migration in `STATE_MIGRATIONS`.
 - **Don't re-add legacy browser builds** (Babel/SystemJS/IE11). The browser floor is fixed; see the guide.
+- **`CourseCode.interactionHelpers` is a public plugin API** used by custom interactions in course projects. Keep its names and signatures stable; breaking it is a semver-major change.
 - **Cloud meta-tag contract** (`cc-*` tags for error/data/channel reporting) is shared with CourseCode Cloud; changing it requires a matching Cloud change.
 - **Update docs in the same change** when behavior, CLI flags, or author-facing classes change. New interaction types also go in `COURSE_AUTHORING_GUIDE.md`.

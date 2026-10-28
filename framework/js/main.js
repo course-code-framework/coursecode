@@ -35,6 +35,17 @@ import * as AppActions from './app/AppActions.js';
 // Interaction creators are auto-discovered via interaction-catalog.js
 // No explicit imports needed - use getCreator('type') or window.CourseCode.createTypeQuestion
 
+// Helpers shared by built-in interactions, exposed for custom interaction plugins
+import {
+    registerCoreInteraction,
+    createInteractionEventHandler,
+    renderInteractionControls,
+    renderFeedbackContainer,
+    displayFeedback,
+    clearFeedback,
+    validateContainer
+} from './components/interactions/interaction-base.js';
+
 // Import UI components (programmatic APIs only - initialization handled by component-catalog)
 import * as Modal from './components/ui-components/modal.js';
 import * as AudioPlayer from './components/ui-components/audio-player.js';
@@ -90,6 +101,18 @@ window.CourseCode = {
                 return [`create${pascalName}Question`, getCreator(type)];
             })
     ),
+
+    // Public plugin API for custom interactions in course/interactions/.
+    // Built-in interactions use these same helpers.
+    interactionHelpers: Object.freeze({
+        registerCoreInteraction,
+        createInteractionEventHandler,
+        renderInteractionControls,
+        renderFeedbackContainer,
+        displayFeedback,
+        clearFeedback,
+        validateContainer
+    }),
 
     // UI components (programmatic APIs)
     Modal,

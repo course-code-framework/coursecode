@@ -25,7 +25,7 @@ if (major < 22 || (major === 22 && minor < 15)) {
 const projectCli = path.join(process.cwd(), 'node_modules', 'coursecode', 'bin', 'cli.js');
 // Framework development: run a checkout's CLI everywhere (path to its bin/cli.js)
 const devCli = process.env.COURSECODE_CLI;
-const FALLBACK_VERSION = '0.2.0';
+const FALLBACK_VERSION = '0.3.0';
 const args = process.argv.slice(2);
 
 const localCli = devCli && fs.existsSync(devCli) ? devCli : fs.existsSync(projectCli) ? projectCli : null;

@@ -26,6 +26,23 @@ describe('Course Initialization', () => {
         expect(ready).toBe(true);
     });
 
+    it('should expose the public interaction plugin helpers', async () => {
+        const helpers = await frame.evaluate(() => {
+            const h = window.CourseCode?.interactionHelpers;
+            return h && { frozen: Object.isFrozen(h), names: Object.keys(h).filter(k => typeof h[k] === 'function').sort() };
+        });
+        expect(helpers.frozen).toBe(true);
+        expect(helpers.names).toEqual([
+            'clearFeedback',
+            'createInteractionEventHandler',
+            'displayFeedback',
+            'registerCoreInteraction',
+            'renderFeedbackContainer',
+            'renderInteractionControls',
+            'validateContainer'
+        ]);
+    });
+
     it('should report a valid API version', async () => {
         const version = await automation(frame, 'getVersion');
         expect(version).toBeDefined();

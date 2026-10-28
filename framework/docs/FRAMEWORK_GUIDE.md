@@ -295,15 +295,19 @@ LTI 1.3 requires a trusted server backend. The backend performs OIDC state/nonce
 | Path | Purpose |
 |------|---------|
 | `framework/js/app/` | Global lifecycle, UI (modals, notifications), state |
-| `framework/js/core/` | Core services: `EventBus`, `runtime` |
+| `framework/js/core/` | `EventBus`, component catalog, interaction catalog |
 | `framework/js/drivers/` | LMS format drivers: SCORM 2004, SCORM 1.2, cmi5, LTI |
 | `framework/js/vendor/` | Third-party libs (`pipwerks.js`) |
 | `framework/js/state/` | State management facade, LMS connection, xAPI service (see `DATA_MODEL.md`) |
-| `framework/js/managers/` | Feature managers: objectives, interactions, engagement, accessibility, etc. |
+| `framework/js/managers/` | Feature managers: assessments, objectives, interactions, accessibility, audio, video, etc. |
+| `framework/js/assessment/` | Assessment flow (State-UI-Actions), results, question-set signatures |
+| `framework/js/engagement/` | Engagement manager, trackers, requirement strategies |
 | `framework/js/components/` | Reusable UI (tabs, dropdowns) & interactions (MCQ, drag-drop) |
 | `framework/js/navigation/` | Navigation: menu, buttons, document gallery |
-| `framework/js/utilities/` | Helpers (incl. `validation-helpers.js` for SCORM 2004 4E validation) |
-| `framework/js/dev/` | Dev-only code (linter, automation API) - tree-shaken in prod |
+| `framework/js/utilities/` | Helpers: logger, breakpoints, icons, reporters, view manager |
+| `framework/js/validation/` | SCORM 2004 4th Edition data validators and runtime HTML checks |
+| `framework/js/automation/` | `CourseCodeAutomation` API (non-production builds with `environment.automation.enabled` only) |
+| `framework/js/dev/` | Runtime linter (dev only, tree-shaken in prod) |
 
 ---
 
@@ -371,7 +375,7 @@ After images are acquired, the module:
 |---------|----------|--------|
 | `stateManager` | `state/` | **Sole public API** for all LMS and state operations |
 | `assessmentManager` | `managers/` | Graded assessments: question banks, randomization, scoring |
-| `engagementManager` | `managers/` | Tracks content interaction (tabs, accordions, scroll, time) |
+| `engagementManager` | `engagement/` | Tracks content interaction (tabs, accordions, scroll, time) |
 | `objectiveManager` | `managers/` | Learning objectives (CMI-backed domain) |
 | `interactionManager` | `managers/` | LMS interaction reporting (CMI-backed, append-only) |
 | `accessibilityManager` | `managers/` | A11y preferences persisted via `stateManager` |
@@ -380,7 +384,7 @@ After images are acquired, the module:
 | `videoManager` | `managers/` | Video playback: position persistence, completion tracking |
 | `scoreManager` | `managers/` | Course-level scoring (dynamically loaded) |
 | `commentManager` | `managers/` | End-of-course comments/ratings |
-| `breakpointManager` | `app/` | Responsive breakpoints, `.bp-*` classes |
+| `breakpointManager` | `utilities/` | Responsive breakpoints, `.bp-*` classes |
 | `navigationState` | `navigation/` | Current slide, visited slides |
 
 ### stateManager: The Sole LMS Gateway
@@ -1193,26 +1197,32 @@ Exposed globally via `CourseCode.breakpointManager`.
 
 > **Course Authors:** See "Extending with Plugins" in `framework/docs/USER_GUIDE.md`. Steps below are for framework developers.
 
-1. Create file in `framework/js/components/interactions/`
-2. Export `create(container, config)`, `metadata`, and `schema`
-3. Register with `catalogInteraction()` in `core/interaction-catalog.js` (auto-discovered via `import.meta.glob`)
-4. Add CSS to `framework/css/interactions/`
-5. Update automation API if needed for testing support
-6. Add to `COURSE_AUTHORING_GUIDE.md` if has author-facing classes
+1. Create a file in `framework/js/components/interactions/`. It is auto-discovered by `core/interaction-catalog.js` via `import.meta.glob`; no manual registration.
+2. Export `schema` (with `type`), `metadata`, and a `create<Type>Question(config)` factory. The catalog skips modules without `schema.type` and picks the first export whose name starts with `create`; `CourseCode.create<PascalType>Question` is derived from `schema.type`.
+3. Add CSS to `framework/css/interactions/`
+4. Update automation API if needed for testing support
+5. Add to `COURSE_AUTHORING_GUIDE.md` if has author-facing classes
 
 ### Required Contract
 
 ```javascript
-export function create(container, config) {
-  // config must have: id, (type-specific props)
-  // Must set data-interaction-id on root element
-  // Must emit events for state changes
-  // Must support getResponse() / setResponse() for automation
-  return {
+export function createExampleQuestion(config) {
+  // config must have: id, prompt, (type-specific props)
+  const question = {
+    id: config.id,
+    type: 'example',
+    render: (container) => { /* set data-interaction-id on the root element */ },
     getResponse: () => currentResponse,
-    setResponse: (val) => { /* update UI and state */ },
-    checkAnswer: () => ({ correct, score, feedback }),
+    setResponse: (val) => { /* update UI */ },
+    evaluate: (response) => ({ correct, score, response }),
+    checkAnswer: () => { /* show feedback; return evaluate(getResponse()) or null */ },
     reset: () => { /* clear to initial state */ }
   };
+  if (!config.controlled) registerCoreInteraction(config, question);
+  return question;
 }
 ```
+
+### Public Plugin Helpers
+
+`window.CourseCode.interactionHelpers` exposes `registerCoreInteraction`, `createInteractionEventHandler`, `renderInteractionControls`, `renderFeedbackContainer`, `displayFeedback`, `clearFeedback`, and `validateContainer` from `interaction-base.js` for custom interactions in `course/interactions/`. This is a public API documented in `USER_GUIDE.md`: keep these names and signatures stable, and treat a breaking change as a semver-major change. `tests/e2e/course-init.e2e.test.js` guards the exported names.
