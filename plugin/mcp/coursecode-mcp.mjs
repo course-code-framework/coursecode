@@ -66,7 +66,7 @@ function main() {
     const [major, minor] = process.versions.node.split('.').map(Number);
     if (major < 22 || (major === 22 && minor < 15)) {
         // Claude Code shows MCP server stderr in /mcp, so say exactly what to do
-        console.error(`[coursecode] CourseCode needs Node.js 22.15 or later, but this is Node.js ${process.versions.node}. Install the current LTS from https://nodejs.org/ and restart your AI tool.`);
+        console.error(`[coursecode] CourseCode needs Node.js 22.15 or later, but this is Node.js ${process.versions.node}. Ask your AI tool to set up CourseCode, which can install it for you, or install the current LTS from https://nodejs.org/. Then restart your AI tool.`);
         process.exit(1);
     }
 

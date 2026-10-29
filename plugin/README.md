@@ -26,7 +26,7 @@ codex plugin add coursecode@coursecode
 
 ## Requirements
 
-[Node.js](https://nodejs.org/) 22.15 or later. Nothing else needs installing first:
+[Node.js](https://nodejs.org/) 22.15 or later. If it's missing, the `setup` skill offers to install it (Homebrew or the official installer on macOS, `winget` on Windows). Nothing else needs installing first:
 
 - **No global `coursecode` install.** Inside a course project the plugin runs the project's own CourseCode version. Elsewhere it runs the matching published version through `npx`.
 - **No browser setup.** Previews and screenshots use a headless copy of Chrome, Edge, Chromium, or Brave if one is installed. If none is, the first screenshot downloads Chrome Headless Shell (about 100 MB, once) into `~/.cache/puppeteer`, shared with other Puppeteer-based tools. Set `CHROME_PATH` to use a specific browser.

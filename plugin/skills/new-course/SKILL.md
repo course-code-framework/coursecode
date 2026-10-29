@@ -15,7 +15,7 @@ The MCP server only sees a `course/` directory in the folder this session starte
 - Empty or unrelated files only? Create the project here.
 - If the author wants a subfolder, create it, then tell them to start a new session in that folder so the CourseCode tools can see it.
 
-Requires Node.js 22.15 or later (`node --version`). If Node is missing or older, stop and tell the author how to install it from nodejs.org.
+Requires Node.js 22.15 or later (`node --version`). If Node is missing or older, use the `setup` skill, which offers to install it.
 
 ## 2. Choose the starting point, then create
 
