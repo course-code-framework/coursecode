@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Listings:** The npm description and keywords name Claude Code, Codex, and MCP. The Claude Code and Codex plugin manifests share one name (CourseCode Framework) and description, and the Codex listing describes what the plugin does instead of repeating the product boundary statement.
-- **README:** The Desktop note moved out of the installation steps; Desktop stays listed under the ecosystem section. The docs link points to coursecodeframework.com/docs.
+- **CourseCode Desktop is no longer promoted.** The README and user guide no longer mention it; build courses with Claude Code, Codex, or another MCP-capable AI tool. The README docs link points to coursecodeframework.com/docs.
 
 ## [0.4.1] - 2026-10-29
 

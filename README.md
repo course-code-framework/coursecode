@@ -12,10 +12,7 @@ Start from a topic or from your own PDFs, Word documents, and PowerPoint decks. 
 
 ## CourseCode ecosystem
 
-CourseCode Framework (this repository) is open source and works on its own. Two optional products build on it:
-
-- [CourseCode Desktop](https://coursecodedesktop.com): an open-source desktop app for people who prefer a GUI to an AI coding tool
-- [CourseCode Cloud](https://coursecodecloud.com): a paid hosting service for deploying and delivering courses
+CourseCode Framework (this repository) is open source and works on its own. [CourseCode Cloud](https://coursecodecloud.com) is an optional paid hosting service for deploying and delivering courses.
 
 Framework documentation lives at [coursecodeframework.com/docs](https://coursecodeframework.com/docs/) and in [`framework/docs/`](framework/docs/).
 
