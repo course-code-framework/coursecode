@@ -1,0 +1,51 @@
+name: Publish to MCP Registry
+
+# Lists the CourseCode MCP server (server.json) in the MCP Registry. The registry
+# checks mcpName on the published npm package, so push the release tag after
+# `npm publish`. GitHub OIDC proves the course-code-framework namespace; no
+# secrets are needed.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      # Update deliberately; the download is verified against this release's signature.
+      MCP_PUBLISHER_VERSION: v1.8.6
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check the npm package is published
+        run: |
+          version=$(jq -r '.packages[0].version' server.json)
+          npm view "coursecode@${version}" mcpName | grep -qx "$(jq -r .name server.json)"
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4.1.2
+
+      - name: Install mcp-publisher
+        run: |
+          archive="mcp-publisher_linux_amd64.tar.gz"
+          base="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}"
+          curl -fsSLO "${base}/${archive}"
+          curl -fsSLO "${base}/${archive}.sigstore.json"
+          cosign verify-blob "${archive}" \
+            --bundle "${archive}.sigstore.json" \
+            --certificate-identity "https://github.com/modelcontextprotocol/registry/.github/workflows/release.yml@refs/tags/${MCP_PUBLISHER_VERSION}" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+          tar -xzf "${archive}" mcp-publisher
+          rm "${archive}" "${archive}.sigstore.json"
+
+      - name: Log in with GitHub OIDC
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish
+        run: ./mcp-publisher publish
