@@ -44,7 +44,7 @@ The preview runs at http://localhost:4173, so you can watch the course change as
 - **CourseCode Cloud:** your course files, only when you ask to deploy (`/coursecode:publish`) after signing in with `coursecode login`.
 - **Text-to-speech providers** (ElevenLabs, Deepgram, or Google): slide narration text, only when you generate narration with your own API key.
 
-Everything else runs locally. The preview server listens on `127.0.0.1` only.
+Everything else runs locally. The preview server listens on `127.0.0.1` only. See the [privacy policy](https://coursecodeframework.com/privacy/).
 
 ## Developing the framework
 
