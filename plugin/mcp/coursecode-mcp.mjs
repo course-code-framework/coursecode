@@ -23,7 +23,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const FALLBACK_VERSION = '0.4.0';
+const FALLBACK_VERSION = '0.4.1';
 const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 function isInside(dir, parent) {
