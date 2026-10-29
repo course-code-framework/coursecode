@@ -31,10 +31,10 @@ describe('build CLI output', () => {
     });
 
     it('uses format-specific labels and the actual produced archive', () => {
-        const output = formatBuildOutput('cmi5', ['electrical_safety_v1.0.0_cmi5.zip']);
+        const output = formatBuildOutput('cmi5', ['electrical-safety_v1.0.0_cmi5.zip']);
 
         expect(output).toContain('cmi5 package files');
-        expect(output).toContain('electrical_safety_v1.0.0_cmi5.zip');
+        expect(output).toContain('electrical-safety_v1.0.0_cmi5.zip');
         expect(output).toContain('cmi5-compatible LMS or conformance tool');
         expect(output).not.toContain('SCORM package files');
     });

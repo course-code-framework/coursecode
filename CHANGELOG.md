@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Package file names:** The course title part of a package name is hyphenated, like project folders: `client-manager-course_v1.0.0_cmi5.zip` instead of `client_manager_course_v1.0.0_cmi5.zip`. Underscores still separate the version and format, so patterns such as `*_cmi5.zip` keep matching. Punctuation is dropped, and letters in any script are kept.
+- **Node.js setup:** When Node.js is missing or too old, the plugin's `setup` skill offers to install it (Homebrew or the official installer on macOS, `winget` on Windows) and then asks the author to restart their AI tool, instead of only pointing to nodejs.org.
+
 ### Fixed
 - **Duplicate tools with the plugin:** A project created through the Claude Code plugin had both the plugin's MCP server and its own `.mcp.json` server, so Claude Code listed every CourseCode tool twice. `create`, `init`, `import`, and `agent-setup` accept `--plugin`, which leaves out `.mcp.json` and keeps the Codex, Cursor, and VS Code settings. The plugin's `new-course` skill passes it, and the `setup` skill offers to remove a duplicate entry from existing projects.
 

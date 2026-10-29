@@ -308,7 +308,7 @@ coursecode token --add acme-corp  # Store token in .coursecode/access-control.js
 
 **Build:**
 ```bash
-coursecode build  # Creates dist/ + *_<client>_proxy.zip per client
+coursecode build  # Creates dist/ + <course-title>_<client>_proxy.zip per client
 ```
 
 **Deploy:**
