@@ -1,7 +1,7 @@
 {
   "name": "coursecode",
   "version": "0.4.1",
-  "description": "Multi-format course authoring framework with CLI tools (SCORM 2004, SCORM 1.2, cmi5, LTI 1.3)",
+  "description": "Open-source course authoring framework for Claude Code, Codex, and other MCP-capable AI tools. Build, preview, and test SCORM 1.2, SCORM 2004, cmi5, and LTI 1.3 courses.",
   "type": "module",
   "bin": {
     "coursecode": "bin/cli.js"
@@ -99,7 +99,14 @@
     "course",
     "training",
     "vite",
-    "framework"
+    "framework",
+    "course-authoring",
+    "instructional-design",
+    "mcp",
+    "model-context-protocol",
+    "claude-code",
+    "codex",
+    "ai"
   ],
   "author": "Seth Vincent",
   "license": "MIT",

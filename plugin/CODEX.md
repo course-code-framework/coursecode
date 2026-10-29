@@ -4,7 +4,7 @@ The plugin in `plugin/` works in both Claude Code and Codex. Codex reads `plugin
 
 It is not yet in OpenAI's public plugin directory. Until it is, install it from this repository.
 
-CourseCode Desktop and CourseCode Framework are open source and work without Cloud. CourseCode Cloud is an optional hosted layer for deployment, licensing, analytics, and managed services.
+CourseCode Framework is open source and works without Cloud. CourseCode Cloud is an optional hosted layer for deployment, licensing, analytics, and managed services.
 
 ## Install from GitHub
 

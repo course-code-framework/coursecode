@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Listings:** The npm description and keywords name Claude Code, Codex, and MCP. The Claude Code and Codex plugin manifests share one name (CourseCode Framework) and description, and the Codex listing describes what the plugin does instead of repeating the product boundary statement.
+- **CourseCode Desktop is no longer promoted.** The README and user guide no longer mention it; build courses with Claude Code, Codex, or another MCP-capable AI tool. The README docs link points to coursecodeframework.com/docs.
 - **Package file names:** The course title part of a package name is hyphenated, like project folders: `client-manager-course_v1.0.0_cmi5.zip` instead of `client_manager_course_v1.0.0_cmi5.zip`. Underscores still separate the version and format, so patterns such as `*_cmi5.zip` keep matching. Punctuation is dropped, and letters in any script are kept.
 - **Node.js setup:** When Node.js is missing or too old, the plugin's `setup` skill offers to install it (Homebrew or the official installer on macOS, `winget` on Windows) and then asks the author to restart their AI tool, instead of only pointing to nodejs.org.
 
