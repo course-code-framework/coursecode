@@ -24,7 +24,7 @@ Use npm (CI runs `npm ci`). Node 22.15+.
 
 Before merging responsive/layout changes, also run `npm run smoke:responsive -- --profile=expanded`.
 
-A release bumps the version in `package.json`, `package-lock.json`, `framework/version.json`, both plugin manifests, the launcher's `FALLBACK_VERSION`, and both versions in `server.json` (`tests/lib/plugin-manifests.test.js` checks they match). After `npm publish`, run `mcp-publisher publish` to update the [MCP Registry](https://registry.modelcontextprotocol.io) listing; the registry reads `mcpName` from the published package, so publish to npm first.
+A release bumps the version in `package.json`, `package-lock.json`, `framework/version.json`, both plugin manifests, the launcher's `FALLBACK_VERSION`, and both versions in `server.json` (`tests/lib/plugin-manifests.test.js` checks they match). After `npm publish`, push the `vX.Y.Z` tag: `.github/workflows/publish-mcp-registry.yml` then updates the [MCP Registry](https://registry.modelcontextprotocol.io) listing through GitHub OIDC. The registry reads `mcpName` from the published package, so the tag must come after `npm publish`. A local `mcp-publisher login github` can't publish under the organization namespace.
 
 ## Repo Layout: Two Contexts
 
