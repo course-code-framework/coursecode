@@ -232,6 +232,8 @@ Without MCP, you describe problems to your AI and paste code back and forth. Wit
 
 **Projects you create are already set up.** `coursecode create` writes MCP settings for Claude Code (`.mcp.json`), Codex (`.codex/config.toml`), Cursor (`.cursor/mcp.json`), and VS Code (`.vscode/mcp.json`), plus an `AGENTS.md` that tells the AI tool how to work on the course. Open the project folder in any of those tools and the CourseCode tools are available. Claude Code asks once to approve the project's MCP server, and Codex reads project settings after you trust the folder. For a project created before this, run `coursecode agent-setup` in the project folder.
 
+Projects the CourseCode plugin creates leave out `.mcp.json`, because the plugin already runs the CourseCode server in Claude Code and a project copy would list every tool twice. To open such a project in Claude Code without the plugin, run `coursecode agent-setup`. Pass `--plugin` to `create`, `init`, `import`, or `agent-setup` to get the same behavior yourself.
+
 To start a new course from inside your AI tool, before a project exists, install the plugin for Claude Code or Codex, or add the server to your tool's settings as shown below.
 
 #### Claude Code

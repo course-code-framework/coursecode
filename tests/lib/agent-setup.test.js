@@ -26,6 +26,12 @@ describe('AI tool settings for course projects', () => {
         expect(read(dir, 'CLAUDE.md')).toBe('@AGENTS.md\n');
     });
 
+    it('skips the Claude Code project server when the plugin provides it', () => {
+        const dir = project();
+        expect(writeAgentSetup(dir, { plugin: true }).sort()).toEqual(['.codex/config.toml', '.cursor/mcp.json', '.vscode/mcp.json', 'AGENTS.md', 'CLAUDE.md']);
+        expect(fs.existsSync(path.join(dir, '.mcp.json'))).toBe(false);
+    });
+
     it('adds to existing settings without overwriting them', () => {
         const dir = project();
         fs.writeFileSync(path.join(dir, '.mcp.json'), JSON.stringify({ mcpServers: { other: { command: 'other' } } }));
