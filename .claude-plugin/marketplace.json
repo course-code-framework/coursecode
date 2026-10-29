@@ -8,7 +8,7 @@
     {
       "name": "coursecode",
       "source": "./plugin",
-      "description": "Create, build, review, and publish SCORM, cmi5, and LTI courses with CourseCode."
+      "description": "Build SCORM, cmi5, and LTI e-learning courses on your computer: turn source documents into an outline, build interactive slides, check them in a headless preview, and export a package for your LMS."
     }
   ]
 }

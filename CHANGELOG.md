@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Listings:** The npm description and keywords name Claude Code, Codex, and MCP. The Claude Code and Codex plugin manifests share one name (CourseCode Framework) and description, and the Codex listing describes what the plugin does instead of repeating the product boundary statement.
+- **CourseCode Desktop is no longer promoted.** The README and user guide no longer mention it; build courses with Claude Code, Codex, or another MCP-capable AI tool. The README docs link points to coursecodeframework.com/docs.
+
 ### Fixed
 - **Duplicate tools with the plugin:** A project created through the Claude Code plugin had both the plugin's MCP server and its own `.mcp.json` server, so Claude Code listed every CourseCode tool twice. `create`, `init`, `import`, and `agent-setup` accept `--plugin`, which leaves out `.mcp.json` and keeps the Codex, Cursor, and VS Code settings. The plugin's `new-course` skill passes it, and the `setup` skill offers to remove a duplicate entry from existing projects.
 
