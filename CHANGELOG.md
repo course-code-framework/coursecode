@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-10-29
+
 ### Added
 - **MCP Registry listing:** `server.json` describes the CourseCode MCP server for the [MCP Registry](https://registry.modelcontextprotocol.io): the npm package `coursecode`, run locally over stdio with the `mcp` argument. `package.json` declares the matching `mcpName`.
 
