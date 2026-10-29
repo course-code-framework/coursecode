@@ -24,6 +24,8 @@ Use npm (CI runs `npm ci`). Node 22.15+.
 
 Before merging responsive/layout changes, also run `npm run smoke:responsive -- --profile=expanded`.
 
+A release bumps the version in `package.json`, `package-lock.json`, `framework/version.json`, both plugin manifests, the launcher's `FALLBACK_VERSION`, and both versions in `server.json` (`tests/lib/plugin-manifests.test.js` checks they match). After `npm publish`, run `mcp-publisher publish` to update the [MCP Registry](https://registry.modelcontextprotocol.io) listing; the registry reads `mcpName` from the published package, so publish to npm first.
+
 ## Repo Layout: Two Contexts
 
 This repo is both the framework source and the template for new course projects.

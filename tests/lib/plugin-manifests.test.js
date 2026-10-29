@@ -13,6 +13,17 @@ describe('Claude Code and Codex plugin', () => {
         expect(launcher).toContain(`const FALLBACK_VERSION = '${version}';`);
     });
 
+    it('lists the published package in the MCP Registry under the package.json mcpName', () => {
+        const { name, version, mcpName } = readJson('package.json');
+        const server = readJson('server.json');
+
+        expect(server.name).toBe(mcpName);
+        expect(server.version).toBe(version);
+        expect(server.description.length).toBeLessThanOrEqual(100);
+        expect(server.packages).toEqual([expect.objectContaining({ registryType: 'npm', identifier: name, version, transport: { type: 'stdio' } })]);
+        expect(server.packages[0].packageArguments).toEqual([{ type: 'positional', value: 'mcp' }]);
+    });
+
     it('starts the same launcher from both MCP configs', () => {
         const claude = readJson('plugin/.mcp.json').mcpServers.coursecode;
         const codex = readJson('plugin/mcp.json').mcpServers.coursecode;
