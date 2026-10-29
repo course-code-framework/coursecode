@@ -26,11 +26,11 @@ afterEach(() => {
 
 describe('toProjectDirectoryName', () => {
   it('normalizes display titles into directory-safe names', () => {
-    expect(toProjectDirectoryName('CourseCode Demo')).toBe('coursecode_demo');
-    expect(toProjectDirectoryName("  Manager's Safety 101!  ")).toBe('managers_safety_101');
-    expect(toProjectDirectoryName('Caf\u00e9 Basics')).toBe('cafe_basics');
-    expect(toProjectDirectoryName('client-manager-course')).toBe('client_manager_course');
-    expect(toProjectDirectoryName('client_manager_course')).toBe('client_manager_course');
+    expect(toProjectDirectoryName('CourseCode Demo')).toBe('coursecode-demo');
+    expect(toProjectDirectoryName("  Manager's Safety 101!  ")).toBe('managers-safety-101');
+    expect(toProjectDirectoryName('Caf\u00e9 Basics')).toBe('cafe-basics');
+    expect(toProjectDirectoryName('my-course')).toBe('my-course');
+    expect(toProjectDirectoryName('client_manager_course')).toBe('client-manager-course');
     expect(toProjectDirectoryName('ClientManagerCourse')).toBe('clientmanagercourse');
   });
 });
@@ -71,17 +71,17 @@ describe('create', () => {
   it('creates a directory-safe project and stamps the human course title', async () => {
     const result = await create('CourseCode Demo', { install: false });
 
-    const projectDir = path.join(tempDir, 'coursecode_demo');
+    const projectDir = path.join(tempDir, 'coursecode-demo');
     expect(result).toEqual({
       displayName: 'CourseCode Demo',
-      directoryName: 'coursecode_demo',
-      targetDir: path.resolve('coursecode_demo'),
+      directoryName: 'coursecode-demo',
+      targetDir: path.resolve('coursecode-demo'),
       currentDirectory: false
     });
     expect(fs.existsSync(projectDir)).toBe(true);
 
     const packageJson = JSON.parse(fs.readFileSync(path.join(projectDir, 'package.json'), 'utf-8'));
-    expect(packageJson.name).toBe('coursecode_demo');
+    expect(packageJson.name).toBe('coursecode-demo');
     expect(packageJson.devDependencies.coursecode).toMatch(/^\^\d+\.\d+\.\d+$/);
     expect(fs.existsSync(path.join(projectDir, '.gitignore'))).toBe(true);
     expect(fs.existsSync(path.join(projectDir, '.gitattributes'))).toBe(true);
@@ -97,12 +97,12 @@ describe('create', () => {
     await create('Blank Course Demo', { install: false, blank: true });
 
     const config = fs.readFileSync(
-      path.join(tempDir, 'blank_course_demo', 'course', 'course-config.js'),
+      path.join(tempDir, 'blank-course-demo', 'course', 'course-config.js'),
       'utf-8'
     );
 
     expect(config).toContain("title: 'Blank Course Demo'");
-    expect(fs.existsSync(path.join(tempDir, 'blank_course_demo', '.narration-cache.json'))).toBe(false);
+    expect(fs.existsSync(path.join(tempDir, 'blank-course-demo', '.narration-cache.json'))).toBe(false);
 
     const demoAssets = [
       'course/assets/docs/example_md_1.md',
@@ -115,7 +115,7 @@ describe('create', () => {
       'course/assets/widgets/gravity-painter.html'
     ];
     for (const asset of demoAssets) {
-      expect(fs.existsSync(path.join(tempDir, 'blank_course_demo', asset))).toBe(false);
+      expect(fs.existsSync(path.join(tempDir, 'blank-course-demo', asset))).toBe(false);
     }
   });
 
