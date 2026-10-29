@@ -1,0 +1,28 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.course-code-framework/coursecode",
+  "title": "CourseCode Framework",
+  "description": "Preview, screenshot, lint, and test SCORM, cmi5, and LTI courses built with CourseCode Framework.",
+  "websiteUrl": "https://coursecodeframework.com",
+  "repository": {
+    "url": "https://github.com/course-code-framework/coursecode",
+    "source": "github"
+  },
+  "version": "0.4.2",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "coursecode",
+      "version": "0.4.2",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "mcp"
+        }
+      ]
+    }
+  ]
+}
