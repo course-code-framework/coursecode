@@ -1,8 +1,8 @@
 {
   "name": "coursecode",
-  "displayName": "CourseCode",
+  "displayName": "CourseCode Framework",
   "version": "0.4.1",
-  "description": "Build SCORM, cmi5, and LTI e-learning courses with Claude: create a project, turn source documents into an outline, build interactive slides, review them in a headless preview, and publish to any LMS.",
+  "description": "Build SCORM, cmi5, and LTI e-learning courses on your computer: turn source documents into an outline, build interactive slides, check them in a headless preview, and export a package for your LMS.",
   "author": {
     "name": "Lakeside Labs LLC"
   },

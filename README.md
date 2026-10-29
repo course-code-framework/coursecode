@@ -12,12 +12,9 @@ Start from a topic or from your own PDFs, Word documents, and PowerPoint decks. 
 
 ## CourseCode ecosystem
 
-CourseCode Framework (this repository) is open source and works on its own. Two optional products build on it:
+CourseCode Framework (this repository) is open source and works on its own. [CourseCode Cloud](https://coursecodecloud.com) is an optional paid hosting service for deploying and delivering courses.
 
-- [CourseCode Desktop](https://coursecodedesktop.com/scorm/): an open-source desktop app for people who prefer a GUI
-- [CourseCode Cloud](https://coursecodecloud.com): a paid hosting service for deploying and delivering courses
-
-Framework documentation lives at [coursecodeframework.com](https://coursecodeframework.com/scorm/) and in [`framework/docs/`](framework/docs/).
+Framework documentation lives at [coursecodeframework.com/docs](https://coursecodeframework.com/docs/) and in [`framework/docs/`](framework/docs/).
 
 ## Features
 
@@ -37,8 +34,6 @@ Framework documentation lives at [coursecodeframework.com](https://coursecodefra
 ---
 
 ## Installation
-
-> **Prefer a GUI?** Use [CourseCode Desktop](https://coursecodedesktop.com) instead.
 
 ### Required
 

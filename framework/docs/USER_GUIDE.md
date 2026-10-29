@@ -943,8 +943,6 @@ coursecode preview-link --disable
 5. Move the Preview or Production pointer when needed.
 6. Download the LMS format you need from Cloud when you're ready to deliver.
 
-CourseCode Desktop offers the same workflow with buttons for Preview, Export, and Deploy, and a panel for managing Cloud deployments and preview links.
-
 ---
 
 ## Generating Audio Narration
