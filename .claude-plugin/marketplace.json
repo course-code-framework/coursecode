@@ -2,7 +2,7 @@
   "name": "coursecode",
   "description": "CourseCode plugins for building LMS-ready e-learning courses with AI.",
   "owner": {
-    "name": "Seth Vincent"
+    "name": "Lakeside Labs LLC"
   },
   "plugins": [
     {

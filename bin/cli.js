@@ -309,8 +309,31 @@ program
   .description('Start MCP server for AI agent integration (connects to running preview server)')
   .option('--port <port>', 'Preview server port to connect to (default: find this project\'s preview on ports 4173-4188)')
   .action(async (options) => {
+    // Editors that start servers outside the workspace pass it explicitly
+    if (process.env.COURSECODE_PROJECT_DIR) process.chdir(path.resolve(process.env.COURSECODE_PROJECT_DIR));
+    // A global or npx-cached CLI hands off to the project's own coursecode
+    // dependency, so the tools match the framework version the course uses.
+    const projectCli = path.join(process.cwd(), 'node_modules', 'coursecode', 'bin', 'cli.js');
+    if (fs.existsSync(projectCli) && fs.realpathSync(projectCli) !== fs.realpathSync(fileURLToPath(import.meta.url))) {
+      const { spawn } = await import('child_process');
+      const child = spawn(process.execPath, [projectCli, ...process.argv.slice(2)], { stdio: 'inherit' });
+      for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal));
+      child.on('exit', (code, signal) => process.exit(signal ? 1 : (code ?? 0)));
+      return;
+    }
     const { startMcpServer } = await import('../lib/mcp-server.js');
     await startMcpServer(options);
+  });
+// AI tool settings for an existing project
+program
+  .command('agent-setup')
+  .description('Add MCP settings for Claude Code, Codex, Cursor, and VS Code, plus AGENTS.md, to this project')
+  .action(async () => {
+    const { validateProject } = await import('../lib/project-utils.js');
+    validateProject();
+    const { writeAgentSetup } = await import('../lib/agent-setup.js');
+    const written = writeAgentSetup(process.cwd());
+    console.log(written.length ? `\n✅ Updated ${written.join(', ')}\n` : '\nAI tool settings are already in place.\n');
   });
 // Token generation command
 program

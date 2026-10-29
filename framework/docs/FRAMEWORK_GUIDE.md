@@ -889,6 +889,12 @@ environment: {
 
 ## MCP Integration (AI Agent Control)
 
+`plugin/` is one plugin for Claude Code and Codex: each tool reads its own manifest and MCP config, and both share `plugin/skills/` and the `plugin/mcp/coursecode-mcp.mjs` launcher. `npm run plugin:pack` builds the Codex directory package with a bundled runtime; see `plugin/CODEX.md`.
+
+Course projects get MCP settings for Claude Code, Codex, Cursor, and VS Code plus an `AGENTS.md` from `lib/agent-setup.js` (`coursecode create`, or `coursecode agent-setup` for existing projects). They run the project's own CLI. `coursecode mcp` honors `COURSECODE_PROJECT_DIR`, hands off to the project's `coursecode` dependency when run from a global or npx install, and, when started outside a project, moves to the workspace root the client reports through MCP roots.
+
+Every MCP operation explicitly declares `readOnlyHint`, `destructiveHint`, and `openWorldHint`. Annotations cover all supported arguments: screenshot can navigate and update preview learner state; assessment can reset attempts; builds and narration can overwrite generated files. These are writes even when used for local QA. Narration also contacts the configured external provider. Annotations do not replace user authorization.
+
 The MCP server runs a **persistent headless Chrome** internally via `puppeteer-core`. All runtime tools execute directly in this headless browser — agents never need to open a browser.
 
 ### Preview Server Ownership

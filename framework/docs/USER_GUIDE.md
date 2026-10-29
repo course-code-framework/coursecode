@@ -230,7 +230,9 @@ Without MCP, you describe problems to your AI and paste code back and forth. Wit
 
 ### Setup
 
-MCP setup depends on which AI tool you use. In each case, you add a small configuration that tells the tool how to launch CourseCode's MCP server.
+**Projects you create are already set up.** `coursecode create` writes MCP settings for Claude Code (`.mcp.json`), Codex (`.codex/config.toml`), Cursor (`.cursor/mcp.json`), and VS Code (`.vscode/mcp.json`), plus an `AGENTS.md` that tells the AI tool how to work on the course. Open the project folder in any of those tools and the CourseCode tools are available. Claude Code asks once to approve the project's MCP server, and Codex reads project settings after you trust the folder. For a project created before this, run `coursecode agent-setup` in the project folder.
+
+To start a new course from inside your AI tool, before a project exists, install the plugin for Claude Code or Codex, or add the server to your tool's settings as shown below.
 
 #### Claude Code
 
@@ -242,6 +244,23 @@ claude plugin install coursecode@coursecode
 ```
 
 Start Claude Code from your course folder (or an empty folder for a new course). Run `/coursecode:new-course` to begin, or just describe what you want to build.
+
+#### Codex
+
+Install the same plugin from this repository:
+
+```bash
+codex plugin marketplace add course-code-framework/coursecode
+codex plugin add coursecode@coursecode
+```
+
+Or add only the MCP server with the Codex CLI:
+
+```bash
+codex mcp add coursecode -- npx -y coursecode mcp
+```
+
+Start Codex from your course folder (or an empty folder for a new course).
 
 #### Claude Desktop
 
@@ -294,6 +313,10 @@ Or add to your `.cursor/mcp.json`:
   }
 }
 ```
+
+#### Other MCP clients
+
+Any AI tool that can launch a local (stdio) MCP server can use CourseCode. Configure it to run `npx -y coursecode mcp` (or `coursecode mcp` with a global install) from the course folder. Inside a project, the server runs the project's own CourseCode version. If the tool starts servers from a different folder, set the environment variable `COURSECODE_PROJECT_DIR` to the course folder.
 
 > **Note:** The MCP server runs from your course project directory. Make sure you have your project open in the editor when using MCP tools.
 
