@@ -48,7 +48,7 @@ The preview runs at http://localhost:4173, so you can watch the course change as
 
 ## What's included
 
-- **MCP server** (`coursecode`): headless preview, screenshots, navigation, interaction testing, lint, live diagnostics, builds, and catalogs of components, interactions, CSS classes, and icons.
+- **MCP server** (`coursecode`): headless preview, screenshots, navigation, interaction testing, lint, live diagnostics, builds, and catalogs of components, interactions, CSS classes, and icons. Projects the plugin creates leave out `.mcp.json` so Claude Code doesn't list each tool twice; run `npx coursecode agent-setup` in a project to add it for people who don't have the plugin.
 - **Skills**: the six workflows above. They follow the guides in each project's `framework/docs/`, so they stay in step with the framework version the course uses.
 
 ## What it downloads and sends

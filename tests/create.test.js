@@ -93,6 +93,15 @@ describe('create', () => {
     expect(config).toContain("courseTitle: 'CourseCode Demo'");
   });
 
+  it('leaves out .mcp.json for projects created through the plugin', async () => {
+    await create('Plugin Course', { install: false, plugin: true });
+
+    const projectDir = path.join(tempDir, 'plugin-course');
+    expect(fs.existsSync(path.join(projectDir, '.mcp.json'))).toBe(false);
+    expect(fs.existsSync(path.join(projectDir, '.codex', 'config.toml'))).toBe(true);
+    expect(fs.existsSync(path.join(projectDir, 'AGENTS.md'))).toBe(true);
+  });
+
   it('preserves the human course title for blank projects after clean resets the template', async () => {
     await create('Blank Course Demo', { install: false, blank: true });
 

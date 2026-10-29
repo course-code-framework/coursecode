@@ -23,9 +23,9 @@ Use the starting point already supplied by the author; ask only if it is unclear
 
 | Starting point | Command |
 |---|---|
-| Documents (PDF, Word, PowerPoint text) or just a topic | `npx coursecode create . --blank` |
-| Wants to learn the framework first | `npx coursecode create .` (keeps `example-*` slides that demonstrate every feature) |
-| A PowerPoint whose slides should become the course | `npx coursecode import path/to/deck.pptx --name .` |
+| Documents (PDF, Word, PowerPoint text) or just a topic | `npx coursecode create . --blank --plugin` |
+| Wants to learn the framework first | `npx coursecode create . --plugin` (keeps `example-*` slides that demonstrate every feature) |
+| A PowerPoint whose slides should become the course | `npx coursecode import path/to/deck.pptx --name . --plugin` |
 
 PowerPoint import exports slide images through PowerPoint on macOS. On other systems, have the author export the slides as images first and add `--slides-dir path/to/images`.
 
@@ -33,7 +33,7 @@ PowerPoint import exports slide images through PowerPoint on macOS. On other sys
 
 If the plugin folder has a `runtime/` folder next to `skills/` (a packaged release), run the first command through the plugin's launcher instead of downloading the CLI: replace `npx coursecode` with `node "<plugin-root>/mcp/coursecode-mcp.mjs"`, where `<plugin-root>` is two folders above this skill's folder. Once the project exists, use its own CLI.
 
-`create` also writes MCP settings for Claude Code, Codex, Cursor, and VS Code and an `AGENTS.md` with the authoring workflow, so the author can open the project in any of those tools later.
+`create` also writes MCP settings for Codex, Cursor, and VS Code and an `AGENTS.md` with the authoring workflow, so the author can open the project in any of those tools later. `--plugin` leaves out Claude Code's `.mcp.json`, because this plugin already runs the CourseCode server there and a project copy would list every tool twice. Someone who opens the project in Claude Code without the plugin can add it with `npx coursecode agent-setup`.
 
 ## 3. Start the preview
 

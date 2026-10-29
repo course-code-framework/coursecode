@@ -13,6 +13,8 @@
  * own coursecode dependency so tools match the course's framework version, else
  * a runtime bundled into a packaged plugin, else the published CLI through npx,
  * pinned to an exact version as Anthropic's plugin directory requires.
+ * The CLI runs with COURSECODE_PLUGIN=1 so the MCP server can tell the agent to
+ * create projects with --plugin (no duplicate Claude Code server).
  * FALLBACK_VERSION must match package.json and both plugin manifests
  * (tests/lib/claude-plugin.test.js checks this). Spawning node/npx from here
  * rather than from the MCP config keeps the plugin working on Windows, where npx
@@ -76,7 +78,12 @@ function main() {
         process.exit(1);
     }
 
-    const child = spawn(target.command, target.args, { cwd: target.cwd, stdio: 'inherit', shell: target.shell });
+    const child = spawn(target.command, target.args, {
+        cwd: target.cwd,
+        env: { ...process.env, COURSECODE_PLUGIN: '1' },
+        stdio: 'inherit',
+        shell: target.shell
+    });
     child.on('error', (error) => {
         console.error(`[coursecode] Failed to start CourseCode: ${error.message}`);
         process.exit(1);
