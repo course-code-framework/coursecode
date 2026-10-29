@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`coursecode create` folder names:** `coursecode create my-course` now creates `my-course/`, as the docs show, instead of `my_course/`. Titles with spaces or punctuation become hyphenated folder and package names, such as `safety-training-101`.
+
 ## [0.4.0] - 2026-10-29
 
 ### Added
