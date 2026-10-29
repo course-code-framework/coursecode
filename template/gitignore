@@ -21,9 +21,10 @@ course-preview/
 .DS_Store
 Thumbs.db
 
-# IDE
+# IDE (keep the shared MCP settings)
 .idea/
-.vscode/
+.vscode/*
+!.vscode/mcp.json
 *.swp
 *.swo
 

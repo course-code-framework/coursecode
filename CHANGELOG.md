@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-29
+
+### Added
+- **Projects open ready in AI coding tools:** `coursecode create` writes MCP settings for Claude Code (`.mcp.json`), Codex (`.codex/config.toml`), Cursor (`.cursor/mcp.json`), and VS Code (`.vscode/mcp.json`), plus an `AGENTS.md` with the authoring workflow and a `CLAUDE.md` that imports it. The settings run the project's own CLI. Existing files are added to, never overwritten. `coursecode agent-setup` does the same for existing projects. The project `.gitignore` now keeps `.vscode/mcp.json`.
+- **Codex plugin:** `plugin/` is now one plugin for Claude Code and Codex. Install it in Codex with `codex plugin marketplace add course-code-framework/coursecode`, then `codex plugin add coursecode@coursecode`. Both tools share the skills and the MCP launcher. `npm run plugin:pack` builds a Codex directory package with a bundled runtime; see `plugin/CODEX.md`.
+- **`setup` skill:** checks Node.js, the CLI, and the MCP connection, and diagnoses missing tools.
+
+### Changed
+- **`coursecode mcp`** honors `COURSECODE_PROJECT_DIR`, hands off to the project's own `coursecode` dependency when run from a global or npx install, and, when started outside a project, switches to the workspace root the client reports through MCP roots.
+- **Plugin launcher** passes its arguments through, so skills can run any CLI command with it, and uses a bundled runtime when a packaged plugin has one. When an AI tool starts it inside the plugin's install folder, it uses the session's working directory instead.
+- **`publish` skill** checks Cloud sign-in with `whoami`, confirms what is being deployed, verifies the ZIP before reporting it, and never starts a checkout or upgrade.
+- **MCP tool annotations** declare `readOnlyHint`, `destructiveHint`, and `openWorldHint` on every tool. Interaction, assessment, reset, screenshot, build, and narration are marked as writes; narration is marked open-world.
+- **Docs:** The README, plugin README, and user guide lead with Claude Code, Codex, and other MCP-capable AI tools, and the user guide covers Codex setup. The plugin's listed author is Lakeside Labs LLC.
+
 ## [0.3.0] - 2026-10-28
 
 ### Added

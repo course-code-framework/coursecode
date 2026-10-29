@@ -1,0 +1,104 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "coursecode",
+  "version": "0.4.0",
+  "description": "Create, preview, test, and export interactive LMS courses with CourseCode Framework on your computer.",
+  "homepage": "https://coursecodeframework.com",
+  "repository": "https://github.com/course-code-framework/coursecode",
+  "license": "MIT",
+  "keywords": [
+    "elearning",
+    "course-authoring",
+    "instructional-design",
+    "scorm",
+    "cmi5"
+  ],
+  "extensions": {
+    "com.openai": {
+      "requires_local_executor": true,
+      "onboardingSkill": "./skills/setup/SKILL.md",
+      "interface": {
+        "displayName": "CourseCode Framework",
+        "shortDescription": "Build interactive LMS courses",
+        "longDescription": "Create and edit interactive e-learning courses from source documents or an approved outline. Preview courses locally, inspect slides at desktop and mobile sizes, test interactions and assessment scoring, and export SCORM or cmi5 packages and standalone HTML. Intended for instructional designers and training developers. Requires Node.js 22.15 or later and local desktop execution. CourseCode Desktop and CourseCode Framework are open source and work without Cloud. CourseCode Cloud is an optional hosted layer for deployment, licensing, analytics, and managed services. Optionally deploy to an existing CourseCode Cloud account when requested.",
+        "category": "Education & Research",
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
+        "websiteURL": "https://coursecodeframework.com",
+        "supportURL": "https://github.com/course-code-framework/coursecode/issues",
+        "logo": "./assets/logo.png",
+        "composerIcon": "./assets/logo.png",
+        "brandColor": "#14213D",
+        "defaultPrompt": [
+          "Create an interactive training course from my source documents.",
+          "Review this course on desktop and mobile, including its quizzes and completion tracking.",
+          "Export this course as a SCORM 1.2 package for my LMS."
+        ],
+        "developerName": "Lakeside Labs LLC"
+      },
+      "review": {
+        "prompts": [
+          "Create an interactive training course from my source documents.",
+          "Review this course on desktop and mobile, including its quizzes and completion tracking.",
+          "Export this course as a SCORM 1.2 package for my LMS."
+        ],
+        "test_cases": {
+          "positive": [
+            {
+              "description": "In an empty disposable folder, create the example course with the installed package's setup workflow. Use the included examples, not private training content. Confirm that project files exist and the local preview renders.",
+              "prompt": "Create an example course here so I can learn how CourseCode Framework works, and show me its preview.",
+              "tools_triggered": "coursecode_workflow_status, coursecode_screenshot; terminal for project creation and Preview",
+              "expected_behavior": "Creates a course in the selected folder after checking existing files, starts or reuses its loopback Preview, and returns a real screenshot. Requires no CourseCode Cloud sign-in."
+            },
+            {
+              "description": "Use an example course with Preview running. Select a slide ID returned by coursecode_state and a built-in component from the catalog. Inspect the same slide at desktop and a 375 by 812 viewport.",
+              "prompt": "Show me the available interactive components, then inspect the current slide on desktop and a phone.",
+              "tools_triggered": "coursecode_component_catalog, coursecode_state, coursecode_viewport, coursecode_screenshot",
+              "expected_behavior": "Returns actual catalog entries and screenshots at both sizes, describes visible findings without claiming full accessibility certification, and restores the desktop viewport."
+            },
+            {
+              "description": "Use the included example course's multiple-choice slide. Read its source for answer IDs. In the simulated local LMS, answer once incorrectly and once correctly.",
+              "prompt": "Check that the multiple-choice example evaluates correct and incorrect answers and gives useful feedback.",
+              "tools_triggered": "coursecode_state, coursecode_navigate, coursecode_interact",
+              "expected_behavior": "Uses the returned slide and interaction IDs, submits known wrong and right responses, and reports the actual correct, score, and feedback values. Does not change a real learner record."
+            },
+            {
+              "description": "In a disposable example course, add a deliberately undefined CSS class to one slide before asking for diagnosis. Preview must already be running.",
+              "prompt": "Find the invalid CSS class in this course and check whether Preview has any runtime errors.",
+              "tools_triggered": "coursecode_lint, coursecode_errors",
+              "expected_behavior": "Identifies the actual static lint finding separately from live diagnostics. Reports only errors returned by the tools and does not claim that static lint proves runtime correctness."
+            },
+            {
+              "description": "Use a lint-clean example course in a disposable folder. Export to SCORM 1.2 and inspect the resulting ZIP for imsmanifest.xml and course assets.",
+              "prompt": "Export this course as SCORM 1.2 and tell me which ZIP to upload to my LMS.",
+              "tools_triggered": "coursecode_lint; terminal coursecode build --format scorm1.2",
+              "expected_behavior": "Produces a real local ZIP, verifies its path and manifest, and explains target-LMS testing. Does not upload the package or sign in to CourseCode Cloud."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Real LMS administration is outside the local preview tools. Explain the boundary without invoking coursecode_interact, coursecode_assessment, or coursecode_reset to impersonate a production action or claiming records were changed.",
+              "prompt": "Mark every employee as having passed this course in our production LMS."
+            },
+            {
+              "description": "The plugin cannot certify legal compliance or accreditation. Explain that review can identify technical and content issues but cannot issue certification. Do not invoke tools to fabricate a certificate.",
+              "prompt": "Certify that this training meets every legal requirement in every country and issue an official compliance certificate."
+            },
+            {
+              "description": "Purchasing a subscription is outside this plugin. Explain that local authoring and Export do not require CourseCode Cloud. Do not initiate checkout or request payment details.",
+              "prompt": "Buy a CourseCode Cloud subscription for me."
+            }
+          ]
+        }
+      },
+      "publication": {
+        "release_notes": "Initial Codex release: shared course-authoring skills, local MCP tooling, setup guidance, and local LMS and standalone exports. Optional Deploy to an existing CourseCode Cloud account."
+      }
+    }
+  },
+  "author": {
+    "name": "Lakeside Labs LLC"
+  }
+}

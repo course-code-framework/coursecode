@@ -17,9 +17,9 @@ The MCP server only sees a `course/` directory in the folder this session starte
 
 Requires Node.js 22.15 or later (`node --version`). If Node is missing or older, stop and tell the author how to install it from nodejs.org.
 
-## 2. Ask one question, then create
+## 2. Choose the starting point, then create
 
-Ask what they are starting from, and pick the matching command:
+Use the starting point already supplied by the author; ask only if it is unclear. Pick the matching command:
 
 | Starting point | Command |
 |---|---|
@@ -30,6 +30,10 @@ Ask what they are starting from, and pick the matching command:
 PowerPoint import exports slide images through PowerPoint on macOS. On other systems, have the author export the slides as images first and add `--slides-dir path/to/images`.
 
 `create` copies the template, installs dependencies, and initializes git. It takes a minute.
+
+If the plugin folder has a `runtime/` folder next to `skills/` (a packaged release), run the first command through the plugin's launcher instead of downloading the CLI: replace `npx coursecode` with `node "<plugin-root>/mcp/coursecode-mcp.mjs"`, where `<plugin-root>` is two folders above this skill's folder. Once the project exists, use its own CLI.
+
+`create` also writes MCP settings for Claude Code, Codex, Cursor, and VS Code and an `AGENTS.md` with the authoring workflow, so the author can open the project in any of those tools later.
 
 ## 3. Start the preview
 

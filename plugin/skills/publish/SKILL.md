@@ -29,15 +29,17 @@ Ask which LMS they use or which standard it supports. If they do not know:
 - `cmi5`: modern xAPI-based standard; requires LMS support.
 - `lti`: LTI 1.3 launch from a server-backed platform. Needs extra setup; see `framework/docs/USER_GUIDE.md`.
 
-`build` lints, builds into `dist/`, and writes the ZIP to the project root, named `<course>_v<version>_<format>.zip`. Report the file name and tell the author to upload it as a new course or package in their LMS.
+`build` lints, builds into `dist/`, and writes the ZIP to the project root, named `<course>_v<version>_<format>.zip`. Check that the command succeeded and the ZIP exists before reporting its file name, then tell the author to upload it as a new course or package in their LMS and test it there before rollout.
 
 ### CourseCode Cloud
 
-1. Login is once per machine: `npx coursecode login`. It prints a URL and a short code. Run it in the background, give the author the URL and code, and wait until it reports success. Never ask for or handle their password.
+Cloud is optional and needs an existing account. Deploying uploads the course files, so confirm which course and whether it is a preview or production deploy before running anything.
+
+1. Check sign-in with `npx coursecode whoami`. If needed, run `npx coursecode login` (once per machine). It prints a URL and a short code. Run it in the background, give the author the URL and code, and wait until it reports success. Never ask for or handle their password, token, or API key.
 2. Deploy:
    - `npx coursecode deploy` uploads and follows the course's deploy-mode setting for production.
    - `npx coursecode deploy --preview` updates only the review link; add `--password <value>` to protect it.
-3. Share the dashboard and preview links the command prints. Cloud generates any LMS format on demand, so no format choice is needed.
+3. Share the dashboard and preview links the command prints. Cloud generates any LMS format on demand, so no format choice is needed. If the command reports an error or a plan limit, say so plainly; do not report a failed deploy as live, and never start a checkout or upgrade.
 
 Courses linked to a GitHub repo in Cloud deploy production through `git push`; the CLI only allows `--preview` for them.
 
