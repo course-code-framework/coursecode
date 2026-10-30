@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **First-run guidance:** `coursecode create` now tells you to open the project in your AI tool and describe the course. Projects created through the plugin skip that step because the AI tool is already running.
+- **README:** Quick Start leads with the Claude Code and Codex plugin, then the `npx` path.
+- **New project tooling:** New projects use ESLint 10, and `create` no longer prints npm's audit and funding notices.
+- **Package homepage:** The npm `homepage` points to coursecodeframework.com.
+
+### Fixed
+- **Commands that failed without a global install:** The commands `create` prints now use `npx coursecode`, so they work after `npx coursecode create`.
+- **New course metadata:** New projects start at version `1.0.0` instead of `2.0.0` and no longer carry the template author's name. Their first package is named `<course>_v1.0.0_<format>.zip`.
+- **`narration` help:** The command description lists all five text-to-speech providers instead of only ElevenLabs.
+
 ## [0.4.3] - 2026-10-29
 
 ### Added

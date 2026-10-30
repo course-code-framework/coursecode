@@ -114,7 +114,7 @@
   "bugs": {
     "url": "https://github.com/course-code-framework/coursecode/issues"
   },
-  "homepage": "https://github.com/course-code-framework/coursecode/blob/main/framework/docs/USER_GUIDE.md",
+  "homepage": "https://coursecodeframework.com",
   "engines": {
     "node": ">=22.15.0"
   },

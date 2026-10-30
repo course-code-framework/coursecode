@@ -9,7 +9,7 @@
  *   3. Default to deepgram
  * 
  * Environment Variables:
- *   TTS_PROVIDER - Explicit provider selection: elevenlabs, openai, azure
+ *   TTS_PROVIDER - Explicit provider selection: elevenlabs, openai, azure, google, deepgram
  */
 
 import { ElevenLabsProvider } from './elevenlabs-provider.js';
