@@ -184,7 +184,7 @@ program
 // Narration command
 program
   .command('narration')
-  .description('Generate audio narration from text using ElevenLabs')
+  .description('Generate audio narration from text using ElevenLabs, OpenAI, Azure, Google Cloud, or Deepgram')
   .option('-f, --force', 'Regenerate all narration (ignore cache)')
   .option('-s, --slide <id>', 'Generate narration for a specific slide only')
   .option('--dry-run', 'Preview what would be generated')

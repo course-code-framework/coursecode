@@ -135,8 +135,7 @@ export const courseConfig = {
     metadata: {
         title: 'CourseCode',
         description: 'CourseCode template for course development',
-        version: '2.0.0',
-        author: 'Seth Vincent',
+        version: '1.0.0',
         language: 'en'
     },
     layout: 'article',

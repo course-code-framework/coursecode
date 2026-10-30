@@ -33,27 +33,29 @@ Framework documentation lives at [coursecodeframework.com/docs](https://courseco
 
 ---
 
-## Installation
+## Quick Start
 
-### Required
+### With the plugin (recommended)
 
-[Node.js](https://nodejs.org/) 22.15 or later. You can run every command through `npx coursecode`, or install the CLI globally for the shorter `coursecode` command:
+The Claude Code and Codex plugin guides your AI tool from a new project to an LMS package, and it works before a project exists. It is not yet in the Claude Code or Codex plugin directories, so install it from this repository:
 
 ```bash
-npm install -g coursecode
+# Claude Code
+claude plugin marketplace add course-code-framework/coursecode
+claude plugin install coursecode@coursecode
+
+# Codex
+codex plugin marketplace add course-code-framework/coursecode
+codex plugin add coursecode@coursecode
 ```
 
-Learner courses support Chrome 111+, Edge 111+, Firefox 114+, and Safari 16.4+. SCORM compatibility describes LMS communication and packaging; it does not imply Internet Explorer support.
+Then start your AI tool in an empty folder and describe the course you want.
 
-### Recommended
+The plugin needs [Node.js](https://nodejs.org/) 22.15 or later but no global `coursecode` install. If Node.js is missing, its `setup` skill offers to install it. The plugin bundles the MCP server below and six skills: setup, new-course, outline, build-slides, review, and publish. See [plugin/README.md](plugin/README.md).
 
-- A code or text editor, such as [VS Code](https://code.visualstudio.com/), [Cursor](https://cursor.com/), or similar
-- An AI coding tool with MCP support, such as [Claude Code](https://claude.com/claude-code), [Codex](https://developers.openai.com/codex), [Cursor](https://cursor.com/), or VS Code with GitHub Copilot
-- [GitHub Desktop](https://desktop.github.com/) for version control
+### With npx
 
----
-
-## Quick Start
+With [Node.js](https://nodejs.org/) 22.15 or later installed, create a project:
 
 ```bash
 npx coursecode create my-course
@@ -76,21 +78,21 @@ Start with the [User Guide](framework/docs/USER_GUIDE.md) for a complete walkthr
 
 ---
 
-## Claude Code and Codex Plugin
+## Requirements
 
-The plugin adds guided skills for each stage, from a new project to an LMS package, and works before a project exists. Start your AI tool in an empty folder and describe the course you want. It is not yet in the Claude Code or Codex plugin directories, so install it from this repository:
+[Node.js](https://nodejs.org/) 22.15 or later. You can run every command through `npx coursecode`, or install the CLI globally for the shorter `coursecode` command used in the rest of this guide:
 
 ```bash
-# Claude Code
-claude plugin marketplace add course-code-framework/coursecode
-claude plugin install coursecode@coursecode
-
-# Codex
-codex plugin marketplace add course-code-framework/coursecode
-codex plugin add coursecode@coursecode
+npm install -g coursecode
 ```
 
-The plugin bundles the MCP server below and six skills: setup, new-course, outline, build-slides, review, and publish. It needs Node.js but no global `coursecode` install. See [plugin/README.md](plugin/README.md).
+Learner courses support Chrome 111+, Edge 111+, Firefox 114+, and Safari 16.4+. SCORM compatibility describes LMS communication and packaging; it does not imply Internet Explorer support.
+
+Also recommended:
+
+- A code or text editor, such as [VS Code](https://code.visualstudio.com/), [Cursor](https://cursor.com/), or similar
+- An AI coding tool with MCP support, such as [Claude Code](https://claude.com/claude-code), [Codex](https://developers.openai.com/codex), [Cursor](https://cursor.com/), or VS Code with GitHub Copilot
+- [GitHub Desktop](https://desktop.github.com/) for version control
 
 ---
 

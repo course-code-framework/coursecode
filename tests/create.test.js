@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import {
   create,
+  formatNextSteps,
   stampCourseTitle,
   toCurrentDirectoryCourseTitle,
   toCurrentDirectoryPackageName,
@@ -67,7 +68,50 @@ export const courseConfig = {
   });
 });
 
+describe('formatNextSteps', () => {
+  it('sends new projects to an AI tool and keeps the preview command', () => {
+    const message = formatNextSteps({ directoryName: 'my-course' });
+
+    expect(message).toContain('cd my-course\n      claude');
+    expect(message).toContain('Cursor or VS Code');
+    expect(message).toContain('npx coursecode preview');
+  });
+
+  it('skips the AI tool step when the plugin created the project', () => {
+    const message = formatNextSteps({ directoryName: 'my-course', currentDirectory: true, plugin: true });
+
+    expect(message).not.toContain('claude');
+    expect(message).not.toContain('cd my-course');
+    expect(message).toContain('npx coursecode preview');
+  });
+});
+
 describe('create', () => {
+  it.each([
+    ['example', {}],
+    ['blank', { blank: true }]
+  ])('prints commands that work without a global install for %s projects', async (_label, options) => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    try {
+      await create('Npx Course', { install: false, ...options });
+      const output = log.mock.calls.flat().join('\n');
+
+      expect(output).toContain('npx coursecode');
+      expect(output).not.toMatch(/(?<!npx )coursecode (preview|clean|new|create)\b/);
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it('starts new courses at version 1.0.0 with no author', async () => {
+    await create('Version Course', { install: false });
+
+    const config = fs.readFileSync(path.join(tempDir, 'version-course', 'course', 'course-config.js'), 'utf-8');
+    expect(config).toContain("version: '1.0.0'");
+    expect(config).not.toMatch(/^\s*author:/m);
+  });
+
   it('creates a directory-safe project and stamps the human course title', async () => {
     const result = await create('CourseCode Demo', { install: false });
 
