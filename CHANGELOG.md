@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-10-30
+
 ### Added
 - **Node.js check at session start:** In Claude Code, the plugin now tells the AI when Node.js is missing or older than 22.15, so it can run the `setup` skill, which asks before installing anything. Before, the CourseCode tools just failed to appear, because the MCP server needs Node.js to start. The check prints nothing when Node.js is fine, and it isn't included in the Codex directory package.
 
