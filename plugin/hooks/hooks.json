@@ -1,0 +1,16 @@
+{
+  "description": "Tells the AI tool at session start when Node.js is missing or too old for the CourseCode tools.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ". \"${CLAUDE_PLUGIN_ROOT}/hooks/check-node.cmd\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

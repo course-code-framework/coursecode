@@ -77,6 +77,31 @@ describe('plugin launcher', () => {
     });
 });
 
+describe.skipIf(process.platform === 'win32')('plugin Node.js session check', () => {
+    const pluginRoot = fileURLToPath(new URL('../../plugin', import.meta.url));
+    const { command } = JSON.parse(fs.readFileSync(path.join(pluginRoot, 'hooks', 'hooks.json'), 'utf-8')).hooks.SessionStart[0].hooks[0];
+    function runHook(nodeOutput) {
+        const { root } = fixture();
+        if (nodeOutput !== null) fs.writeFileSync(path.join(root, 'node'), `#!/bin/sh\n${nodeOutput}\n`, { mode: 0o755 });
+        return spawnSync('/bin/sh', ['-c', command], { env: { PATH: root, CLAUDE_PLUGIN_ROOT: pluginRoot }, encoding: 'utf8' });
+    }
+
+    it.each(['v22.15.0', 'v22.15.1', 'v22.100.0', 'v23.0.0', 'v100.1.0'])('stays silent with Node.js %s', (nodeVersion) => {
+        expect(runHook(`echo ${nodeVersion}`)).toMatchObject({ status: 0, stdout: '', stderr: '' });
+    });
+    it.each([['v22.14.9', '22.14'], ['v21.99.0', '21.99'], ['v8.0.0', '8.0']])('asks for setup with Node.js %s', (nodeVersion, found) => {
+        const result = runHook(`echo ${nodeVersion}`);
+        expect(result).toMatchObject({ status: 0, stderr: '' });
+        expect(result.stdout).toContain(`Node.js ${found}.`);
+        expect(result.stdout).toContain('coursecode:setup skill');
+    });
+    it.each([['is missing', null], ['fails', 'exit 1'], ['prints something unexpected', 'echo nonsense']])('asks for setup when node %s', (_case, nodeOutput) => {
+        const result = runHook(nodeOutput);
+        expect(result).toMatchObject({ status: 0, stderr: '' });
+        expect(result.stdout).toContain('this computer has no Node.js.');
+    });
+});
+
 describe('public MCP operation annotations', () => {
     it('declares all required safety annotations for every operation', () => {
         for (const tool of TOOLS) {

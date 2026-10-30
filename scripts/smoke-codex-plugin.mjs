@@ -56,7 +56,7 @@ try {
     assert.equal(review.negative.length, 3);
     const skills = fs.readdirSync(path.join(plugin, 'skills'));
     assert.deepEqual(skills.sort(), ['build-slides', 'new-course', 'outline', 'publish', 'review', 'setup']);
-    assert(!fs.existsSync(path.join(plugin, '.claude-plugin')) && !fs.existsSync(path.join(plugin, '.mcp.json')));
+    assert(!['.claude-plugin', '.mcp.json', 'hooks'].some(name => fs.existsSync(path.join(plugin, name))));
     const icon = fs.readFileSync(path.join(plugin, ui.logo));
     assert.equal(icon.subarray(1, 4).toString(), 'PNG');
     assert.equal(icon.readUInt32BE(16), 256);

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Node.js check at session start:** In Claude Code, the plugin now tells the AI when Node.js is missing or older than 22.15, so it can run the `setup` skill, which asks before installing anything. Before, the CourseCode tools just failed to appear, because the MCP server needs Node.js to start. The check prints nothing when Node.js is fine, and it isn't included in the Codex directory package.
+
 ### Changed
 - **First-run guidance:** `coursecode create` now tells you to open the project in your AI tool and describe the course. Projects created through the plugin skip that step because the AI tool is already running.
 - **README:** Quick Start leads with the Claude Code and Codex plugin, then the `npx` path.
