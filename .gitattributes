@@ -1,0 +1,2 @@
+# sh can't read this file with CRLF line endings
+plugin/hooks/check-node.cmd text eol=lf

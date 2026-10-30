@@ -34,7 +34,7 @@ This repo is both the framework source and the template for new course projects.
 - `template/` — what `coursecode create` gives course authors (their `vite.config.js`, `course/`)
 - `template/course/` — doubles as the test course for framework development
 - `vite.framework-dev.config.js` — framework dev build (references `lib/` directly); `template/vite.config.js` is the course-author build (imports from the `coursecode` package)
-- `plugin/` — one plugin for Claude Code (`.claude-plugin/plugin.json`, `.mcp.json`) and Codex (`plugin.json`, `mcp.json`), sharing `skills/` and the `mcp/coursecode-mcp.mjs` launcher. Both repo marketplaces (`.claude-plugin/marketplace.json`, `.agents/plugins/marketplace.json`) point at it. `npm run plugin:pack` builds the Codex directory package with a bundled runtime in ignored `artifacts/codex-plugin/`; see `plugin/CODEX.md`.
+- `plugin/` — one plugin for Claude Code (`.claude-plugin/plugin.json`, `.mcp.json`, `hooks/`) and Codex (`plugin.json`, `mcp.json`), sharing `skills/` and the `mcp/coursecode-mcp.mjs` launcher. Both repo marketplaces (`.claude-plugin/marketplace.json`, `.agents/plugins/marketplace.json`) point at it. `npm run plugin:pack` builds the Codex directory package with a bundled runtime in ignored `artifacts/codex-plugin/`; see `plugin/CODEX.md`.
 - `lib/agent-setup.js` — MCP settings and `AGENTS.md` that `coursecode create` and `coursecode agent-setup` write into course projects
 
 Changes under `template/` ship to every new course project. Keep framework-dev-only content out of it.

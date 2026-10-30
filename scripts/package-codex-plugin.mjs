@@ -9,7 +9,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outputRoot = path.join(root, 'artifacts', 'codex-plugin');
 const source = path.join(root, 'plugin');
 // Claude Code files and repository docs stay out of the Codex package
-const CLAUDE_ONLY = new Set(['.claude-plugin', '.mcp.json', 'README.md', 'CODEX.md']);
+const CLAUDE_ONLY = new Set(['.claude-plugin', '.mcp.json', 'hooks', 'README.md', 'CODEX.md']);
 const manifest = JSON.parse(fs.readFileSync(path.join(source, 'plugin.json'), 'utf8'));
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 if (manifest.version !== pkg.version) throw new Error('Keep the Codex plugin and framework package versions aligned.');

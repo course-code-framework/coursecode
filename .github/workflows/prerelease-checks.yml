@@ -27,6 +27,21 @@ jobs:
       - name: Prerelease checks
         run: npm run prerelease:check
 
+  plugin-session-check-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run the plugin session check
+        shell: pwsh
+        run: ./scripts/smoke-plugin-session-check.ps1
+
   responsive-smoke:
     runs-on: ubuntu-latest
     needs: checks

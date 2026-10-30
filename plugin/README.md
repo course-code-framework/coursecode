@@ -26,7 +26,7 @@ codex plugin add coursecode@coursecode
 
 ## Requirements
 
-[Node.js](https://nodejs.org/) 22.15 or later. If it's missing, the `setup` skill offers to install it (Homebrew or the official installer on macOS, `winget` on Windows). Nothing else needs installing first:
+[Node.js](https://nodejs.org/) 22.15 or later. If it's missing, the `setup` skill offers to install it (Homebrew or the official installer on macOS, `winget` on Windows). In Claude Code, a check at the start of each session tells the AI when Node.js is missing or too old, so it can run that skill. The check installs nothing itself and says nothing when Node.js is fine. Nothing else needs installing first:
 
 - **No global `coursecode` install.** Inside a course project the plugin runs the project's own CourseCode version. Elsewhere it runs the matching published version through `npx`.
 - **No browser setup.** Previews and screenshots use a headless copy of Chrome, Edge, Chromium, or Brave if one is installed. If none is, the first screenshot downloads Chrome Headless Shell (about 100 MB, once) into `~/.cache/puppeteer`, shared with other Puppeteer-based tools. Set `CHROME_PATH` to use a specific browser.
@@ -50,6 +50,7 @@ The preview runs at http://localhost:4173, so you can watch the course change as
 
 - **MCP server** (`coursecode`): headless preview, screenshots, navigation, interaction testing, lint, live diagnostics, builds, and catalogs of components, interactions, CSS classes, and icons. Projects the plugin creates leave out `.mcp.json` so Claude Code doesn't list each tool twice; run `npx coursecode agent-setup` in a project to add it for people who don't have the plugin.
 - **Skills**: the six workflows above. They follow the guides in each project's `framework/docs/`, so they stay in step with the framework version the course uses.
+- **Session check** (Claude Code only): a `SessionStart` hook, `hooks/check-node.cmd`, that needs no Node.js and works in `sh`, Git Bash, and PowerShell. The same file holds a shell version and a Windows batch version of the check, so update both.
 
 ## What it downloads and sends
 

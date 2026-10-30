@@ -18,7 +18,8 @@
  * FALLBACK_VERSION must match package.json and both plugin manifests
  * (tests/lib/claude-plugin.test.js checks this). Spawning node/npx from here
  * rather than from the MCP config keeps the plugin working on Windows, where npx
- * is a .cmd shim.
+ * is a .cmd shim. The minimum Node.js version in main() must match package.json
+ * engines and hooks/check-node.cmd (tests/lib/plugin-manifests.test.js checks this).
  */
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';

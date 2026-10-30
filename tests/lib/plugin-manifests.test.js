@@ -32,6 +32,38 @@ describe('Claude Code and Codex plugin', () => {
         expect(codex.args).toEqual(['${PLUGIN_ROOT}/mcp/coursecode-mcp.mjs', 'mcp']);
     });
 
+    it('keeps the launcher and the session-start check on the package.json Node.js minimum', () => {
+        const [, major, minor] = readJson('package.json').engines.node.match(/^>=(\d+)\.(\d+)\.0$/);
+        const launcher = fs.readFileSync(new URL('../../plugin/mcp/coursecode-mcp.mjs', import.meta.url), 'utf-8');
+        const check = fs.readFileSync(new URL('../../plugin/hooks/check-node.cmd', import.meta.url), 'utf-8');
+        const [batch, sh] = check.split('\nBATCH\n');
+
+        expect(launcher).toContain(`major < ${major} || (major === ${major} && minor < ${minor})`);
+        expect(batch).toContain(`if %MAJOR% GTR ${major} exit /b 0`);
+        expect(batch).toContain(`if %MAJOR% EQU ${major} if %MINOR% GEQ ${minor} exit /b 0`);
+        expect(sh).toContain(`[ "$major" -gt ${major} ] || { [ "$major" -eq ${major} ] && [ "$minor" -ge ${minor} ]; }`);
+        expect(`${batch}${sh}`.match(/Node\.js \d+\.\d+ or later/g)).toEqual(Array(2).fill(`Node.js ${major}.${minor} or later`));
+    });
+
+    it('gives both shells the same session-start message and keeps the check portable', () => {
+        const check = fs.readFileSync(new URL('../../plugin/hooks/check-node.cmd', import.meta.url), 'utf-8');
+        const [batch, sh] = check.split('\nBATCH\n');
+        const message = (text, found) => text.match(new RegExp(`^echo "?(CourseCode: .*?)"?$`, 'm'))[1].replace(found, '<found>');
+
+        expect(message(batch, '%FOUND%')).toBe(message(sh, '$found'));
+        expect(check).not.toContain('\r');
+        expect(batch).not.toMatch(/^:\w/m);
+        expect(fs.readFileSync(new URL('../../.gitattributes', import.meta.url), 'utf-8')).toContain('plugin/hooks/check-node.cmd text eol=lf');
+    });
+
+    it('checks Node.js at session start without a Cowork-blocking bin directory', () => {
+        const [entry] = readJson('plugin/hooks/hooks.json').hooks.SessionStart;
+
+        expect(entry.hooks).toEqual([{ type: 'command', command: '. "${CLAUDE_PLUGIN_ROOT}/hooks/check-node.cmd"', timeout: 10 }]);
+        expect(fs.existsSync(new URL('../../plugin/bin', import.meta.url))).toBe(false);
+        expect(fs.readFileSync(new URL('../../scripts/package-codex-plugin.mjs', import.meta.url), 'utf-8')).toMatch(/CLAUDE_ONLY = new Set\(\[[^\]]*'hooks'/);
+    });
+
     it('lists the plugin folder in both repository marketplaces', () => {
         const claude = readJson('.claude-plugin/marketplace.json');
         const codex = readJson('.agents/plugins/marketplace.json');
