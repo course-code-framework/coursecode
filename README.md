@@ -49,7 +49,7 @@ codex plugin marketplace add course-code-framework/coursecode
 codex plugin add coursecode@coursecode
 ```
 
-Then start your AI tool in an empty folder and describe the course you want.
+Then start a new chat in your AI tool in an empty folder and describe the course you want. In Codex, ask it to set up CourseCode Framework first; see the [Codex setup guide](plugin/CODEX.md#install-from-github) for connection checks and updates.
 
 The plugin needs [Node.js](https://nodejs.org/) 22.15 or later but no global `coursecode` install. If Node.js is missing, its `setup` skill offers to install it. The plugin bundles the MCP server below and six skills: setup, new-course, outline, build-slides, review, and publish. See [plugin/README.md](plugin/README.md).
 
