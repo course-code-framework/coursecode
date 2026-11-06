@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.5] - 2026-11-06
+
 ### Added
 - **Workflow skills in every project:** `coursecode create` and `coursecode agent-setup` now copy the plugin's `outline`, `build-slides`, `review`, and `publish` skills into the project as `coursecode-outline`, `coursecode-build-slides`, `coursecode-review`, and `coursecode-publish`, in `.claude/skills/` (Claude Code) and `.agents/skills/` (Codex, Cursor, VS Code). AI tools get the guided workflow without installing the plugin. Existing skill files are never overwritten, and `--plugin` skips them because the plugin provides the same skills.
 
