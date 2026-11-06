@@ -102,7 +102,7 @@ program
   .option('--blank', 'Create without example slides (clean starter)')
   .option('--no-install', 'Skip npm install')
   .option('--start', 'Start the preview server after creation')
-  .option('--plugin', 'Skip .mcp.json because the CourseCode plugin provides the Claude Code MCP server')
+  .option('--plugin', 'Skip .mcp.json and project skills because the CourseCode plugin provides them')
   .action(async (name, options) => {
     const { create } = await import('../lib/create.js');
     await create(name, options);
@@ -114,7 +114,7 @@ program
   .option('--blank', 'Create without example content (clean starter)')
   .option('--no-install', 'Skip npm install')
   .option('--start', 'Start the preview server after creation')
-  .option('--plugin', 'Skip .mcp.json because the CourseCode plugin provides the Claude Code MCP server')
+  .option('--plugin', 'Skip .mcp.json and project skills because the CourseCode plugin provides them')
   .action(async (name, options) => {
     const { create } = await import('../lib/create.js');
     await create(name || '.', { ...options, currentDirectory: true });
@@ -243,7 +243,7 @@ program
   .option('-n, --name <name>', 'Project name (default: derived from filename)')
   .option('--slides-dir <dir>', 'Use pre-exported slide images from this directory (skips PowerPoint)')
   .option('--no-install', 'Skip npm install')
-  .option('--plugin', 'Skip .mcp.json because the CourseCode plugin provides the Claude Code MCP server')
+  .option('--plugin', 'Skip .mcp.json and project skills because the CourseCode plugin provides them')
   .action(async (source, options) => {
     const { importPresentation } = await import('../lib/import.js');
     await importPresentation(source, options);
@@ -330,14 +330,14 @@ program
 // AI tool settings for an existing project
 program
   .command('agent-setup')
-  .description('Add MCP settings for Claude Code, Codex, Cursor, and VS Code, plus AGENTS.md, to this project')
-  .option('--plugin', 'Skip .mcp.json because the CourseCode plugin provides the Claude Code MCP server')
+  .description('Add MCP settings, AGENTS.md, and workflow skills for Claude Code, Codex, Cursor, and VS Code to this project')
+  .option('--plugin', 'Skip .mcp.json and project skills because the CourseCode plugin provides them')
   .action(async (options) => {
     const { validateProject } = await import('../lib/project-utils.js');
     validateProject();
     const { writeAgentSetup } = await import('../lib/agent-setup.js');
     const written = writeAgentSetup(process.cwd(), { plugin: options.plugin === true });
-    console.log(written.length ? `\n✅ Updated ${written.join(', ')}\n` : '\nAI tool settings are already in place.\n');
+    console.log(written.length ? `\n✅ Updated:\n${written.map(file => `   ${file}`).join('\n')}\n` : '\nAI tool settings are already in place.\n');
   });
 // Token generation command
 program

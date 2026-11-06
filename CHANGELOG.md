@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Workflow skills in every project:** `coursecode create` and `coursecode agent-setup` now copy the plugin's `outline`, `build-slides`, `review`, and `publish` skills into the project as `coursecode-outline`, `coursecode-build-slides`, `coursecode-review`, and `coursecode-publish`, in `.claude/skills/` (Claude Code) and `.agents/skills/` (Codex, Cursor, VS Code). AI tools get the guided workflow without installing the plugin. Existing skill files are never overwritten, and `--plugin` skips them because the plugin provides the same skills.
+
+### Changed
+- **Getting started:** The README, User Guide, and plugin docs lead with one prompt to paste into any AI tool, which runs `npx coursecode@latest create .`. The Claude Code and Codex plugin is described as optional.
+- **First-run guidance:** `coursecode create` now says to quit and restart an AI tool that is already open, so it loads the project's CourseCode tools, and the project `AGENTS.md` tells the AI what to say when the tools are missing.
+
 ## [0.4.4] - 2026-10-30
 
 ### Added
