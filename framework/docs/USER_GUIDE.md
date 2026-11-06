@@ -249,20 +249,22 @@ Start Claude Code from your course folder (or an empty folder for a new course).
 
 #### Codex
 
-Install the same plugin from this repository:
+Install the plugin from GitHub (recommended for Codex). This includes the MCP server and six guided authoring skills:
 
 ```bash
 codex plugin marketplace add course-code-framework/coursecode
 codex plugin add coursecode@coursecode
 ```
 
-Or add only the MCP server with the Codex CLI:
+After installing, start a new Codex chat in your course folder and trust it when prompted. Ask it to set up CourseCode Framework and confirm the tools respond. First-time setup needs Node.js 22.15 or later and an internet connection; local authoring, Preview, and Export need no CourseCode Cloud account. See the [Codex setup and update guide](https://github.com/course-code-framework/coursecode/blob/main/plugin/CODEX.md#install-from-github).
+
+For an MCP-only setup without the six plugin skills, new projects already contain Codex settings. Alternatively, add a standalone global server with the Codex CLI (no global Framework install required):
 
 ```bash
 codex mcp add coursecode -- npx -y coursecode mcp
 ```
 
-Start Codex from your course folder (or an empty folder for a new course).
+Start Codex from your course folder (or an empty folder for a new course). Use the plugin or the standalone global server; registering both is unnecessary.
 
 #### Claude Desktop
 

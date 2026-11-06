@@ -7,7 +7,11 @@
     "name": "Lakeside Labs LLC"
   },
   "homepage": "https://coursecodeframework.com",
+  "icon": "./.claude-plugin/icon.png",
+  "documentationUrl": "https://coursecodeframework.com/docs/",
+  "supportUrl": "https://github.com/course-code-framework/coursecode/issues",
   "privacyPolicyUrl": "https://coursecodeframework.com/privacy/",
+  "termsOfServiceUrl": "https://coursecodeframework.com/terms/",
   "repository": "https://github.com/course-code-framework/coursecode",
   "license": "MIT",
   "keywords": [

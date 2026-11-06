@@ -15,11 +15,30 @@ codex plugin marketplace add course-code-framework/coursecode
 codex plugin add coursecode@coursecode
 ```
 
-The repository's `.agents/plugins/marketplace.json` lists the `plugin/` folder. Start a Codex session in an empty folder or an existing course project and ask it to set up CourseCode, or describe the course you want.
+The repository's `.agents/plugins/marketplace.json` lists the `plugin/` folder. This is the recommended Codex installation route while public-directory access is pending; no OpenAI publishing approval is needed to use this GitHub installation.
+
+After installing, start a **new Codex chat** in an empty course folder (or an existing course project), and trust the folder when prompted. Ask:
+
+> Set up CourseCode Framework here, create the example course, show me its Preview, and export a SCORM 1.2 ZIP.
+
+The setup workflow checks Node.js and confirms a real `coursecode_workflow_status` response. A successful install command alone does not prove the MCP tools are connected. If tools are missing, quit and reopen Codex, then start a new chat in the course folder. First-time setup downloads npm dependencies and may download a headless browser. No global Framework installation or CourseCode Cloud account is required.
+
+To update the GitHub installation:
+
+```sh
+codex plugin marketplace upgrade coursecode
+codex plugin add coursecode@coursecode
+```
+
+Then start a new chat. If migrating from the old `coursecode@coursecode-local` development plugin, install the GitHub plugin first, then remove the old plugin with `codex plugin remove coursecode@coursecode-local`. If you previously added the standalone global `coursecode` MCP server, remove that redundant registration with `codex mcp remove coursecode` after installing the plugin. Keep unrelated MCP servers and project settings.
 
 The launcher runs the project's own `coursecode` dependency when there is one, so tools match the course's framework version. Otherwise it runs the CLI version pinned in the launcher through `npx`. Codex starts plugin MCP servers inside the plugin's install folder, so the launcher uses the session's `PWD`, and the MCP server switches to the workspace root Codex reports through MCP roots. `COURSECODE_PROJECT_DIR` overrides both. The MCP server never starts Preview.
 
-Without the plugin, any Codex install can use the MCP server directly: projects created with `coursecode create` include `.codex/config.toml`, and `codex mcp add coursecode -- coursecode mcp` adds it globally.
+### MCP-only alternative
+
+Without the plugin, projects created with `npx coursecode create my-course` include `.codex/config.toml` and authoring instructions. Open the course folder in Codex and trust it. For older projects, run `npx coursecode agent-setup` in that folder.
+
+For a standalone global MCP connection, use `codex mcp add coursecode -- npx -y coursecode mcp`. This does not require a global Framework installation and does not include the plugin's six skills. Choose the plugin or the standalone global connection; there is no need to register both.
 
 ## Directory package
 
@@ -82,6 +101,12 @@ Record the actual installed development version in a disposable example-course w
 Computer control and screenshots do not capture video. Start a screen recorder before this walkthrough and stop it afterwards; replay the file to check legibility, actual results, and absence of secrets. Host it at a reviewer-accessible destination and verify playback without creator-only access. Add that verified URL to `extensions.com.openai.review.demo_recording_url` and rebuild. A rehearsal script or local screenshots are not a completed demo.
 
 Only after these inputs and tests are complete should the archive be labeled ready for submission. Do not upload a skills-only listing as a temporary shortcut: the current portal does not support adding an MCP server to an existing skills-only listing.
+
+## GitHub installation verification — 2026-11-06
+
+Verified the documented GitHub marketplace and plugin install commands on macOS with published Framework 0.4.4. The installed plugin contains all six skills. Using that installed launcher in a disposable empty folder passed published-package bootstrap, course creation with project Codex settings, MCP tool discovery and workflow status, Preview navigation, correct/incorrect quiz evaluation, desktop/mobile screenshots, lint detection and recovery, and a SCORM 1.2 Export containing `imsmanifest.xml` and `index.html`.
+
+This was a CLI/MCP integration walkthrough, not a new Codex chat executing the authoring prompts. Restart Codex or open a new chat to load the refreshed skills and tools. Windows/Linux and production LMS import were not exercised in this run. Three unused example narration files produced warnings; no build/runtime error was reported. Local evidence is in ignored `artifacts/codex-plugin/github-smoke-2026-11-06/`.
 
 ## Preparation evidence — 2026-10-28
 

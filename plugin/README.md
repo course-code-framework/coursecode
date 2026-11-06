@@ -22,6 +22,8 @@ codex plugin marketplace add course-code-framework/coursecode
 codex plugin add coursecode@coursecode
 ```
 
+After installing in Codex, start a new chat in your course folder and ask it to set up CourseCode Framework. See the [Codex setup and update guide](CODEX.md#install-from-github) for first-run checks, updates, and migration from an older local installation.
+
 **Other AI tools.** You don't need a plugin. Projects created with `coursecode create` include MCP settings for Claude Code, Codex, Cursor, and VS Code, plus an `AGENTS.md` with the workflow. For any other MCP client, run `coursecode mcp`. See [Connecting AI with MCP](https://github.com/course-code-framework/coursecode/blob/main/framework/docs/USER_GUIDE.md#connecting-ai-with-mcp).
 
 ## Requirements
