@@ -74,9 +74,9 @@ describe('Claude Code and Codex plugin', () => {
         expect(readJson('plugin/plugin.json').extensions['com.openai'].onboardingSkill).toBe('./skills/setup/SKILL.md');
     });
 
-    it('keeps the plugin out of the npm package', () => {
+    it('ships only the plugin skills in the npm package, for project copies', () => {
         const { files } = readJson('package.json');
 
-        expect(files.some(entry => entry.replace(/^!/, '').startsWith('plugin'))).toBe(false);
+        expect(files.filter(entry => entry.replace(/^!/, '').startsWith('plugin'))).toEqual(['plugin/skills']);
     });
 });

@@ -2,7 +2,7 @@
 
 The plugin in `plugin/` works in both Claude Code and Codex. Codex reads `plugin.json` and `mcp.json`; Claude Code reads `.claude-plugin/plugin.json` and `.mcp.json`. Both use the same skills (setup, new-course, outline, build-slides, review, publish) and the same launcher, `mcp/coursecode-mcp.mjs`.
 
-It is not yet in OpenAI's public plugin directory. Until it is, install it from this repository.
+Install it from this repository. It is not in OpenAI's public plugin directory, and you don't need the plugin: projects created with `npx coursecode create` include Codex MCP settings and the workflow skills in `.agents/skills/`.
 
 CourseCode Framework is open source and works without Cloud. CourseCode Cloud is an optional hosted layer for deployment, licensing, analytics, and managed services.
 
@@ -36,9 +36,9 @@ The launcher runs the project's own `coursecode` dependency when there is one, s
 
 ### MCP-only alternative
 
-Without the plugin, projects created with `npx coursecode create my-course` include `.codex/config.toml` and authoring instructions. Open the course folder in Codex and trust it. For older projects, run `npx coursecode agent-setup` in that folder.
+Without the plugin, projects created with `npx coursecode create my-course` include `.codex/config.toml`, authoring instructions, and the `coursecode-outline`, `coursecode-build-slides`, `coursecode-review`, and `coursecode-publish` skills in `.agents/skills/`. Open the course folder in Codex and trust it. For older projects, run `npx coursecode agent-setup` in that folder.
 
-For a standalone global MCP connection, use `codex mcp add coursecode -- npx -y coursecode mcp`. This does not require a global Framework installation and does not include the plugin's six skills. Choose the plugin or the standalone global connection; there is no need to register both.
+For a standalone global MCP connection, use `codex mcp add coursecode -- npx -y coursecode mcp`. This does not require a global Framework installation and does not include any skills. Choose the plugin or the standalone global connection; there is no need to register both.
 
 ## Directory package
 

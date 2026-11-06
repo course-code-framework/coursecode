@@ -8,8 +8,10 @@ A complete guide to creating interactive e-learning courses with AI assistance. 
 
 1. [Getting Started](#getting-started)
    - [What You'll Need](#what-youll-need)
-   - [Installation](#installation)
-   - [Creating Your First Project](#creating-your-first-project)
+   - [Setting Up With Your AI Tool](#setting-up-with-your-ai-tool)
+   - [Setting Up Without an AI Tool](#setting-up-without-an-ai-tool)
+   - [The Claude Code and Codex Plugin (Optional)](#the-claude-code-and-codex-plugin-optional)
+   - [Creating New Files](#creating-new-files)
    - [Importing a PowerPoint (Optional)](#importing-a-powerpoint-optional)
 2. [Your Course Folder](#your-course-folder)
    - [Where Everything Lives](#where-everything-lives)
@@ -66,33 +68,67 @@ A complete guide to creating interactive e-learning courses with AI assistance. 
 
 ### What You'll Need
 
-**Required:**
-- [Node.js](https://nodejs.org/) (version 22.15 or later)
+- **An AI tool that can run commands on your computer**, such as [Claude Code](https://claude.com/claude-code), [Codex](https://developers.openai.com/codex), [Cursor](https://cursor.com/), or VS Code with GitHub Copilot. Any tool that supports MCP works. You can also use CourseCode without one; see [Setting Up Without an AI Tool](#setting-up-without-an-ai-tool).
+- **[Node.js](https://nodejs.org/) 22.15 or later.** If it's missing, your AI tool can install it for you.
 
-**Recommended:**
-- A text editor like [VS Code](https://code.visualstudio.com/) or [Notepad++](https://notepad-plus-plus.org/)
-- An AI assistant like [Claude](https://claude.ai/), [ChatGPT](https://chat.openai.com/), or [GitHub Copilot](https://github.com/features/copilot)
-- [GitHub Desktop](https://desktop.github.com/) for version control (optional)
+No CourseCode account is needed. CourseCode Framework is open source and runs on your computer. [CourseCode Cloud](#coursecode-cloud-optional) is an optional hosting service you can add later.
 
-### Installation
+### Setting Up With Your AI Tool
 
-After installing Node.js, open your terminal (Terminal on Mac, Command Prompt or PowerShell on Windows) and run:
+1. Create an empty folder for your course and start your AI tool in it. For example, run `claude` or `codex` in that folder, or open it in Cursor or VS Code.
+2. Paste this:
+
+   ```text
+   Set up a CourseCode Framework course in this folder. Check that Node.js 22.15 or later is installed and help me install it if it isn't. Then run `npx coursecode@latest create .` and tell me what to do next.
+   ```
+
+3. When it's done, quit your AI tool and start it again in the same folder, so it loads the CourseCode tools. Claude Code asks once to approve the `coursecode` server. Codex asks you to trust the folder.
+4. Describe the course you want, for example "Build a 20-minute safety course from the PDFs I'm adding to course/references". Your AI tool starts the preview at `http://localhost:4173` so you can watch the course as it builds.
+5. When the course is ready, ask your AI tool to export it for your LMS (SCORM 1.2, SCORM 2004, cmi5, or LTI 1.3), or to deploy it to [CourseCode Cloud](#coursecode-cloud-optional) for hosting, share links, and analytics. Cloud is optional.
+
+The new project contains everything your AI tool needs:
+
+- **MCP settings** for Claude Code, Codex, Cursor, and VS Code, so it can preview, screenshot, lint, and test the course. See [Connecting AI with MCP](#connecting-ai-with-mcp).
+- **An `AGENTS.md`** that explains the authoring workflow.
+- **Four workflow skills**: `coursecode-outline`, `coursecode-build-slides`, `coursecode-review`, and `coursecode-publish`, in `.claude/skills/` and `.agents/skills/`.
+
+The project starts with example slides that show what CourseCode can do. Ask your AI tool to remove them when you start your own course, or ask for a blank project in step 2 (`npx coursecode@latest create . --blank`).
+
+### Setting Up Without an AI Tool
+
+In a terminal (Terminal on Mac, PowerShell on Windows):
+
+```bash
+npx coursecode@latest create my-course
+cd my-course
+npx coursecode preview
+```
+
+Open `http://localhost:4173` in your browser. You'll see an example course that teaches you how to use CourseCode and shows what it can do. You can open the same folder in an AI tool at any time.
+
+Every command works through `npx`. For the shorter `coursecode` command used in the rest of this guide, install the CLI globally:
 
 ```bash
 npm install -g coursecode
 ```
 
-This installs CourseCode globally so you can use it from any folder.
+### The Claude Code and Codex Plugin (Optional)
 
-### Creating Your First Project
+The CourseCode plugin makes the tools available in every folder, so your AI tool can create a course before a project exists, and adds `setup` and `new-course` skills. In Claude Code it also checks Node.js at the start of each session. You don't need it: projects already include the MCP settings and workflow skills. Install it from GitHub:
 
 ```bash
-coursecode create my-course
-cd my-course
-coursecode preview
+# Claude Code
+claude plugin marketplace add course-code-framework/coursecode
+claude plugin install coursecode@coursecode
+
+# Codex
+codex plugin marketplace add course-code-framework/coursecode
+codex plugin add coursecode@coursecode
 ```
 
-Open `http://localhost:4173` in your browser. You'll see an example course that teaches you how to use CourseCode and shows what it can do.
+Then start a new session in an empty folder and describe the course you want. Projects the plugin creates leave out the Claude Code MCP settings and the project skills, because the plugin provides both. See the [plugin README](https://github.com/course-code-framework/coursecode/blob/main/plugin/README.md).
+
+### Creating New Files
 
 #### Starting Fresh
 
@@ -108,7 +144,7 @@ coursecode create my-course --blank
 coursecode clean
 ```
 
-#### Creating New Files
+#### Scaffolding Slides and Quizzes
 
 Use these commands to scaffold new files quickly:
 
@@ -230,41 +266,27 @@ Without MCP, you describe problems to your AI and paste code back and forth. Wit
 
 ### Setup
 
-**Projects you create are already set up.** `coursecode create` writes MCP settings for Claude Code (`.mcp.json`), Codex (`.codex/config.toml`), Cursor (`.cursor/mcp.json`), and VS Code (`.vscode/mcp.json`), plus an `AGENTS.md` that tells the AI tool how to work on the course. Open the project folder in any of those tools and the CourseCode tools are available. Claude Code asks once to approve the project's MCP server, and Codex reads project settings after you trust the folder. For a project created before this, run `coursecode agent-setup` in the project folder.
+**Projects you create are already set up.** `coursecode create` writes MCP settings for Claude Code (`.mcp.json`), Codex (`.codex/config.toml`), Cursor (`.cursor/mcp.json`), and VS Code (`.vscode/mcp.json`), an `AGENTS.md` that tells the AI tool how to work on the course, and four workflow skills in `.claude/skills/` and `.agents/skills/`. Start your AI tool in the project folder and the CourseCode tools are available. An AI tool that was already open when the project was created must be restarted in the folder first.
 
-Projects the CourseCode plugin creates leave out `.mcp.json`, because the plugin already runs the CourseCode server in Claude Code and a project copy would list every tool twice. To open such a project in Claude Code without the plugin, run `coursecode agent-setup`. Pass `--plugin` to `create`, `init`, `import`, or `agent-setup` to get the same behavior yourself.
-
-To start a new course from inside your AI tool, before a project exists, install the plugin for Claude Code or Codex, or add the server to your tool's settings as shown below.
+For a project created with an older version, run `npx coursecode agent-setup` in the project folder. It adds whatever is missing and never overwrites files you have changed.
 
 #### Claude Code
 
-Install the CourseCode plugin. It sets up the MCP server and adds guided skills for each stage of the workflow:
-
-```bash
-claude plugin marketplace add course-code-framework/coursecode
-claude plugin install coursecode@coursecode
-```
-
-Start Claude Code from your course folder (or an empty folder for a new course). Run `/coursecode:new-course` to begin, or just describe what you want to build.
+Run `claude` in the project folder and approve the `coursecode` server when asked. If you don't see the CourseCode tools, run `/mcp` to check the server.
 
 #### Codex
 
-Install the plugin from GitHub (recommended for Codex). This includes the MCP server and six guided authoring skills:
+Run `codex` in the project folder and trust the folder when asked, so Codex reads `.codex/config.toml`.
 
-```bash
-codex plugin marketplace add course-code-framework/coursecode
-codex plugin add coursecode@coursecode
-```
-
-After installing, start a new Codex chat in your course folder and trust it when prompted. Ask it to set up CourseCode Framework and confirm the tools respond. First-time setup needs Node.js 22.15 or later and an internet connection; local authoring, Preview, and Export need no CourseCode Cloud account. See the [Codex setup and update guide](https://github.com/course-code-framework/coursecode/blob/main/plugin/CODEX.md#install-from-github).
-
-For an MCP-only setup without the six plugin skills, new projects already contain Codex settings. Alternatively, add a standalone global server with the Codex CLI (no global Framework install required):
+To have the tools in every folder without a project, add a global server instead (no global CourseCode install needed). Use either this or the project settings, not both:
 
 ```bash
 codex mcp add coursecode -- npx -y coursecode mcp
 ```
 
-Start Codex from your course folder (or an empty folder for a new course). Use the plugin or the standalone global server; registering both is unnecessary.
+#### The plugin
+
+The [Claude Code and Codex plugin](#the-claude-code-and-codex-plugin-optional) runs the same server in every folder. Projects the plugin creates leave out `.mcp.json` and the project skills, because a project copy would list every tool and skill twice. To open such a project without the plugin, run `npx coursecode agent-setup`. Pass `--plugin` to `create`, `init`, `import`, or `agent-setup` to get the plugin behavior yourself.
 
 #### Claude Desktop
 
@@ -967,6 +989,11 @@ Audio files are generated to `course/assets/audio/`. A slide plays its narration
 ---
 
 ## Troubleshooting
+
+**My AI tool doesn't have the CourseCode tools**
+- Quit the AI tool and start it again in the course folder (the one that contains `course/`). AI tools load project settings only when they start.
+- Claude Code: approve the `coursecode` server when asked, or run `/mcp` to check it. Codex: trust the folder.
+- Run `npm install` if `node_modules/` is missing, and `npx coursecode agent-setup` if the project has no `.mcp.json` or `.codex/config.toml`.
 
 **The preview won't start**
 - Make sure you're in your project folder (where `course/` exists)

@@ -72,7 +72,9 @@ describe('formatNextSteps', () => {
   it('sends new projects to an AI tool and keeps the preview command', () => {
     const message = formatNextSteps({ directoryName: 'my-course' });
 
+    expect(message).toContain('the my-course folder');
     expect(message).toContain('cd my-course\n      claude');
+    expect(message).toContain('quit and started again');
     expect(message).toContain('Cursor or VS Code');
     expect(message).toContain('npx coursecode preview');
   });
@@ -142,6 +144,7 @@ describe('create', () => {
 
     const projectDir = path.join(tempDir, 'plugin-course');
     expect(fs.existsSync(path.join(projectDir, '.mcp.json'))).toBe(false);
+    expect(fs.existsSync(path.join(projectDir, '.claude', 'skills'))).toBe(false);
     expect(fs.existsSync(path.join(projectDir, '.codex', 'config.toml'))).toBe(true);
     expect(fs.existsSync(path.join(projectDir, 'AGENTS.md'))).toBe(true);
   });

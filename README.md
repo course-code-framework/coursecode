@@ -18,7 +18,7 @@ Framework documentation lives at [coursecodeframework.com/docs](https://courseco
 
 ## Features
 
-- **Works with your AI tool**: A plugin for Claude Code and Codex, and MCP settings for Claude Code, Codex, Cursor, and VS Code in every new project. Any other MCP client can run `coursecode mcp`
+- **Works with your AI tool**: Every new project includes MCP settings and workflow skills for Claude Code, Codex, Cursor, and VS Code. Any other MCP client can run `coursecode mcp`, and an optional plugin is available for Claude Code and Codex
 - **No coding required to start**: Describe what you want and let AI help build slides, interactions, and structure
 - **Course modernization**: Use existing SCORM courses, PowerPoints, PDFs, Word docs, scripts, and SME notes as source material for upgraded courses
 - **LMS integration**: SCORM 1.2, SCORM 2004, and cmi5 packaging, plus an LTI 1.3 browser contract for trusted server-backed launches
@@ -35,9 +35,34 @@ Framework documentation lives at [coursecodeframework.com/docs](https://courseco
 
 ## Quick Start
 
-### With the plugin (recommended)
+You need [Node.js](https://nodejs.org/) 22.15 or later and an AI tool that can run commands, such as Claude Code, Codex, Cursor, or VS Code with GitHub Copilot. Your AI tool can install Node.js for you.
 
-The Claude Code and Codex plugin guides your AI tool from a new project to an LMS package, and it works before a project exists. It is not yet in the Claude Code or Codex plugin directories, so install it from this repository:
+1. Create an empty folder for your course and start your AI tool in it.
+2. Paste this:
+
+   ```text
+   Set up a CourseCode Framework course in this folder. Check that Node.js 22.15 or later is installed and help me install it if it isn't. Then run `npx coursecode@latest create .` and tell me what to do next.
+   ```
+
+3. When it's done, quit your AI tool and start it again in the same folder so it loads the CourseCode tools. Claude Code asks once to approve the `coursecode` server; Codex asks you to trust the folder.
+4. Describe the course you want.
+5. When the course is ready, ask your AI tool to export it for your LMS (SCORM 1.2, SCORM 2004, cmi5, or LTI 1.3), or to deploy it to [CourseCode Cloud](https://coursecodecloud.com) for hosting, share links, and analytics. Cloud is optional.
+
+The project includes MCP settings for Claude Code, Codex, Cursor, and VS Code, an `AGENTS.md` with the authoring workflow, and four workflow skills (outline, build slides, review, publish). Nothing else needs installing, and no account is required.
+
+### Without an AI tool
+
+```bash
+npx coursecode@latest create my-course
+cd my-course
+npx coursecode preview
+```
+
+Open `http://localhost:4173` to view and edit your course. The example course included with every new project is a complete guide to using CourseCode.
+
+### Claude Code and Codex plugin (optional)
+
+The plugin runs the CourseCode tools in every folder, so your AI tool can start a course before a project exists. You don't need it, because projects already include the tools and skills. Install it from this repository:
 
 ```bash
 # Claude Code
@@ -49,32 +74,7 @@ codex plugin marketplace add course-code-framework/coursecode
 codex plugin add coursecode@coursecode
 ```
 
-Then start a new chat in your AI tool in an empty folder and describe the course you want. In Codex, ask it to set up CourseCode Framework first; see the [Codex setup guide](plugin/CODEX.md#install-from-github) for connection checks and updates.
-
-The plugin needs [Node.js](https://nodejs.org/) 22.15 or later but no global `coursecode` install. If Node.js is missing, its `setup` skill offers to install it. The plugin bundles the MCP server below and six skills: setup, new-course, outline, build-slides, review, and publish. See [plugin/README.md](plugin/README.md).
-
-### With npx
-
-With [Node.js](https://nodejs.org/) 22.15 or later installed, create a project:
-
-```bash
-npx coursecode create my-course
-```
-
-Open the `my-course` folder in Claude Code, Codex, Cursor, or VS Code and describe the course you want. The project includes MCP settings for each of those tools and an `AGENTS.md` with the authoring workflow, so the AI tool connects on its own. Claude Code asks once to approve the project's MCP server; Codex reads project settings after you trust the folder.
-
-To preview without an AI tool:
-
-```bash
-cd my-course
-npx coursecode preview
-```
-
-Open `http://localhost:4173` to view and edit your course.
-
-The example course included with every new project is a complete guide to using CourseCode.
-
-Start with the [User Guide](framework/docs/USER_GUIDE.md) for a complete walkthrough.
+See [plugin/README.md](plugin/README.md). Start with the [User Guide](framework/docs/USER_GUIDE.md) for a complete walkthrough.
 
 ---
 
@@ -100,7 +100,7 @@ Also recommended:
 
 CourseCode includes a built-in [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server. When your AI tool supports MCP, it connects directly to your course project, so you don't have to paste files into a chat.
 
-New projects already include MCP settings for Claude Code (`.mcp.json`), Codex (`.codex/config.toml`), Cursor (`.cursor/mcp.json`), and VS Code (`.vscode/mcp.json`). To add them to an existing project, run `coursecode agent-setup`. Any other MCP client can start the server with:
+New projects already include MCP settings for Claude Code (`.mcp.json`), Codex (`.codex/config.toml`), Cursor (`.cursor/mcp.json`), and VS Code (`.vscode/mcp.json`), plus workflow skills in `.claude/skills/` and `.agents/skills/`. To add them to an existing project, run `coursecode agent-setup`. Any other MCP client can start the server with:
 
 ```bash
 coursecode mcp
@@ -243,7 +243,7 @@ Other ways to share it:
 | `coursecode export html` | Create one shareable course file that opens without an LMS or server |
 | `coursecode convert` | Convert PDFs, Word, PowerPoint to markdown |
 | `coursecode mcp` | Start the MCP server for AI integration |
-| `coursecode agent-setup` | Add MCP settings for Claude Code, Codex, Cursor, and VS Code, plus `AGENTS.md`, to an existing project |
+| `coursecode agent-setup` | Add MCP settings, `AGENTS.md`, and workflow skills for Claude Code, Codex, Cursor, and VS Code to an existing project |
 | `coursecode lint` | Validate course structure and content |
 | `coursecode build` | Build a package for LMS upload |
 | `coursecode narration` | Generate audio narration from text |

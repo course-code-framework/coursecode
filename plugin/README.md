@@ -2,9 +2,11 @@
 
 Build LMS-ready e-learning courses (SCORM 1.2, SCORM 2004, cmi5, LTI 1.3) by describing them to your AI coding tool. The plugin bundles the CourseCode MCP server and six skills that walk through the authoring workflow. The same plugin folder works in Claude Code and Codex.
 
+The plugin is optional. Every project created with `npx coursecode create` already includes the MCP settings, an `AGENTS.md`, and the four project-stage skills (outline, build-slides, review, publish), so any AI tool works without it; see the [Quick Start](https://github.com/course-code-framework/coursecode#quick-start). The plugin adds the tools in every folder, so your AI tool can create a course before a project exists, plus the `setup` and `new-course` skills and, in Claude Code, a Node.js check at session start.
+
 ## Install
 
-The plugin is not yet listed in the Claude Code or Codex plugin directories. Install it from this GitHub repository.
+Install it from this GitHub repository.
 
 **Claude Code**
 
@@ -24,7 +26,7 @@ codex plugin add coursecode@coursecode
 
 After installing in Codex, start a new chat in your course folder and ask it to set up CourseCode Framework. See the [Codex setup and update guide](CODEX.md#install-from-github) for first-run checks, updates, and migration from an older local installation.
 
-**Other AI tools.** You don't need a plugin. Projects created with `coursecode create` include MCP settings for Claude Code, Codex, Cursor, and VS Code, plus an `AGENTS.md` with the workflow. For any other MCP client, run `coursecode mcp`. See [Connecting AI with MCP](https://github.com/course-code-framework/coursecode/blob/main/framework/docs/USER_GUIDE.md#connecting-ai-with-mcp).
+**Other AI tools.** You don't need a plugin. Projects created with `coursecode create` include MCP settings for Claude Code, Codex, Cursor, and VS Code, an `AGENTS.md` with the workflow, and the workflow skills. For any other MCP client, run `coursecode mcp`. See [Connecting AI with MCP](https://github.com/course-code-framework/coursecode/blob/main/framework/docs/USER_GUIDE.md#connecting-ai-with-mcp).
 
 ## Requirements
 
@@ -50,8 +52,8 @@ The preview runs at http://localhost:4173, so you can watch the course change as
 
 ## What's included
 
-- **MCP server** (`coursecode`): headless preview, screenshots, navigation, interaction testing, lint, live diagnostics, builds, and catalogs of components, interactions, CSS classes, and icons. Projects the plugin creates leave out `.mcp.json` so Claude Code doesn't list each tool twice; run `npx coursecode agent-setup` in a project to add it for people who don't have the plugin.
-- **Skills**: the six workflows above. They follow the guides in each project's `framework/docs/`, so they stay in step with the framework version the course uses.
+- **MCP server** (`coursecode`): headless preview, screenshots, navigation, interaction testing, lint, live diagnostics, builds, and catalogs of components, interactions, CSS classes, and icons. Projects the plugin creates leave out `.mcp.json` and the project skills so Claude Code doesn't list each tool and skill twice; run `npx coursecode agent-setup` in a project to add them for people who don't have the plugin.
+- **Skills**: the six workflows above. They follow the guides in each project's `framework/docs/`, so they stay in step with the framework version the course uses. `coursecode create` copies `outline`, `build-slides`, `review`, and `publish` into projects as `coursecode-*` skills, so edit them here, not in a project.
 - **Session check** (Claude Code only): a `SessionStart` hook, `hooks/check-node.cmd`, that needs no Node.js and works in `sh`, Git Bash, and PowerShell. The same file holds a shell version and a Windows batch version of the check, so update both.
 
 ## What it downloads and sends

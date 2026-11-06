@@ -9,7 +9,7 @@ description: Build or edit CourseCode slides, interactions, assessments, and cou
 
 1. Read `framework/docs/COURSE_AUTHORING_GUIDE.md` in full. It defines the slide format, interactions, assessments, engagement tracking, styling, and config. Do not guess framework APIs.
 2. Read `course/COURSE_OUTLINE.md`. If it does not exist or is not approved, use the `outline` skill first. For small edits to an existing course, the outline is optional.
-3. Call `coursecode_workflow_status` and make sure the preview is running (see the `new-course` skill).
+3. Call `coursecode_workflow_status` and make sure the preview is running. Start it once as a background process with `npx coursecode preview` (http://localhost:4173), and reuse it if a runtime tool says it is already running.
 4. Example slides: if `course/slides/` still has `example-*` files and the author is building their own course, ask before running `npx coursecode clean`. It deletes the examples and resets `course-config.js` to a minimal starter.
 
 ## Rules that the linter will enforce

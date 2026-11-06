@@ -15,6 +15,7 @@
     "!framework/dist/**",
     "schemas",
     "template",
+    "plugin/skills",
     "!template/**/.gitkeep",
     "!template/.narration-cache.json",
     "!template/**/.narration-cache.json",
